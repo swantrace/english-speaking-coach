@@ -1,0 +1,57 @@
+services:
+  # LiveKit Server for local development
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: coach-livekit
+    command: --dev --bind 0.0.0.0
+    ports:
+      - "7880:7880" # WebRTC signaling
+      - "7881:7881" # HTTP API
+      - "50000-50020:50000-50020/udp" # RTP/UDP ports (reduced for local dev)
+    networks:
+      - agent_network
+
+  # MinIO for S3-compatible object storage (local development)
+  minio:
+    image: minio/minio:latest
+    container_name: coach-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agent_network
+
+  # Redis for BullMQ worker job queue
+  redis:
+    image: redis:7-alpine
+    container_name: coach-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agent_network
+
+volumes:
+  minio_data:
+  redis_data:
+
+networks:
+  agent_network:
+    driver: bridge

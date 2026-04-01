@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && bun build ./src/api.ts ./src/worker.ts --outdir ./dist --target bun",
+    "dev:api": "bun run --hot ./src/api.ts",
+    "dev:worker": "bun run --hot ./src/worker.ts",
+    "start:api": "bun run ./src/api.ts",
+    "start:worker": "bun run ./src/worker.ts"
+  },
+  "dependencies": {
+    "@english-coach/database": "workspace:*",
+    "bullmq": "^5.61.2",
+    "hono": "^4.10.4",
+    "ioredis": "^5.8.2"
+  },
+  "devDependencies": {
+    "@english-coach/typescript-config": "workspace:*",
+    "@types/bun": "^1.2.21",
+    "eslint": "^8.57.0",
+    "typescript": "5.5.4"
+  }
+}

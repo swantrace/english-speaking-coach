@@ -1,0 +1,9 @@
+{
+  "extends": "@english-coach/typescript-config/bun.json",
+  "include": [
+    "src"
+  ],
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
+}

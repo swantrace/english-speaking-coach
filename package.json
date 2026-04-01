@@ -3,13 +3,23 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f",
+    "dev:backend:api": "turbo run dev:api --filter=backend",
+    "dev:backend:worker": "turbo run dev:worker --filter=backend",
+    "dev:backend": "concurrently -k -n api,worker -c blue,magenta \"pnpm dev:backend:api\" \"pnpm dev:backend:worker\"",
+    "dev:full": "pnpm infra:up && concurrently -k -n web,api,worker -c cyan,blue,magenta \"pnpm --filter web dev\" \"pnpm dev:backend:api\" \"pnpm dev:backend:worker\"",
+    "db:generate": "turbo run db:generate --filter=@english-coach/database",
+    "db:push": "turbo run db:push --filter=@english-coach/database",
     "format-and-lint": "biome check .",
     "format-and-lint:fix": "biome check . --write"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.10",
+    "concurrently": "^9.2.1",
     "turbo": "^2.9.3"
   },
-  "packageManager": "pnpm@8.15.6",
-  "name": "with-vite-react"
+  "packageManager": "pnpm@10.30.3",
+  "name": "english-speaking-coach"
 }
