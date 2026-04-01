@@ -1,0 +1,39 @@
+{
+  "name": "agent",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "build:watch": "vite build --watch",
+    "clean": "rm -rf dist",
+    "dev": "pnpm run build && pnpm exec concurrently -k -n build,agent -c yellow,green \"pnpm run build:watch\" \"pnpm exec nodemon --watch dist --ext js,mjs --signal SIGTERM --exec 'node dist/main.js dev'\"",
+    "download-files": "pnpm run build && node dist/main.js download-files",
+    "start": "pnpm run build && node dist/main.js start",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.0.46",
+    "@livekit/agents-plugin-cartesia": "^1.0.46",
+    "@livekit/agents-plugin-deepgram": "^1.0.46",
+    "@livekit/agents-plugin-livekit": "^1.0.46",
+    "@livekit/agents-plugin-openai": "^1.0.46",
+    "@livekit/agents-plugin-silero": "^1.0.46",
+    "@livekit/noise-cancellation-node": "^0.1.9",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.10",
+    "@types/node": "^24.12.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  }
+}

@@ -1,3 +1,11 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - apps/*
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@ffmpeg-installer/linux-x64'
+  - esbuild
+  - msgpackr-extract
+  - onnxruntime-node
+  - protobufjs
+  - sharp

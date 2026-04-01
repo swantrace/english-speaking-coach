@@ -1,0 +1,35 @@
+{
+  "servers": {
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "ai-elements": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://registry.ai-sdk.dev/api/mcp"]
+    },
+    "livekit": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://docs.livekit.io/mcp"]
+    },
+    "drizzle": {
+      "command": "npx",
+      "args": ["github:defrex/drizzle-mcp", "./packages/database/drizzle.config.ts"]
+    },
+    "bullmq": {
+      "command": "npx",
+      "args": ["-y", "@adamhancock/bullmq-mcp"],
+      "env": {
+        "REDIS_URL": "redis://localhost:6379"
+      }
+    }
+  }
+}
