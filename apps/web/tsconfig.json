@@ -1,8 +1,12 @@
 {
-  "extends": "@repo/typescript-config/vite.json",
+  "extends": "@english-coach/typescript-config/vite.json",
   "include": ["src"],
   "compilerOptions": {
+    "baseUrl": ".",
     "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "strictNullChecks": true
   }
 }

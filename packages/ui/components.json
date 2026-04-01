@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "radix-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@english-coach/ui/components",
+    "hooks": "@english-coach/ui/hooks",
+    "lib": "@english-coach/ui/lib",
+    "utils": "@english-coach/ui/lib/utils",
+    "ui": "@english-coach/ui/components"
+  }
+}

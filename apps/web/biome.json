@@ -1,0 +1,11 @@
+{
+  "extends": "//",
+  "linter": {
+    "domains": {
+      "react": "recommended"
+    }
+  },
+    "files":{
+    "includes": ["!dist"]
+  }
+}

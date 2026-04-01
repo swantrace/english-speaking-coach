@@ -1,6 +1,6 @@
 {
-  "extends": "@repo/typescript-config/react-library.json",
-  "include": ["."],
+  "extends": "@english-coach/typescript-config/react-library.json",
+  "include": ["index.ts", "src"],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "strictNullChecks": true
