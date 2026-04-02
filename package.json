@@ -2,11 +2,11 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "test": "turbo run test",
     "dev": "turbo run dev",
     "dev:agent": "turbo run dev --filter=agent",
     "dev:agent:docker": "docker compose --profile agent up agent",
     "agent:download-files": "pnpm --filter agent download-files",
-    "test:agent": "pnpm --filter agent test",
     "infra:up": "docker compose up -d",
     "infra:up:agent": "docker compose --profile agent up -d",
     "infra:down": "docker compose down",
