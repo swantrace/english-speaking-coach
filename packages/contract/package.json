@@ -1,0 +1,22 @@
+{
+  "name": "@english-coach/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./job-events": "./src/job-events.ts",
+    "./scenario-generate": "./src/scenario-generate.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@english-coach/typescript-config": "workspace:*",
+    "eslint": "^8.57.0",
+    "typescript": "5.5.4"
+  }
+}

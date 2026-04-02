@@ -1,7 +1,7 @@
 import "dotenv/config";
 
-import { defineConfig } from "drizzle-kit";
 import { fileURLToPath } from "node:url";
+import { defineConfig } from "drizzle-kit";
 
 const defaultDatabasePath = fileURLToPath(new URL("../../data/coach.sqlite", import.meta.url));
 

@@ -9,13 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@english-coach/contract": "workspace:*",
     "@english-coach/ui": "workspace:*",
     "@tanstack/react-query": "5.96.1",
     "@tanstack/react-router": "1.168.10",
     "@tanstack/react-router-devtools": "1.166.11",
     "@tanstack/router-plugin": "1.167.12",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@english-coach/typescript-config": "workspace:*",

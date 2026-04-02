@@ -17,7 +17,7 @@ mkdirSync(dirname(databasePath), { recursive: true });
 export const sqlite = new Database(databasePath);
 export const db = drizzle({ client: sqlite, schema });
 
-export const { jobRuns } = schema;
+export const { submissionJobs, submissions } = schema;
 
 let migrated = false;
 
