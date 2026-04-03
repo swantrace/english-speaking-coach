@@ -11,13 +11,8 @@ import {
   scenarioGenerateUpdatedEvent,
 } from "@english-coach/contract/scenario-generate";
 import { useSyncExternalStore } from "react";
+import { apiBaseUrl } from "./api-base-url";
 import { createJobEventsStore } from "./job-events-store";
-
-type ScenarioGenerateImportMetaEnv = ImportMetaEnv & {
-  readonly VITE_API_BASE_URL?: string;
-};
-
-const apiBaseUrl = (import.meta.env as ScenarioGenerateImportMetaEnv).VITE_API_BASE_URL ?? "http://localhost:3001";
 
 export const scenarioGenerateStore = createJobEventsStore<
   ScenarioGenerateSubmissionItem,

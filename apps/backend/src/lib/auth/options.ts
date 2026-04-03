@@ -3,17 +3,23 @@ import type { BetterAuthOptions } from "better-auth";
 export const authTrustedOrigins = ["http://localhost:5173", "https://english-speaking-coach.com"];
 
 const isProduction = process.env.NODE_ENV === "production";
+const localCookieAttributes = {
+  sameSite: "lax",
+  secure: false,
+} as const;
+
+const productionCookieAttributes = {
+  sameSite: "none",
+  secure: true,
+} as const;
 
 export function createAuthOptions(database: BetterAuthOptions["database"]): BetterAuthOptions {
   return {
     advanced: {
       crossSubDomainCookies: {
-        enabled: true,
+        enabled: isProduction,
       },
-      defaultCookieAttributes: {
-        sameSite: "none",
-        secure: isProduction,
-      },
+      defaultCookieAttributes: isProduction ? productionCookieAttributes : localCookieAttributes,
       useSecureCookies: isProduction,
     },
     appName: "English Speaking Coach",

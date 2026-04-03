@@ -12,6 +12,7 @@ import {
   scenarioGenerateProgressChannel,
   scenarioGenerateQueue,
   scenarioGenerateUpdatedEvent,
+  scenarioGenerateWorker,
 } from "./lib/queues/scenario.generate";
 import { createSubscriberRedisConnection } from "./lib/redis";
 
@@ -36,9 +37,14 @@ function parseSseEvents(payload: string) {
 
 async function readScenarioEventsUntil(
   eventsUrl: string,
+  sessionCookie: string,
   predicate: (event: { data: ScenarioGenerateJobUpdate | null; event?: string; id?: string }) => boolean,
 ) {
-  const response = await app.request(`http://localhost${eventsUrl}`);
+  const response = await app.request(`http://localhost${eventsUrl}`, {
+    headers: {
+      Cookie: sessionCookie,
+    },
+  });
 
   expect(response.status).toBe(200);
   expect(response.body).toBeTruthy();
@@ -103,10 +109,42 @@ function waitForMessage(
   });
 }
 
+async function signUpAndCreateSession() {
+  const email = `coach-${Date.now()}@example.com`;
+  const password = "password1234";
+
+  const signUpResponse = await app.request("http://localhost/api/auth/sign-up/email", {
+    body: JSON.stringify({
+      email,
+      name: "Coach Tester",
+      password,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+      origin: "http://localhost:5173",
+    },
+    method: "POST",
+  });
+
+  expect(signUpResponse.status).toBe(200);
+
+  const setCookie = signUpResponse.headers.get("set-cookie");
+
+  expect(setCookie).toBeTruthy();
+
+  if (!setCookie) {
+    throw new Error("Expected Better Auth sign-up response to set a session cookie");
+  }
+
+  return setCookie;
+}
+
 describe("scenario generation integration", () => {
   const subscriber = createSubscriberRedisConnection("scenario-test");
 
   beforeAll(async () => {
+    await scenarioGenerateQueue.waitUntilReady();
+    await scenarioGenerateWorker.waitUntilReady();
     await scenarioGenerateQueue.drain();
     await scenarioGenerateQueue.clean(0, 1000, "completed");
     await scenarioGenerateQueue.clean(0, 1000, "failed");
@@ -121,7 +159,29 @@ describe("scenario generation integration", () => {
   });
 
   test("handles pubsub, batch submissions, enqueue failures, and failed SSE snapshots", async () => {
+    const sessionCookie = await signUpAndCreateSession();
+
     await subscriber.subscribe(scenarioGenerateProgressChannel);
+
+    const unauthorizedResponse = await app.request(`http://localhost${scenarioGenerateSubmitPath}`, {
+      body: JSON.stringify({
+        items: [
+          {
+            message: "anonymous request",
+            queuedAt: new Date().toISOString(),
+          },
+        ],
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(unauthorizedResponse.status).toBe(401);
+    await expect(unauthorizedResponse.json()).resolves.toEqual({
+      error: "Authentication required",
+    });
 
     const jobId = `pubsub-test-${Date.now()}`;
     const expectedMessage = waitForMessage(subscriber, (message) => message.jobId === jobId);
@@ -160,6 +220,7 @@ describe("scenario generation integration", () => {
         ],
       }),
       headers: {
+        Cookie: sessionCookie,
         "Content-Type": "application/json",
       },
       method: "POST",
@@ -214,6 +275,7 @@ describe("scenario generation integration", () => {
 
     const sseEvents = await readScenarioEventsUntil(
       generateBody.eventsUrl,
+      sessionCookie,
       (event) =>
         event.event === scenarioGenerateUpdatedEvent &&
         event.data?.jobId === queuedJobId &&
@@ -249,6 +311,7 @@ describe("scenario generation integration", () => {
           ],
         }),
         headers: {
+          Cookie: sessionCookie,
           "Content-Type": "application/json",
         },
         method: "POST",
@@ -290,6 +353,7 @@ describe("scenario generation integration", () => {
         ],
       }),
       headers: {
+        Cookie: sessionCookie,
         "Content-Type": "application/json",
       },
       method: "POST",
@@ -307,6 +371,7 @@ describe("scenario generation integration", () => {
 
     const liveEvents = await readScenarioEventsUntil(
       failedGenerateBody.eventsUrl,
+      sessionCookie,
       (event) =>
         event.event === scenarioGenerateUpdatedEvent &&
         event.data?.jobId === failedJobId &&
@@ -325,6 +390,7 @@ describe("scenario generation integration", () => {
 
     const snapshotEvents = await readScenarioEventsUntil(
       failedGenerateBody.eventsUrl,
+      sessionCookie,
       (event) =>
         event.event === scenarioGenerateUpdatedEvent &&
         event.data?.jobId === failedJobId &&
@@ -348,5 +414,5 @@ describe("scenario generation integration", () => {
         submissionId: generateBody.submissionId,
       }),
     ).resolves.toHaveLength(0);
-  }, 30000);
+  }, 60000);
 });

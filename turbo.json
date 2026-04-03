@@ -14,6 +14,12 @@
       "cache": false,
       "outputs": ["drizzle/**"]
     },
+    "db:clear": {
+      "cache": false
+    },
+    "db:clear:app": {
+      "cache": false
+    },
     "db:push": {
       "cache": false
     },

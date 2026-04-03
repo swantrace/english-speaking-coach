@@ -2,7 +2,6 @@
   "extends": "@english-coach/typescript-config/vite.json",
   "include": ["src"],
   "compilerOptions": {
-    "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"]

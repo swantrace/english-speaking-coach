@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/bun-sqlite";
@@ -9,27 +9,25 @@ import * as schema from "./schema";
 
 const defaultDatabasePath = fileURLToPath(new URL("../../../data/coach.sqlite", import.meta.url));
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
+const databasePath = process.env.DATABASE_PATH ?? defaultDatabasePath;
 
-export const databasePath = process.env.DATABASE_PATH ?? defaultDatabasePath;
+function removeIfExists(path: string) {
+  rmSync(path, { force: true });
+}
 
 mkdirSync(dirname(databasePath), { recursive: true });
 
-export const sqlite = new Database(databasePath);
+removeIfExists(databasePath);
+removeIfExists(`${databasePath}-wal`);
+removeIfExists(`${databasePath}-shm`);
 
+const sqlite = new Database(databasePath);
 sqlite.exec("PRAGMA journal_mode = WAL;");
 sqlite.exec("PRAGMA busy_timeout = 5000;");
 
-export const db = drizzle({ client: sqlite, schema });
+const db = drizzle({ client: sqlite, schema });
 
-export const { submissionJobs, submissions } = schema;
+migrate(db, { migrationsFolder });
+sqlite.close();
 
-let migrated = false;
-
-export function migrateDatabase() {
-  if (migrated) {
-    return;
-  }
-
-  migrate(db, { migrationsFolder });
-  migrated = true;
-}
+console.log(`Cleared database and re-applied migrations at ${databasePath}`);

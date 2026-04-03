@@ -12,9 +12,9 @@ import {
   scenarioGenerateSubmitPath,
 } from "@english-coach/contract/scenario-generate";
 import { databasePath, migrateDatabase } from "@english-coach/database";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
-import { auth } from "./lib/auth";
+import { auth, type Session } from "./lib/auth";
 import { authTrustedOrigins } from "./lib/auth/options";
 import {
   createScenarioGenerateSubmission,
@@ -68,10 +68,36 @@ function toScenarioGeneratePayload(
   };
 }
 
+type AppVariables = {
+  session: Session["session"] | null;
+  user: Session["user"] | null;
+};
+
+type AppContext = Context<{ Variables: AppVariables }>;
+
+async function getRequestSession(request: Request) {
+  return auth.api.getSession({
+    headers: request.headers,
+  });
+}
+
+function requireAuth(context: AppContext) {
+  if (!context.get("session") || !context.get("user")) {
+    return context.json(
+      {
+        error: "Authentication required",
+      },
+      401,
+    );
+  }
+
+  return null;
+}
+
 migrateDatabase();
 void scenarioGenerateWorker;
 
-export const app = new Hono();
+export const app = new Hono<{ Variables: AppVariables }>();
 const port = Number(process.env.PORT ?? 3001);
 
 app.use(
@@ -86,6 +112,41 @@ app.use(
   }),
 );
 
+app.use("*", async (context, next) => {
+  const session = await getRequestSession(context.req.raw);
+
+  if (!session) {
+    context.set("session", null);
+    context.set("user", null);
+    await next();
+    return;
+  }
+
+  context.set("session", session.session);
+  context.set("user", session.user);
+  await next();
+});
+
+app.use("/api/scenarios/*", async (context, next) => {
+  const response = requireAuth(context);
+
+  if (response) {
+    return response;
+  }
+
+  await next();
+});
+
+app.use("/api/session", async (context, next) => {
+  const response = requireAuth(context);
+
+  if (response) {
+    return response;
+  }
+
+  await next();
+});
+
 app.on(["GET", "POST"], "/api/auth/*", (context) => {
   return auth.handler(context.req.raw);
 });
@@ -97,6 +158,13 @@ app.get("/health", (context) => {
     queue: scenarioGenerateQueueName,
     service: "backend-api",
     status: "ok",
+  });
+});
+
+app.get("/api/session", (context) => {
+  return context.json({
+    session: context.get("session"),
+    user: context.get("user"),
   });
 });
 

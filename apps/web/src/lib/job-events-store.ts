@@ -121,10 +121,18 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
     eventSource = source;
 
     source.addEventListener("open", () => {
+      if (source !== eventSource) {
+        return;
+      }
+
       setState({ connectionState: "open", lastError: undefined });
     });
 
     source.addEventListener(jobEventsConnectedEvent, (event) => {
+      if (source !== eventSource) {
+        return;
+      }
+
       if (!(event instanceof MessageEvent)) {
         return;
       }
@@ -144,6 +152,10 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
     });
 
     source.addEventListener(jobEventsHeartbeatEvent, (event) => {
+      if (source !== eventSource) {
+        return;
+      }
+
       if (!(event instanceof MessageEvent)) {
         return;
       }
@@ -163,6 +175,10 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
     });
 
     source.addEventListener(options.eventName, (event) => {
+      if (source !== eventSource) {
+        return;
+      }
+
       if (!(event instanceof MessageEvent)) {
         return;
       }
@@ -183,7 +199,11 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
     });
 
     source.addEventListener("error", () => {
-      const nextConnectionState = source.readyState === EventSource.CLOSED ? "closed" : "error";
+      if (source !== eventSource) {
+        return;
+      }
+
+      const nextConnectionState = source.readyState === EventSource.CLOSED ? "closed" : "connecting";
 
       if (nextConnectionState === "closed") {
         eventSource = null;
@@ -191,7 +211,7 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
 
       setState({
         connectionState: nextConnectionState,
-        lastError: "Job events connection interrupted",
+        lastError: undefined,
       });
     });
   };
@@ -227,6 +247,14 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
         },
         method: "POST",
       });
+
+      if (!response.ok) {
+        const failurePayload = (await response.json().catch(() => null)) as { error?: unknown } | null;
+        const failureMessage =
+          typeof failurePayload?.error === "string" ? failurePayload.error : "Failed to submit job request";
+
+        throw new Error(failureMessage);
+      }
 
       const payload = (await response.json()) as unknown;
       const parsedResponse = options.submissionResponseSchema.safeParse(payload);

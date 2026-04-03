@@ -24,6 +24,6 @@
     "@english-coach/typescript-config": "workspace:*",
     "@types/bun": "^1.2.21",
     "eslint": "^8.57.0",
-    "typescript": "5.5.4"
+    "typescript": "5.9.3"
   }
 }

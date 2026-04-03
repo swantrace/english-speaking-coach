@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
+    "db:clear:app": "bun run ./src/clear-app.ts",
+    "db:clear": "bun run ./src/clear.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
@@ -22,6 +24,6 @@
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.6",
     "eslint": "^8.57.0",
-    "typescript": "5.5.4"
+    "typescript": "5.9.3"
   }
 }
