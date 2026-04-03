@@ -23,6 +23,10 @@ export function getRequiredEnv(name: string, env: NodeJS.ProcessEnv = process.en
   throw new Error(`Missing required environment variable: ${name}`);
 }
 
+export function getBackendBaseUrl(env: NodeJS.ProcessEnv = process.env) {
+  return (env.BACKEND_BASE_URL ?? env.API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+}
+
 export function resolveAgentModelProvider(env: NodeJS.ProcessEnv = process.env): AgentModelProvider {
   const configuredProvider = env.AGENT_MODEL_PROVIDER?.trim().toLowerCase();
 
@@ -36,19 +40,25 @@ export function resolveAgentModelProvider(env: NodeJS.ProcessEnv = process.env):
 }
 
 export function validateAgentEnvironment(env: NodeJS.ProcessEnv = process.env) {
-  const provider = resolveAgentModelProvider(env);
+  const missingLiveKitVariables = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"].filter(
+    (name) => !env[name]?.trim(),
+  );
 
-  if (provider === "livekit") {
-    return;
+  if (missingLiveKitVariables.length > 0) {
+    throw new Error(`Agent requires the following environment variables: ${missingLiveKitVariables.join(", ")}`);
   }
 
-  const missingVariables = ["OPENAI_API_KEY"].filter((name) => !env[name]?.trim());
+  const provider = resolveAgentModelProvider(env);
+
+  const missingVariables = ["API_TOKEN"].filter((name) => !env[name]?.trim());
+
+  if (provider === "plugins") {
+    missingVariables.push(...["OPENAI_API_KEY"].filter((name) => !env[name]?.trim()));
+  }
 
   if (missingVariables.length === 0) {
     return;
   }
 
-  throw new Error(
-    `AGENT_MODEL_PROVIDER=plugins requires the following environment variables: ${missingVariables.join(", ")}`,
-  );
+  throw new Error(`Agent requires the following environment variables: ${missingVariables.join(", ")}`);
 }

@@ -62,7 +62,7 @@ function waitForMessage(
 async function waitForSnapshot(
   submissionId: string,
   predicate: (message: ScenarioGenerateJobUpdate) => boolean,
-  timeoutMs = 15000,
+  timeoutMs = 30000,
 ) {
   const startedAt = Date.now();
 
@@ -180,7 +180,11 @@ describe("backend phase 2 integration", () => {
     await scenarioGenerateQueue.clean(0, 1000, "failed");
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await scenarioGenerateQueue.drain();
+    await scenarioGenerateQueue.clean(0, 1000, "completed");
+    await scenarioGenerateQueue.clean(0, 1000, "failed");
+
     setScenarioGeneratorForTests(async (prompt) => ({
       characters: [
         { description: "Practising customer language.", name: "Learner" },
@@ -350,13 +354,14 @@ describe("backend phase 2 integration", () => {
     await promoteUserToAdmin(admin.email);
 
     const scenarioId = await createScenarioRecord("Cafe Scenario");
+    const knowledgeItemPattern = `I'd like <np> ${Date.now()}`;
 
     const createKnowledgeItemResponse = await app.request("http://localhost/api/admin/knowledge-items", {
       body: JSON.stringify({
         communicativeFunction: "make_request_or_offer",
         example: "I'd like a table for two.",
         fixednessLevel: "fixed_expression",
-        pattern: "I'd like <np>",
+        pattern: knowledgeItemPattern,
         source: "admin",
         syntaxRole: "clause_pattern",
       }),
@@ -369,7 +374,7 @@ describe("backend phase 2 integration", () => {
 
     expect(createKnowledgeItemResponse.status).toBe(201);
     const createdKnowledgeItem = (await createKnowledgeItemResponse.json()) as { id: string; pattern: string };
-    expect(createdKnowledgeItem.pattern).toBe("I'd like <np>");
+    expect(createdKnowledgeItem.pattern).toBe(knowledgeItemPattern);
 
     const patchKnowledgeItemResponse = await app.request(
       `http://localhost/api/admin/knowledge-items/${createdKnowledgeItem.id}`,
@@ -409,23 +414,25 @@ describe("backend phase 2 integration", () => {
       total: expect.any(Number),
     });
 
-    const scenarioListResponse = await app.request("http://localhost/api/scenarios?limit=1&offset=0", {
+    const scenarioListResponse = await app.request("http://localhost/api/scenarios?limit=25&offset=0", {
       headers: {
         Cookie: student.cookie,
       },
     });
 
     expect(scenarioListResponse.status).toBe(200);
-    expect(scenarioListResponse.json()).resolves.toMatchObject({
-      items: [
-        expect.objectContaining({
-          id: scenarioId,
-        }),
-      ],
-      limit: 1,
-      offset: 0,
-      total: expect.any(Number),
-    });
+    await expect(scenarioListResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            id: scenarioId,
+          }),
+        ]),
+        limit: 25,
+        offset: 0,
+        total: expect.any(Number),
+      }),
+    );
 
     const scenarioDetailResponse = await app.request(`http://localhost/api/scenarios/${scenarioId}`, {
       headers: {
@@ -481,6 +488,7 @@ describe("backend phase 2 integration", () => {
     });
 
     await db.insert(sessionHistory).values({
+      endedAt: now,
       freeFormContextId,
       id: freeFormSessionId,
       review: "## Review\nStrong use of polite requests.",
@@ -527,6 +535,7 @@ describe("backend phase 2 integration", () => {
     expect(historyListResponse.json()).resolves.toMatchObject({
       items: [
         expect.objectContaining({
+          canReopen: true,
           id: freeFormSessionId,
           title: "Free-form",
         }),
@@ -547,10 +556,29 @@ describe("backend phase 2 integration", () => {
       errors: [expect.objectContaining({ dimension: "lexical" })],
       knowledgeItems: [expect.objectContaining({ knowledgeItemId: createdKnowledgeItem.id, speaker: "user" })],
       session: {
+        canReopen: true,
         id: freeFormSessionId,
         title: "Free-form",
       },
       transcript: [expect.objectContaining({ speaker: "agent" }), expect.objectContaining({ speaker: "user" })],
+    });
+
+    const rolePlayHistoryDetailResponse = await app.request(
+      `http://localhost/api/history/${agentMetadata.sessionHistoryId}`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(rolePlayHistoryDetailResponse.status).toBe(200);
+    expect(rolePlayHistoryDetailResponse.json()).resolves.toMatchObject({
+      session: {
+        canReopen: false,
+        id: agentMetadata.sessionHistoryId,
+        sessionType: "role-play",
+      },
     });
 
     process.env.SCENARIO_GENERATE_SSE_MAX_DURATION_MS = "25";

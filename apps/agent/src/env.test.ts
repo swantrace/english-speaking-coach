@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { getAgentEnvFilePath, getRequiredEnv, resolveAgentModelProvider, validateAgentEnvironment } from "./env";
+import {
+  getAgentEnvFilePath,
+  getBackendBaseUrl,
+  getRequiredEnv,
+  resolveAgentModelProvider,
+  validateAgentEnvironment,
+} from "./env";
 
 describe("getRequiredEnv", () => {
   it("returns a required environment variable when present", () => {
@@ -32,19 +38,56 @@ describe("resolveAgentModelProvider", () => {
 });
 
 describe("validateAgentEnvironment", () => {
+  it("requires LiveKit credentials in every mode", () => {
+    expect(() => validateAgentEnvironment({ AGENT_MODEL_PROVIDER: "livekit", API_TOKEN: "token" })).toThrow(
+      "Agent requires the following environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET",
+    );
+  });
+
   it("accepts plugin mode when provider API keys are present", () => {
     expect(() =>
       validateAgentEnvironment({
         AGENT_MODEL_PROVIDER: "plugins",
+        API_TOKEN: "token",
+        LIVEKIT_API_KEY: "key",
+        LIVEKIT_API_SECRET: "secret",
+        LIVEKIT_URL: "wss://demo.livekit.cloud",
         OPENAI_API_KEY: "openai-key",
       }),
     ).not.toThrow();
   });
 
   it("rejects plugin mode when provider API keys are missing", () => {
-    expect(() => validateAgentEnvironment({ AGENT_MODEL_PROVIDER: "plugins" })).toThrow(
-      "AGENT_MODEL_PROVIDER=plugins requires the following environment variables: OPENAI_API_KEY",
-    );
+    expect(() =>
+      validateAgentEnvironment({
+        AGENT_MODEL_PROVIDER: "plugins",
+        API_TOKEN: "token",
+        LIVEKIT_API_KEY: "key",
+        LIVEKIT_API_SECRET: "secret",
+        LIVEKIT_URL: "wss://demo.livekit.cloud",
+      }),
+    ).toThrow("Agent requires the following environment variables: OPENAI_API_KEY");
+  });
+
+  it("requires the internal API token for backend handoff", () => {
+    expect(() =>
+      validateAgentEnvironment({
+        AGENT_MODEL_PROVIDER: "livekit",
+        LIVEKIT_API_KEY: "key",
+        LIVEKIT_API_SECRET: "secret",
+        LIVEKIT_URL: "wss://demo.livekit.cloud",
+      }),
+    ).toThrow("Agent requires the following environment variables: API_TOKEN");
+  });
+});
+
+describe("getBackendBaseUrl", () => {
+  it("defaults to the local backend origin", () => {
+    expect(getBackendBaseUrl({})).toBe("http://localhost:3001");
+  });
+
+  it("strips a trailing slash from configured origins", () => {
+    expect(getBackendBaseUrl({ BACKEND_BASE_URL: "https://coach.example/" })).toBe("https://coach.example");
   });
 });
 

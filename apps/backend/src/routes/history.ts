@@ -8,7 +8,7 @@ import {
   sessionKnowledgeItems,
   sessionTranscripts,
 } from "@english-coach/database/schema";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import { createPaginatedResponse, paginationQuerySchema } from "../http/pagination";
@@ -28,7 +28,11 @@ export function registerHistoryRoutes(app: BackendApp) {
     }
 
     const { limit, offset } = parsedQuery.data;
-    const accessCondition = currentUser.role === "admin" ? null : eq(sessionHistory.userId, currentUser.id);
+    const visibilityCondition = isNotNull(sessionHistory.endedAt);
+    const accessCondition =
+      currentUser.role === "admin"
+        ? visibilityCondition
+        : and(eq(sessionHistory.userId, currentUser.id), visibilityCondition);
 
     const baseQuery = db
       .select({
@@ -48,17 +52,14 @@ export function registerHistoryRoutes(app: BackendApp) {
       .leftJoin(scenarios, eq(sessionHistory.scenarioId, scenarios.id));
 
     const [records, totalResult] = await Promise.all([
-      accessCondition
-        ? baseQuery.where(accessCondition).orderBy(desc(sessionHistory.startedAt)).limit(limit).offset(offset)
-        : baseQuery.orderBy(desc(sessionHistory.startedAt)).limit(limit).offset(offset),
-      accessCondition
-        ? db.select({ total: count() }).from(sessionHistory).where(accessCondition)
-        : db.select({ total: count() }).from(sessionHistory),
+      baseQuery.where(accessCondition).orderBy(desc(sessionHistory.startedAt)).limit(limit).offset(offset),
+      db.select({ total: count() }).from(sessionHistory).where(accessCondition),
     ]);
 
     return context.json(
       createPaginatedResponse(
         records.map((record) => ({
+          canReopen: record.sessionType === "free-form" && record.endedAt !== null,
           ...record,
           title: record.scenarioTitle ?? "Free-form",
         })),
@@ -137,6 +138,7 @@ export function registerHistoryRoutes(app: BackendApp) {
       errors: errorRows,
       knowledgeItems: knowledgeItemRows,
       session: {
+        canReopen: record.sessionType === "free-form" && record.endedAt !== null,
         completedGoals: record.completedGoals,
         endedAt: record.endedAt,
         freeFormContextId: record.freeFormContextId,

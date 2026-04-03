@@ -19,21 +19,23 @@
     "pnpm": ">=10.0.0"
   },
   "dependencies": {
+    "@english-coach/contract": "workspace:*",
     "@livekit/agents": "^1.0.46",
-    "@livekit/agents-plugin-cartesia": "^1.0.46",
-    "@livekit/agents-plugin-deepgram": "^1.0.46",
     "@livekit/agents-plugin-livekit": "^1.0.46",
     "@livekit/agents-plugin-openai": "^1.0.46",
     "@livekit/agents-plugin-silero": "^1.0.46",
     "@livekit/noise-cancellation-node": "^0.1.9",
-    "dotenv": "^17.3.1"
+    "bullmq": "^5.61.2",
+    "dotenv": "^17.3.1",
+    "ioredis": "^5.8.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.10",
     "@types/node": "^24.12.0",
     "typescript": "5.9.3",
-    "vite": "^7.3.1",
+    "vite": "^8.0.0",
     "vitest": "^4.0.18"
   }
 }

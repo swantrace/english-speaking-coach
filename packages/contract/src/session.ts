@@ -4,6 +4,13 @@ import { z } from "zod";
 export const sessionTypeSchema = z.enum(["role-play", "free-form"]);
 export type SessionType = z.infer<typeof sessionTypeSchema>;
 
+export const sessionTurnSchema = z.object({
+  speaker: z.enum(["user", "agent"]),
+  text: z.string().trim().min(1),
+  timestampMs: z.number(),
+});
+export type SessionTurn = z.infer<typeof sessionTurnSchema>;
+
 // ── Scenario sub-schemas ──────────────────────────────────────────────────────
 
 export const scenarioCharacterSchema = z.object({
@@ -55,14 +62,88 @@ export const inConversationAnalysisJobSchema = z.object({
   sessionHistoryId: z.string(),
   /** LiveKit room name — worker uses this to dispatch data packets back to the room. */
   roomName: z.string(),
-  turns: z.array(
-    z.object({
-      speaker: z.enum(["user", "agent"]),
-      text: z.string(),
-      timestampMs: z.number(),
-    }),
-  ),
+  turns: z.array(sessionTurnSchema),
 });
+
+export const rolePlaySessionDispatchMetadataSchema = z.object({
+  roomName: z.string(),
+  scenarioId: z.string(),
+  selectedCharacterIndex: z.number().int().min(0).max(1),
+  sessionHistoryId: z.string(),
+  sessionType: z.literal(sessionTypeSchema.enum["role-play"]),
+  userId: z.string(),
+});
+
+export const freeFormSessionDispatchMetadataSchema = z.object({
+  contextDocument: z.string().trim().min(1),
+  freeFormContextId: z.string(),
+  roomName: z.string(),
+  sessionHistoryId: z.string(),
+  sessionType: z.literal(sessionTypeSchema.enum["free-form"]),
+  userId: z.string(),
+});
+
+export const sessionDispatchMetadataSchema = z.discriminatedUnion("sessionType", [
+  rolePlaySessionDispatchMetadataSchema,
+  freeFormSessionDispatchMetadataSchema,
+]);
+
+export const sessionCompletionRequestSchema = z.object({
+  completedGoals: z.array(z.string()).optional(),
+  roomName: z.string(),
+  sessionHistoryId: z.string(),
+  transcript: z.array(sessionTurnSchema),
+});
+
+export const lingAnalysisKnowledgeItemSchema = z.object({
+  pattern: z.string().trim().min(1),
+  syntaxRole: z.enum([
+    "predicate_verb",
+    "predicate_adjective",
+    "adverbial_modifier",
+    "noun_phrase",
+    "discourse_linker",
+    "clause_pattern",
+  ]),
+  fixednessLevel: z.enum(["restricted_collocation", "fixed_expression", "idiom"]),
+  communicativeFunction: z.enum([
+    "manage_social_relation",
+    "express_attitude_or_opinion",
+    "make_request_or_offer",
+    "give_or_seek_information",
+    "organize_discourse",
+    "react_in_conversation",
+    "express_degree_or_soften",
+    "express_time_or_sequence",
+  ]),
+  example: z.string().trim().min(1),
+  speaker: z.enum(["user", "agent"]),
+  count: z.number().int().nonnegative(),
+  usageExcerpts: z.array(z.string().trim().min(1)),
+});
+
+export const lingAnalysisErrorSchema = z.object({
+  dimension: z.enum(["lexical", "syntactic", "pragmatic", "discourse", "phonological"]),
+  errorDescription: z.string().trim().min(1),
+  suggestion: z.string().trim().min(1),
+  utterance: z.string().trim().min(1),
+});
+
+export const lingAnalysisResultSchema = z.object({
+  errors: z.array(lingAnalysisErrorSchema),
+  knowledgeItemsUsed: z.array(lingAnalysisKnowledgeItemSchema),
+  review: z.string().trim().min(1),
+});
+
+export const inConversationAnalysisResultSchema = z.object({
+  observation: z.string().trim().min(1),
+  workerFeedbackMessage: z.string().trim().min(1),
+});
+
+export const inConversationAnalysisQueueName = "inConversationAnalysis";
+export const inConversationAnalysisJobName = "inConversationAnalysis";
+export const lingAnalysisQueueName = "lingAnalysis";
+export const lingAnalysisJobName = "lingAnalysis";
 
 export type ScenarioCharacter = z.infer<typeof scenarioCharacterSchema>;
 export type ScenarioDialogueTurn = z.infer<typeof scenarioDialogueTurnSchema>;
@@ -70,3 +151,7 @@ export type ScenarioGoal = z.infer<typeof scenarioGoalSchema>;
 export type ScenarioGoals = z.infer<typeof scenarioGoalsSchema>;
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type InConversationAnalysisJob = z.infer<typeof inConversationAnalysisJobSchema>;
+export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSchema>;
+export type SessionCompletionRequest = z.infer<typeof sessionCompletionRequestSchema>;
+export type LingAnalysisResult = z.infer<typeof lingAnalysisResultSchema>;
+export type InConversationAnalysisResult = z.infer<typeof inConversationAnalysisResultSchema>;
