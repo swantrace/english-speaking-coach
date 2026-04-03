@@ -18,6 +18,7 @@ export function createAuthOptions(database: BetterAuthOptions["database"]): Bett
     advanced: {
       crossSubDomainCookies: {
         enabled: isProduction,
+        domain: "english-speaking-coach.com",
       },
       defaultCookieAttributes: isProduction ? productionCookieAttributes : localCookieAttributes,
       useSecureCookies: isProduction,
@@ -31,5 +32,15 @@ export function createAuthOptions(database: BetterAuthOptions["database"]): Bett
     },
     secret: process.env.BETTER_AUTH_SECRET ?? "development-secret-change-me-before-production-1234",
     trustedOrigins: authTrustedOrigins,
+    user: {
+      additionalFields: {
+        role: {
+          type: "string",
+          defaultValue: "student",
+          required: false,
+          input: false,
+        },
+      },
+    },
   };
 }

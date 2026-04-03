@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { user } from "./auth";
 
 export const submissionKindValues = ["scenario.generate"] as const;
 
@@ -11,6 +12,7 @@ export const submissions = sqliteTable(
     kind: text("kind", { enum: submissionKindValues }).notNull(),
     totalCount: integer("total_count").notNull(),
     updatedAt: text("updated_at").notNull(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   },
   (table) => ({
     kindIdx: index("submissions_kind_idx").on(table.kind),

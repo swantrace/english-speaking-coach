@@ -12,6 +12,7 @@
     "db:clear:app": "bun run ./src/clear-app.ts",
     "db:clear": "bun run ./src/clear.ts",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun -e \"import { migrateDatabase } from './src/index.ts'; migrateDatabase(); console.log('migrations applied');\"",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "@english-coach/typescript-config": "workspace:*",
     "@types/bun": "^1.2.21",
     "@types/node": "^24.12.0",
+    "better-sqlite3": "^12.8.0",
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.6",
     "eslint": "^8.57.0",
