@@ -9,6 +9,7 @@ const localCookieAttributes = {
 } as const;
 
 const productionCookieAttributes = {
+  domain: "english-speaking-coach.com",
   sameSite: "none",
   secure: true,
 } as const;

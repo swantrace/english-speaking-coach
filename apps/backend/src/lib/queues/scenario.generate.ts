@@ -1,3 +1,5 @@
+import { openai } from "@ai-sdk/openai";
+import { scenarioCharacterSchema, scenarioSchema } from "@english-coach/contract";
 import type {
   ScenarioGenerateJobUpdate,
   ScenarioGenerateSubmissionItem,
@@ -13,6 +15,8 @@ import {
 export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario-generate";
 
 import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
+import { scenarios } from "@english-coach/database/schema";
+import { generateObject } from "ai";
 import { Queue, Worker } from "bullmq";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import {
@@ -41,6 +45,22 @@ export const scenarioGenerateQueueName = sharedScenarioGenerateQueueName;
 export const scenarioGenerateQueue = new Queue<ScenarioGenerateJobData>(scenarioGenerateQueueName, {
   connection: producerRedis,
 });
+
+const generatedScenarioSchema = scenarioSchema
+  .omit({
+    createdAt: true,
+    id: true,
+    updatedAt: true,
+  })
+  .extend({
+    // OpenAI structured outputs reject tuple-style array schemas, so use a fixed-length
+    // array here and normalize back to the persisted tuple shape after generation.
+    characters: scenarioCharacterSchema.array().length(2),
+  });
+
+type GeneratedScenario = typeof generatedScenarioSchema._output;
+
+let scenarioGeneratorOverride: ((prompt: string) => Promise<GeneratedScenario>) | null = null;
 
 export function publishScenarioGenerateProgress(message: ScenarioGenerateProgressMessage) {
   return publishJobProgress(pubsubPublisherRedis, scenarioGenerateProgressChannel, message);
@@ -75,9 +95,10 @@ function createCompletedScenarioGenerateProgressMessage(
   jobId: string,
   jobData: ScenarioGenerateJobData,
   processedAt: string,
+  scenarioTitle: string,
 ) {
   return createScenarioGenerateProgressMessage(
-    createCompletedProgressMessage(jobId, `Scenario ready: ${jobData.message}`, processedAt),
+    createCompletedProgressMessage(jobId, `Scenario ready: ${scenarioTitle}`, processedAt),
     jobData,
   );
 }
@@ -89,7 +110,11 @@ function createFailedScenarioGenerateProgressMessage(jobId: string, jobData: Sce
   );
 }
 
-export async function createScenarioGenerateSubmission(submissionId: string, totalCount: number) {
+export async function createScenarioGenerateSubmission(
+  submissionId: string,
+  totalCount: number,
+  userId?: string | null,
+) {
   const now = new Date().toISOString();
 
   await db.insert(submissions).values({
@@ -98,6 +123,7 @@ export async function createScenarioGenerateSubmission(submissionId: string, tot
     kind: scenarioGenerateSubmissionKind,
     totalCount,
     updatedAt: now,
+    userId: userId ?? null,
   });
 }
 
@@ -192,12 +218,87 @@ export async function getScenarioGenerateSnapshots({
   );
 }
 
-migrateDatabase();
+async function generateScenario(prompt: string): Promise<GeneratedScenario> {
+  if (scenarioGeneratorOverride) {
+    return scenarioGeneratorOverride(prompt);
+  }
 
-const delay = (milliseconds: number) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
+  if (process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR === "1") {
+    return generatedScenarioSchema.parse({
+      characters: [
+        { description: "Practising customer language in a deterministic test scenario.", name: "Learner" },
+        { description: "Responds naturally and keeps the test queue deterministic.", name: "Coach" },
+      ],
+      exampleDialogue: [
+        { speaker: "agent", text: "Hello. What would you like to practise today?" },
+        { speaker: "user", text: `I want to practise: ${prompt}` },
+      ],
+      goals: {
+        goals: [
+          {
+            description: "State the main request clearly",
+            id: "state-main-request",
+            logic: { required_intents: ["state_request"], required_slots: ["request_detail"] },
+          },
+        ],
+        intents: ["state_request"],
+        slots: ["request_detail"],
+      },
+      setting: `Deterministic test scenario for ${prompt}`,
+      title: `Generated from ${prompt}`,
+    });
+  }
+
+  const { object } = await generateObject({
+    model: openai(process.env.SCENARIO_GENERATE_MODEL ?? "gpt-4.1-mini"),
+    prompt: [
+      "You generate structured role-play scenarios for an English-speaking coach platform.",
+      "Return one scenario with exactly two characters, realistic goals, and a short example dialogue.",
+      "The scenario should be practical for spoken English practice and should reflect this brief:",
+      prompt,
+    ].join("\n\n"),
+    providerOptions: {
+      openai: {
+        strictJsonSchema: false,
+      },
+    },
+    schema: generatedScenarioSchema,
   });
+
+  return object;
+}
+
+async function persistScenario(generatedScenario: GeneratedScenario) {
+  const now = new Date().toISOString();
+  const scenarioId = crypto.randomUUID();
+
+  if (generatedScenario.characters.length !== 2) {
+    throw new Error("Generated scenario must contain exactly two characters");
+  }
+
+  await db.insert(scenarios).values({
+    characters: [generatedScenario.characters[0], generatedScenario.characters[1]],
+    createdAt: now,
+    exampleDialogue: generatedScenario.exampleDialogue,
+    goals: generatedScenario.goals,
+    id: scenarioId,
+    setting: generatedScenario.setting,
+    title: generatedScenario.title,
+    updatedAt: now,
+  });
+
+  return {
+    processedAt: now,
+    scenarioId,
+    title: generatedScenario.title,
+  };
+}
+
+export function setScenarioGeneratorForTests(generator: ((prompt: string) => Promise<GeneratedScenario>) | null) {
+  scenarioGeneratorOverride = generator;
+}
+
+migrateDatabase();
 
 export const scenarioGenerateWorker = new Worker<ScenarioGenerateJobData>(
   scenarioGenerateQueueName,
@@ -207,20 +308,24 @@ export const scenarioGenerateWorker = new Worker<ScenarioGenerateJobData>(
     await saveScenarioGenerateSnapshot(startedMessage);
     await publishScenarioGenerateProgress(startedMessage);
 
-    await delay(5000);
-
-    if (job.data.shouldFail) {
+    if (process.env.NODE_ENV !== "production" && job.data.shouldFail) {
       throw new Error("Scenario generation failed");
     }
 
-    const processedAt = new Date().toISOString();
+    const generatedScenario = await generateScenario(job.data.message);
+    const persistedScenario = await persistScenario(generatedScenario);
 
-    const completedMessage = createCompletedScenarioGenerateProgressMessage(String(job.id), job.data, processedAt);
+    const completedMessage = createCompletedScenarioGenerateProgressMessage(
+      String(job.id),
+      job.data,
+      persistedScenario.processedAt,
+      persistedScenario.title,
+    );
 
     await saveScenarioGenerateSnapshot(completedMessage);
     await publishScenarioGenerateProgress(completedMessage);
 
-    return { processedAt };
+    return persistedScenario;
   },
   {
     connection: workerRedis,

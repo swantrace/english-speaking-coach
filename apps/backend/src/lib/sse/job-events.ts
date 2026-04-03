@@ -14,6 +14,7 @@ interface StreamChannelJobProgressOptions<TMessage extends JobProgressMessage> {
   eventName: string;
   getMessageId?: (message: TMessage) => string;
   getInitialMessages?: () => Promise<TMessage[]>;
+  maxDurationMs?: number;
   shouldIncludeMessage?: (message: TMessage) => boolean;
   subscriberName: string;
 }
@@ -23,6 +24,7 @@ export function streamChannelJobProgressSSE<TMessage extends JobProgressMessage>
   options: StreamChannelJobProgressOptions<TMessage>,
 ) {
   const subscriber = createSubscriberRedisConnection(options.subscriberName);
+  const startedAt = Date.now();
 
   return streamSSE(context, async (stream) => {
     let closed = false;
@@ -91,7 +93,25 @@ export function streamChannelJobProgressSSE<TMessage extends JobProgressMessage>
     });
 
     while (!closed) {
-      await stream.sleep(15000);
+      const elapsedMs = Date.now() - startedAt;
+
+      if (typeof options.maxDurationMs === "number" && elapsedMs >= options.maxDurationMs) {
+        await closeStream();
+        break;
+      }
+
+      const heartbeatIntervalMs = 15000;
+      const sleepDurationMs =
+        typeof options.maxDurationMs === "number"
+          ? Math.min(heartbeatIntervalMs, Math.max(options.maxDurationMs - elapsedMs, 0))
+          : heartbeatIntervalMs;
+
+      if (sleepDurationMs <= 0) {
+        await closeStream();
+        break;
+      }
+
+      await stream.sleep(sleepDurationMs);
 
       if (closed) {
         break;

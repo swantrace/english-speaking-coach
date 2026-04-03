@@ -98,6 +98,22 @@ describe("auth protection", () => {
         name: "Coach Auth Tester",
       },
     });
+
+    const unauthorizedTokenResponse = await app.request("http://localhost/api/sessions/token", {
+      body: JSON.stringify({
+        contextDocument: "Talk about ordering lunch politely.",
+        sessionType: "free-form",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(unauthorizedTokenResponse.status).toBe(401);
+    await expect(unauthorizedTokenResponse.json()).resolves.toEqual({
+      error: "Authentication required",
+    });
   });
 
   test("allows email/password sign-in even when emailVerified is false", async () => {

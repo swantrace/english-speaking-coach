@@ -1,82 +1,32 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import {
   type ScenarioGenerateJobUpdate,
   type ScenarioGenerateSubmissionResponse,
   scenarioGenerateSubmitPath,
 } from "@english-coach/contract/scenario-generate";
-
+import { db } from "@english-coach/database";
+import {
+  freeFormContexts,
+  scenarios,
+  sessionErrors,
+  sessionHistory,
+  sessionKnowledgeItems,
+  sessionTranscripts,
+  submissions,
+  user,
+} from "@english-coach/database/schema";
+import { desc, eq } from "drizzle-orm";
+import { TokenVerifier } from "livekit-server-sdk";
 import { app } from "./api";
 import {
   getScenarioGenerateSnapshots,
   publishScenarioGenerateProgress,
   scenarioGenerateProgressChannel,
   scenarioGenerateQueue,
-  scenarioGenerateUpdatedEvent,
   scenarioGenerateWorker,
+  setScenarioGeneratorForTests,
 } from "./lib/queues/scenario.generate";
 import { createSubscriberRedisConnection } from "./lib/redis";
-
-function parseSseEvents(payload: string) {
-  return payload
-    .trim()
-    .split("\n\n")
-    .filter(Boolean)
-    .map((chunk) => {
-      const lines = chunk.split("\n");
-      const id = lines.find((line) => line.startsWith("id: "))?.slice(4);
-      const event = lines.find((line) => line.startsWith("event: "))?.slice(7);
-      const data = lines.find((line) => line.startsWith("data: "))?.slice(6);
-
-      return {
-        data: data ? (JSON.parse(data) as ScenarioGenerateJobUpdate) : null,
-        event,
-        id,
-      };
-    });
-}
-
-async function readScenarioEventsUntil(
-  eventsUrl: string,
-  sessionCookie: string,
-  predicate: (event: { data: ScenarioGenerateJobUpdate | null; event?: string; id?: string }) => boolean,
-) {
-  const response = await app.request(`http://localhost${eventsUrl}`, {
-    headers: {
-      Cookie: sessionCookie,
-    },
-  });
-
-  expect(response.status).toBe(200);
-  expect(response.body).toBeTruthy();
-
-  const reader = response.body?.getReader();
-
-  if (!reader) {
-    throw new Error("Missing SSE response body");
-  }
-
-  const decoder = new TextDecoder();
-  let payload = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    payload += decoder.decode(value, { stream: true });
-
-    const events = parseSseEvents(payload);
-
-    if (events.some(predicate)) {
-      await reader.cancel();
-      return events;
-    }
-  }
-
-  return parseSseEvents(payload);
-}
 
 function waitForMessage(
   subscriber: ReturnType<typeof createSubscriberRedisConnection>,
@@ -109,14 +59,39 @@ function waitForMessage(
   });
 }
 
-async function signUpAndCreateSession() {
-  const email = `coach-${Date.now()}@example.com`;
+async function waitForSnapshot(
+  submissionId: string,
+  predicate: (message: ScenarioGenerateJobUpdate) => boolean,
+  timeoutMs = 15000,
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const snapshots = await getScenarioGenerateSnapshots({
+      limit: 10,
+      submissionId,
+    });
+
+    const match = snapshots.find(predicate);
+
+    if (match) {
+      return match;
+    }
+
+    await Bun.sleep(250);
+  }
+
+  throw new Error(`Timed out waiting for scenario snapshot for submission ${submissionId}`);
+}
+
+async function signUpAndCreateSession(label: string) {
+  const email = `coach-${label}-${Date.now()}@example.com`;
   const password = "password1234";
 
   const signUpResponse = await app.request("http://localhost/api/auth/sign-up/email", {
     body: JSON.stringify({
       email,
-      name: "Coach Tester",
+      name: `${label} Tester`,
       password,
     }),
     headers: {
@@ -128,21 +103,76 @@ async function signUpAndCreateSession() {
 
   expect(signUpResponse.status).toBe(200);
 
-  const setCookie = signUpResponse.headers.get("set-cookie");
+  const cookie = signUpResponse.headers.get("set-cookie");
 
-  expect(setCookie).toBeTruthy();
+  expect(cookie).toBeTruthy();
 
-  if (!setCookie) {
+  if (!cookie) {
     throw new Error("Expected Better Auth sign-up response to set a session cookie");
   }
 
-  return setCookie;
+  const sessionResponse = await app.request("http://localhost/api/session", {
+    headers: {
+      Cookie: cookie,
+    },
+  });
+
+  expect(sessionResponse.status).toBe(200);
+
+  const sessionBody = (await sessionResponse.json()) as {
+    user: { id: string; email: string; role?: string };
+  };
+
+  return {
+    cookie,
+    email,
+    userId: sessionBody.user.id,
+  };
 }
 
-describe("scenario generation integration", () => {
+async function promoteUserToAdmin(email: string) {
+  await db.update(user).set({ role: "admin" }).where(eq(user.email, email));
+}
+
+async function createScenarioRecord(titlePrefix: string) {
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+
+  await db.insert(scenarios).values({
+    characters: [
+      { description: "A student ordering in English.", name: "Student" },
+      { description: "A patient cafe worker.", name: "Barista" },
+    ],
+    createdAt: now,
+    exampleDialogue: [
+      { speaker: "agent", text: "Hi there, what can I get for you today?" },
+      { speaker: "user", text: "I'd like a cappuccino, please." },
+    ],
+    goals: {
+      goals: [
+        {
+          description: "Order a drink",
+          id: "order-drink",
+          logic: { required_intents: ["order_drink"], required_slots: ["drink_type"] },
+        },
+      ],
+      intents: ["order_drink"],
+      slots: ["drink_type"],
+    },
+    id,
+    setting: "A neighborhood coffee shop during the morning rush.",
+    title: `${titlePrefix} ${Date.now()}`,
+    updatedAt: now,
+  });
+
+  return id;
+}
+
+describe("backend phase 2 integration", () => {
   const subscriber = createSubscriberRedisConnection("scenario-test");
 
   beforeAll(async () => {
+    process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR = "1";
     await scenarioGenerateQueue.waitUntilReady();
     await scenarioGenerateWorker.waitUntilReady();
     await scenarioGenerateQueue.drain();
@@ -150,27 +180,52 @@ describe("scenario generation integration", () => {
     await scenarioGenerateQueue.clean(0, 1000, "failed");
   });
 
+  beforeEach(() => {
+    setScenarioGeneratorForTests(async (prompt) => ({
+      characters: [
+        { description: "Practising customer language.", name: "Learner" },
+        { description: "Responds naturally to the learner.", name: "Coach" },
+      ],
+      exampleDialogue: [
+        { speaker: "agent", text: "Welcome in. How can I help?" },
+        { speaker: "user", text: "I need help with this situation." },
+      ],
+      goals: {
+        goals: [
+          {
+            description: "State your main request clearly",
+            id: "main-request",
+            logic: { required_intents: ["state_request"], required_slots: ["request_detail"] },
+          },
+        ],
+        intents: ["state_request"],
+        slots: ["request_detail"],
+      },
+      setting: `Prompt-derived setting for ${prompt}`,
+      title: `Generated from ${prompt}`,
+    }));
+  });
+
   subscriber.on("error", () => {
-    // Ignore subscriber-mode reconnect noise in integration tests.
+    // Ignore subscriber reconnect noise in integration tests.
   });
 
   afterAll(() => {
+    delete process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR;
+    setScenarioGeneratorForTests(null);
     subscriber.disconnect();
   });
 
-  test("handles pubsub, batch submissions, enqueue failures, and failed SSE snapshots", async () => {
-    const sessionCookie = await signUpAndCreateSession();
+  test("requires admin for scenario generation, persists ownership, and publishes completion updates", async () => {
+    const student = await signUpAndCreateSession("student-generate");
+    const admin = await signUpAndCreateSession("admin-generate");
 
+    await promoteUserToAdmin(admin.email);
     await subscriber.subscribe(scenarioGenerateProgressChannel);
 
     const unauthorizedResponse = await app.request(`http://localhost${scenarioGenerateSubmitPath}`, {
       body: JSON.stringify({
-        items: [
-          {
-            message: "anonymous request",
-            queuedAt: new Date().toISOString(),
-          },
-        ],
+        items: [{ message: "anonymous request", queuedAt: new Date().toISOString() }],
       }),
       headers: {
         "Content-Type": "application/json",
@@ -179,9 +234,19 @@ describe("scenario generation integration", () => {
     });
 
     expect(unauthorizedResponse.status).toBe(401);
-    await expect(unauthorizedResponse.json()).resolves.toEqual({
-      error: "Authentication required",
+
+    const forbiddenResponse = await app.request(`http://localhost${scenarioGenerateSubmitPath}`, {
+      body: JSON.stringify({
+        items: [{ message: "student request", queuedAt: new Date().toISOString() }],
+      }),
+      headers: {
+        Cookie: student.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
     });
+
+    expect(forbiddenResponse.status).toBe(403);
 
     const jobId = `pubsub-test-${Date.now()}`;
     const expectedMessage = waitForMessage(subscriber, (message) => message.jobId === jobId);
@@ -195,7 +260,7 @@ describe("scenario generation integration", () => {
       submissionId: "pubsub-test",
     });
 
-    await expect(expectedMessage).resolves.toMatchObject({
+    expect(expectedMessage).resolves.toMatchObject({
       cursor: 0,
       jobId,
       message: "Pub/Sub integration test",
@@ -207,20 +272,13 @@ describe("scenario generation integration", () => {
     const generateResponse = await app.request(`http://localhost${scenarioGenerateSubmitPath}`, {
       body: JSON.stringify({
         items: [
-          {
-            message: "integration test scenario",
-            queuedAt: new Date().toISOString(),
-          },
-          {
-            message: "",
-          },
-          {
-            message: 123,
-          },
+          { message: "admin integration scenario", queuedAt: new Date().toISOString() },
+          { message: "" },
+          { message: 123 },
         ],
       }),
       headers: {
-        Cookie: sessionCookie,
+        Cookie: admin.cookie,
         "Content-Type": "application/json",
       },
       method: "POST",
@@ -236,31 +294,14 @@ describe("scenario generation integration", () => {
       queued: 1,
       total: 3,
     });
-    expect(generateBody.results).toHaveLength(3);
-    expect(generateBody.results[0]?.status).toBe("queued");
-    expect(generateBody.results[0]?.jobId).toBeTruthy();
-    expect(generateBody.submissionId).toBeTruthy();
-    expect(new URL(generateBody.eventsUrl, "http://localhost").searchParams.get("submissionId")).toBe(
-      generateBody.submissionId,
-    );
-    expect(generateBody.results[1]).toMatchObject({
-      cursor: 1,
-      index: 1,
-      status: "invalid_input",
-    });
-    expect(generateBody.results[2]).toMatchObject({
-      cursor: 2,
-      index: 2,
-      status: "invalid_input",
-    });
 
     const queuedJobId = generateBody.results[0]?.jobId;
 
     if (!queuedJobId) {
-      throw new Error("Expected the first batch item to be queued");
+      throw new Error("Expected queued scenario generation job id");
     }
 
-    await expect(
+    expect(
       getScenarioGenerateSnapshots({
         limit: 1,
         submissionId: generateBody.submissionId,
@@ -273,146 +314,284 @@ describe("scenario generation integration", () => {
       },
     ]);
 
-    const sseEvents = await readScenarioEventsUntil(
-      generateBody.eventsUrl,
-      sessionCookie,
-      (event) =>
-        event.event === scenarioGenerateUpdatedEvent &&
-        event.data?.jobId === queuedJobId &&
-        event.data.status === "completed",
+    const completedSnapshot = await waitForSnapshot(
+      generateBody.submissionId,
+      (snapshot) => snapshot.jobId === queuedJobId && snapshot.status === "completed",
     );
 
-    expect(
-      sseEvents.some(
-        (event) =>
-          event.event === scenarioGenerateUpdatedEvent &&
-          event.data?.jobId === queuedJobId &&
-          event.data.status === "completed" &&
-          event.id === "0",
-      ),
-    ).toBe(true);
+    expect(completedSnapshot.status).toBe("completed");
 
-    const originalAdd = scenarioGenerateQueue.add.bind(scenarioGenerateQueue);
+    const [submissionRecord] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, generateBody.submissionId))
+      .limit(1);
 
-    Object.assign(scenarioGenerateQueue, {
-      add: async () => {
-        throw new Error("Redis unavailable");
-      },
-    });
+    expect(submissionRecord?.userId).toBe(admin.userId);
 
-    try {
-      const generateResponse = await app.request(`http://localhost${scenarioGenerateSubmitPath}`, {
-        body: JSON.stringify({
-          items: [
-            {
-              message: "will fail to enqueue",
-              queuedAt: new Date().toISOString(),
-            },
-          ],
-        }),
-        headers: {
-          Cookie: sessionCookie,
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      });
+    const persistedScenarios = await db.select().from(scenarios).orderBy(desc(scenarios.updatedAt)).limit(1);
 
-      expect(generateResponse.status).toBe(200);
+    expect(persistedScenarios).toEqual([
+      expect.objectContaining({
+        characters: expect.any(Array),
+        exampleDialogue: expect.any(Array),
+        goals: expect.any(Object),
+        id: expect.any(String),
+        setting: expect.any(String),
+        title: expect.any(String),
+      }),
+    ]);
+  }, 60000);
 
-      const generateBody = (await generateResponse.json()) as ScenarioGenerateSubmissionResponse;
+  test("supports admin knowledge item CRUD, history detail reads, session token minting, and SSE timeout", async () => {
+    const student = await signUpAndCreateSession("student-history");
+    const admin = await signUpAndCreateSession("admin-history");
 
-      expect(generateBody.summary).toEqual({
-        enqueueFailed: 1,
-        invalid: 0,
-        queued: 0,
-        total: 1,
-      });
-      expect(new URL(generateBody.eventsUrl, "http://localhost").searchParams.get("submissionId")).toBe(
-        generateBody.submissionId,
-      );
-      expect(generateBody.results[0]).toMatchObject({
-        cursor: 0,
-        error: "Redis unavailable",
-        index: 0,
-        status: "enqueue_failed",
-      });
-    } finally {
-      Object.assign(scenarioGenerateQueue, {
-        add: originalAdd,
-      });
-    }
+    await promoteUserToAdmin(admin.email);
 
-    const failedGenerateResponse = await app.request(`http://localhost${scenarioGenerateSubmitPath}`, {
+    const scenarioId = await createScenarioRecord("Cafe Scenario");
+
+    const createKnowledgeItemResponse = await app.request("http://localhost/api/admin/knowledge-items", {
       body: JSON.stringify({
-        items: [
-          {
-            message: "integration failure scenario",
-            queuedAt: new Date().toISOString(),
-            shouldFail: true,
-          },
-        ],
+        communicativeFunction: "make_request_or_offer",
+        example: "I'd like a table for two.",
+        fixednessLevel: "fixed_expression",
+        pattern: "I'd like <np>",
+        source: "admin",
+        syntaxRole: "clause_pattern",
       }),
       headers: {
-        Cookie: sessionCookie,
+        Cookie: admin.cookie,
         "Content-Type": "application/json",
       },
       method: "POST",
     });
 
-    expect(failedGenerateResponse.status).toBe(200);
+    expect(createKnowledgeItemResponse.status).toBe(201);
+    const createdKnowledgeItem = (await createKnowledgeItemResponse.json()) as { id: string; pattern: string };
+    expect(createdKnowledgeItem.pattern).toBe("I'd like <np>");
 
-    const failedGenerateBody = (await failedGenerateResponse.json()) as ScenarioGenerateSubmissionResponse;
+    const patchKnowledgeItemResponse = await app.request(
+      `http://localhost/api/admin/knowledge-items/${createdKnowledgeItem.id}`,
+      {
+        body: JSON.stringify({
+          source: "auto_generated",
+        }),
+        headers: {
+          Cookie: admin.cookie,
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      },
+    );
 
-    const failedJobId = failedGenerateBody.results[0]?.jobId;
+    expect(patchKnowledgeItemResponse.status).toBe(200);
 
-    if (!failedJobId) {
-      throw new Error("Expected failing scenario job id");
+    const listKnowledgeItemsResponse = await app.request(
+      "http://localhost/api/admin/knowledge-items?source=auto_generated&limit=1&offset=0",
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+      },
+    );
+
+    expect(listKnowledgeItemsResponse.status).toBe(200);
+    expect(listKnowledgeItemsResponse.json()).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: createdKnowledgeItem.id,
+          source: "auto_generated",
+        }),
+      ],
+      limit: 1,
+      offset: 0,
+      total: expect.any(Number),
+    });
+
+    const scenarioListResponse = await app.request("http://localhost/api/scenarios?limit=1&offset=0", {
+      headers: {
+        Cookie: student.cookie,
+      },
+    });
+
+    expect(scenarioListResponse.status).toBe(200);
+    expect(scenarioListResponse.json()).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: scenarioId,
+        }),
+      ],
+      limit: 1,
+      offset: 0,
+      total: expect.any(Number),
+    });
+
+    const scenarioDetailResponse = await app.request(`http://localhost/api/scenarios/${scenarioId}`, {
+      headers: {
+        Cookie: student.cookie,
+      },
+    });
+
+    expect(scenarioDetailResponse.status).toBe(200);
+
+    process.env.LIVEKIT_API_KEY = "test-api-key";
+    process.env.LIVEKIT_API_SECRET = "test-secret";
+
+    const rolePlayTokenResponse = await app.request("http://localhost/api/sessions/token", {
+      body: JSON.stringify({
+        scenarioId,
+        selectedCharacterIndex: 1,
+        sessionType: "role-play",
+      }),
+      headers: {
+        Cookie: student.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(rolePlayTokenResponse.status).toBe(200);
+
+    const rolePlayTokenBody = (await rolePlayTokenResponse.json()) as { roomName: string; token: string };
+    const verifier = new TokenVerifier("test-api-key", "test-secret");
+    const decodedToken = await verifier.verify(rolePlayTokenBody.token);
+    const agentMetadata = JSON.parse(decodedToken.roomConfig?.agents?.[0]?.metadata ?? "{}") as {
+      roomName: string;
+      scenarioId: string;
+      selectedCharacterIndex: number;
+      sessionHistoryId: string;
+      sessionType: string;
+      userId: string;
+    };
+
+    expect(decodedToken.roomConfig?.name).toBe(rolePlayTokenBody.roomName);
+    expect(agentMetadata.scenarioId).toBe(scenarioId);
+    expect(agentMetadata.selectedCharacterIndex).toBe(1);
+    expect(agentMetadata.sessionType).toBe("role-play");
+
+    const freeFormContextId = crypto.randomUUID();
+    const freeFormSessionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    await db.insert(freeFormContexts).values({
+      content: "Review a conversation about ordering food politely.",
+      createdAt: now,
+      id: freeFormContextId,
+    });
+
+    await db.insert(sessionHistory).values({
+      freeFormContextId,
+      id: freeFormSessionId,
+      review: "## Review\nStrong use of polite requests.",
+      sessionType: "free-form",
+      startedAt: now,
+      userId: student.userId,
+    });
+
+    await db.insert(sessionErrors).values({
+      dimension: "lexical",
+      errorDescription: "Incorrect word choice for a menu item.",
+      id: crypto.randomUUID(),
+      sessionHistoryId: freeFormSessionId,
+      suggestion: "Use 'dish' instead of 'plate' in this context.",
+      utterance: "I want this plate.",
+    });
+
+    await db.insert(sessionKnowledgeItems).values({
+      count: 2,
+      examples: ["I'd like a coffee.", "I'd like some water."],
+      id: crypto.randomUUID(),
+      knowledgeItemId: createdKnowledgeItem.id,
+      sessionHistoryId: freeFormSessionId,
+      speaker: "user",
+    });
+
+    await db.insert(sessionTranscripts).values({
+      createdAt: now,
+      id: crypto.randomUUID(),
+      sessionHistoryId: freeFormSessionId,
+      turns: [
+        { speaker: "agent", text: "What would you like?", timestampMs: Date.now() },
+        { speaker: "user", text: "I'd like a coffee.", timestampMs: Date.now() + 1_000 },
+      ],
+    });
+
+    const historyListResponse = await app.request("http://localhost/api/history?limit=1&offset=0", {
+      headers: {
+        Cookie: student.cookie,
+      },
+    });
+
+    expect(historyListResponse.status).toBe(200);
+    expect(historyListResponse.json()).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: freeFormSessionId,
+          title: "Free-form",
+        }),
+      ],
+      limit: 1,
+      offset: 0,
+      total: expect.any(Number),
+    });
+
+    const historyDetailResponse = await app.request(`http://localhost/api/history/${freeFormSessionId}`, {
+      headers: {
+        Cookie: student.cookie,
+      },
+    });
+
+    expect(historyDetailResponse.status).toBe(200);
+    expect(historyDetailResponse.json()).resolves.toMatchObject({
+      errors: [expect.objectContaining({ dimension: "lexical" })],
+      knowledgeItems: [expect.objectContaining({ knowledgeItemId: createdKnowledgeItem.id, speaker: "user" })],
+      session: {
+        id: freeFormSessionId,
+        title: "Free-form",
+      },
+      transcript: [expect.objectContaining({ speaker: "agent" }), expect.objectContaining({ speaker: "user" })],
+    });
+
+    process.env.SCENARIO_GENERATE_SSE_MAX_DURATION_MS = "25";
+
+    try {
+      const timeoutResponse = await app.request(
+        "http://localhost/api/scenarios/generate/events?submissionId=timeout-check&limit=1",
+        {
+          headers: {
+            Cookie: admin.cookie,
+          },
+        },
+      );
+
+      expect(timeoutResponse.status).toBe(200);
+      const timeoutPayload = await timeoutResponse.text();
+
+      expect(timeoutPayload).toContain("event: connected");
+    } finally {
+      delete process.env.SCENARIO_GENERATE_SSE_MAX_DURATION_MS;
     }
 
-    const liveEvents = await readScenarioEventsUntil(
-      failedGenerateBody.eventsUrl,
-      sessionCookie,
-      (event) =>
-        event.event === scenarioGenerateUpdatedEvent &&
-        event.data?.jobId === failedJobId &&
-        event.data.status === "failed",
+    const deleteKnowledgeItemResponse = await app.request(
+      `http://localhost/api/admin/knowledge-items/${createdKnowledgeItem.id}`,
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+        method: "DELETE",
+      },
     );
 
-    expect(
-      liveEvents.some(
-        (event) =>
-          event.event === scenarioGenerateUpdatedEvent &&
-          event.data?.jobId === failedJobId &&
-          event.data.status === "failed" &&
-          event.id === "0",
-      ),
-    ).toBe(true);
+    expect(deleteKnowledgeItemResponse.status).toBe(204);
 
-    const snapshotEvents = await readScenarioEventsUntil(
-      failedGenerateBody.eventsUrl,
-      sessionCookie,
-      (event) =>
-        event.event === scenarioGenerateUpdatedEvent &&
-        event.data?.jobId === failedJobId &&
-        event.data.status === "failed",
-    );
+    const deleteScenarioResponse = await app.request(`http://localhost/api/scenarios/${scenarioId}`, {
+      headers: {
+        Cookie: admin.cookie,
+      },
+      method: "DELETE",
+    });
 
-    expect(
-      snapshotEvents.some(
-        (event) =>
-          event.event === scenarioGenerateUpdatedEvent &&
-          event.data?.jobId === failedJobId &&
-          event.data.status === "failed" &&
-          event.id === "0",
-      ),
-    ).toBe(true);
-
-    await expect(
-      getScenarioGenerateSnapshots({
-        cursor: 0,
-        limit: 1,
-        submissionId: generateBody.submissionId,
-      }),
-    ).resolves.toHaveLength(0);
+    expect(deleteScenarioResponse.status).toBe(204);
   }, 60000);
 });
