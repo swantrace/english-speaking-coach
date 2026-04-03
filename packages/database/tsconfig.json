@@ -1,9 +1,6 @@
 {
   "extends": "@english-coach/typescript-config/bun.json",
-  "include": [
-    "drizzle.config.ts",
-    "src"
-  ],
+  "include": ["drizzle.config.ts", "src"],
   "compilerOptions": {
     "strictNullChecks": true
   }
