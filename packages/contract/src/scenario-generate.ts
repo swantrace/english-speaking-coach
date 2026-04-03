@@ -27,6 +27,10 @@ export const scenarioGenerateEventsQuerySchema = z.object({
 export const scenarioGenerateSubmissionItemSchema = z.object({
   message: z.string().min(1),
   queuedAt: z.string().optional(),
+  /**
+   * @internal Dev / test escape hatch only. The backend worker MUST ignore this field
+   * when `NODE_ENV === "production"`. Do not use in production code paths.
+   */
   shouldFail: z.boolean().optional(),
 });
 
