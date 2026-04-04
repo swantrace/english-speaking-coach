@@ -354,6 +354,9 @@ describe("backend phase 2 integration", () => {
     await promoteUserToAdmin(admin.email);
 
     const scenarioId = await createScenarioRecord("Cafe Scenario");
+    const cursorScenarioPrefix = `Cursor Scenario ${Date.now()}`;
+    const cursorScenarioA = await createScenarioRecord(cursorScenarioPrefix);
+    const cursorScenarioB = await createScenarioRecord(cursorScenarioPrefix);
     const knowledgeItemPattern = `I'd like <np> ${Date.now()}`;
 
     const createKnowledgeItemResponse = await app.request("http://localhost/api/admin/knowledge-items", {
@@ -375,6 +378,24 @@ describe("backend phase 2 integration", () => {
     expect(createKnowledgeItemResponse.status).toBe(201);
     const createdKnowledgeItem = (await createKnowledgeItemResponse.json()) as { id: string; pattern: string };
     expect(createdKnowledgeItem.pattern).toBe(knowledgeItemPattern);
+
+    const secondaryKnowledgeItemResponse = await app.request("http://localhost/api/admin/knowledge-items", {
+      body: JSON.stringify({
+        communicativeFunction: "manage_social_relation",
+        example: "Thank you for your help.",
+        fixednessLevel: "fixed_expression",
+        pattern: `Thank you for <np> ${Date.now()}`,
+        source: "admin",
+        syntaxRole: "clause_pattern",
+      }),
+      headers: {
+        Cookie: admin.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(secondaryKnowledgeItemResponse.status).toBe(201);
 
     const patchKnowledgeItemResponse = await app.request(
       `http://localhost/api/admin/knowledge-items/${createdKnowledgeItem.id}`,
@@ -411,8 +432,39 @@ describe("backend phase 2 integration", () => {
       ],
       limit: 1,
       offset: 0,
+      page: 1,
+      pageSize: 1,
       total: expect.any(Number),
+      totalPages: expect.any(Number),
     });
+
+    const filteredKnowledgeItemsResponse = await app.request(
+      `http://localhost/api/admin/knowledge-items?source=auto_generated&search=${encodeURIComponent("I'd like")}&sortBy=pattern&sortDirection=asc&page=1&pageSize=5`,
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+      },
+    );
+
+    expect(filteredKnowledgeItemsResponse.status).toBe(200);
+    const filteredKnowledgeItemsBody = (await filteredKnowledgeItemsResponse.json()) as {
+      items: Array<{ id: string; pattern: string; source: string }>;
+      page: number;
+      pageSize: number;
+    };
+
+    expect(filteredKnowledgeItemsBody.page).toBe(1);
+    expect(filteredKnowledgeItemsBody.pageSize).toBe(5);
+    expect(filteredKnowledgeItemsBody.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: createdKnowledgeItem.id,
+          pattern: knowledgeItemPattern,
+          source: "auto_generated",
+        }),
+      ]),
+    );
 
     const scenarioListResponse = await app.request("http://localhost/api/scenarios?limit=25&offset=0", {
       headers: {
@@ -429,10 +481,76 @@ describe("backend phase 2 integration", () => {
           }),
         ]),
         limit: 25,
+        page: 1,
+        pageSize: 25,
         offset: 0,
+        totalPages: expect.any(Number),
         total: expect.any(Number),
       }),
     );
+
+    const scenarioSearchResponse = await app.request(
+      `http://localhost/api/scenarios?search=${encodeURIComponent("Cafe Scenario")}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(scenarioSearchResponse.status).toBe(200);
+    const scenarioSearchBody = (await scenarioSearchResponse.json()) as {
+      items: Array<{ id: string }>;
+      page: number;
+      pageSize: number;
+    };
+
+    expect(scenarioSearchBody.page).toBe(1);
+    expect(scenarioSearchBody.pageSize).toBe(5);
+    expect(scenarioSearchBody.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: scenarioId })]));
+
+    const firstCursorScenarioResponse = await app.request(
+      `http://localhost/api/scenarios?pagination=cursor&search=${encodeURIComponent(cursorScenarioPrefix)}&pageSize=1`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(firstCursorScenarioResponse.status).toBe(200);
+
+    const firstCursorScenarioBody = (await firstCursorScenarioResponse.json()) as {
+      hasMore: boolean;
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+    };
+
+    expect(firstCursorScenarioBody.items).toHaveLength(1);
+    expect(([cursorScenarioA, cursorScenarioB] as string[]).includes(firstCursorScenarioBody.items[0]?.id ?? "")).toBe(
+      true,
+    );
+    expect(firstCursorScenarioBody.hasMore).toBe(true);
+    expect(firstCursorScenarioBody.nextCursor).toBeTruthy();
+
+    const secondCursorScenarioResponse = await app.request(
+      `http://localhost/api/scenarios?pagination=cursor&search=${encodeURIComponent(cursorScenarioPrefix)}&pageSize=1&cursor=${encodeURIComponent(firstCursorScenarioBody.nextCursor ?? "")}`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(secondCursorScenarioResponse.status).toBe(200);
+
+    const secondCursorScenarioBody = (await secondCursorScenarioResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+    };
+
+    expect(secondCursorScenarioBody.items).toHaveLength(1);
+    expect(secondCursorScenarioBody.items[0]?.id).not.toBe(firstCursorScenarioBody.items[0]?.id);
 
     const scenarioDetailResponse = await app.request(`http://localhost/api/scenarios/${scenarioId}`, {
       headers: {
@@ -575,8 +693,33 @@ describe("backend phase 2 integration", () => {
       ],
       limit: 1,
       offset: 0,
+      page: 1,
+      pageSize: 1,
       total: expect.any(Number),
+      totalPages: expect.any(Number),
     });
+
+    const filteredHistoryResponse = await app.request(
+      `http://localhost/api/history?sessionType=free-form&search=${encodeURIComponent("polite")}&sortBy=startedAt&sortDirection=desc&page=1&pageSize=5`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(filteredHistoryResponse.status).toBe(200);
+    const filteredHistoryBody = (await filteredHistoryResponse.json()) as {
+      items: Array<{ id: string; sessionType: string }>;
+      page: number;
+      pageSize: number;
+    };
+
+    expect(filteredHistoryBody.page).toBe(1);
+    expect(filteredHistoryBody.pageSize).toBe(5);
+    expect(filteredHistoryBody.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: freeFormSessionId, sessionType: "free-form" })]),
+    );
 
     const historyDetailResponse = await app.request(`http://localhost/api/history/${freeFormSessionId}`, {
       headers: {

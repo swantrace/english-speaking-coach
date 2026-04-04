@@ -1,3 +1,4 @@
+import { historyListQuerySchema, sessionTypeSchema } from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import {
   freeFormContexts,
@@ -8,10 +9,30 @@ import {
   sessionKnowledgeItems,
   sessionTranscripts,
 } from "@english-coach/database/schema";
-import { and, count, desc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, like, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
-import { createPaginatedResponse, paginationQuerySchema } from "../http/pagination";
+import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
+
+const historySortColumnMap = {
+  endedAt: sessionHistory.endedAt,
+  startedAt: sessionHistory.startedAt,
+  title: scenarios.title,
+} as const;
+
+function createHistorySearchCondition(search?: string) {
+  if (!search) {
+    return null;
+  }
+
+  const pattern = `%${search}%`;
+
+  return or(
+    like(scenarios.title, pattern),
+    like(sessionHistory.review, pattern),
+    like(sessionHistory.sessionType, pattern),
+  );
+}
 
 export function registerHistoryRoutes(app: BackendApp) {
   app.get("/api/history", async (context) => {
@@ -21,18 +42,27 @@ export function registerHistoryRoutes(app: BackendApp) {
       return context.json({ error: "Authentication required" }, 401);
     }
 
-    const parsedQuery = paginationQuerySchema.safeParse(context.req.query());
+    const parsedQuery = historyListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 
     if (!parsedQuery.success) {
       return context.json({ error: "Invalid history query parameters" }, 400);
     }
 
-    const { limit, offset } = parsedQuery.data;
+    const { page, pageSize, search, sessionType, sortBy, sortDirection } = parsedQuery.data;
+    const offset = getPageOffset(page, pageSize);
     const visibilityCondition = isNotNull(sessionHistory.endedAt);
     const accessCondition =
       currentUser.role === "admin"
         ? visibilityCondition
         : and(eq(sessionHistory.userId, currentUser.id), visibilityCondition);
+    const searchCondition = createHistorySearchCondition(search);
+    const sessionTypeCondition = sessionType ? eq(sessionHistory.sessionType, sessionType) : null;
+    const conditions = [accessCondition, searchCondition, sessionTypeCondition].filter(
+      (condition): condition is NonNullable<typeof condition> => Boolean(condition),
+    );
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    const orderColumn = historySortColumnMap[sortBy];
+    const orderExpression = sortDirection === "asc" ? asc(orderColumn) : desc(orderColumn);
 
     const baseQuery = db
       .select({
@@ -52,20 +82,24 @@ export function registerHistoryRoutes(app: BackendApp) {
       .leftJoin(scenarios, eq(sessionHistory.scenarioId, scenarios.id));
 
     const [records, totalResult] = await Promise.all([
-      baseQuery.where(accessCondition).orderBy(desc(sessionHistory.startedAt)).limit(limit).offset(offset),
-      db.select({ total: count() }).from(sessionHistory).where(accessCondition),
+      baseQuery.where(whereCondition).orderBy(orderExpression, desc(sessionHistory.id)).limit(pageSize).offset(offset),
+      db
+        .select({ total: count() })
+        .from(sessionHistory)
+        .leftJoin(scenarios, eq(sessionHistory.scenarioId, scenarios.id))
+        .where(whereCondition),
     ]);
 
     return context.json(
-      createPaginatedResponse(
+      createPageResponse(
         records.map((record) => ({
-          canReopen: record.sessionType === "free-form" && record.endedAt !== null,
+          canReopen: record.sessionType === sessionTypeSchema.enum["free-form"] && record.endedAt !== null,
           ...record,
           title: record.scenarioTitle ?? "Free-form",
         })),
         totalResult[0]?.total ?? 0,
-        limit,
-        offset,
+        page,
+        pageSize,
       ),
     );
   });

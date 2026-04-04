@@ -1,10 +1,14 @@
 import {
   communicativeFunctions,
   fixednessLevels,
+  historyListResponseSchema,
+  knowledgeItemListResponseSchema,
+  knowledgeItemSchema,
   type Scenario,
   scenarioCharacterSchema,
   scenarioDialogueTurnSchema,
   scenarioGoalsSchema,
+  scenarioPageResponseSchema,
   scenarioSchema,
   sessionTurnSchema,
   sessionTypeSchema,
@@ -39,14 +43,6 @@ export const connectionStyles = {
 
 export const liveKitUrl = (import.meta.env as ImportMetaEnv & { VITE_LIVEKIT_URL?: string }).VITE_LIVEKIT_URL;
 
-const paginatedResponseSchema = <TItem extends z.ZodTypeAny>(itemSchema: TItem) =>
-  z.object({
-    items: z.array(itemSchema),
-    limit: z.number().int(),
-    offset: z.number().int(),
-    total: z.number().int(),
-  });
-
 const viewerUserSchema = z.object({
   email: z.string().email(),
   id: z.string(),
@@ -70,33 +66,6 @@ export const rolePlaySearchSchema = z.object({
 
 export const freeFormSearchSchema = z.object({
   scenarioId: z.string().min(1).optional(),
-});
-
-export const knowledgeItemSchema = z.object({
-  communicativeFunction: z.enum(communicativeFunctions).nullable(),
-  createdAt: z.string(),
-  example: z.string().nullable(),
-  fixednessLevel: z.enum(fixednessLevels).nullable(),
-  id: z.string(),
-  pattern: z.string(),
-  source: z.enum(["admin", "auto_generated"]),
-  syntaxRole: z.enum(syntaxRoles).nullable(),
-  updatedAt: z.string(),
-});
-
-const historySummarySchema = z.object({
-  canReopen: z.boolean(),
-  completedGoals: z.array(z.string()).nullable().optional(),
-  endedAt: z.string().nullable(),
-  freeFormContextId: z.string().nullable().optional(),
-  id: z.string(),
-  review: z.string().nullable(),
-  scenarioId: z.string().nullable(),
-  selectedCharacterIndex: z.number().nullable(),
-  sessionType: sessionTypeSchema,
-  startedAt: z.string(),
-  title: z.string(),
-  userId: z.string(),
 });
 
 const sessionScenarioSchema = z.object({
@@ -162,6 +131,7 @@ export const viewerQueryKey = ["viewer"] as const;
 export const scenariosQueryKey = ["scenarios"] as const;
 export const historyQueryKey = ["history"] as const;
 export const knowledgeItemsQueryKey = ["knowledge-items"] as const;
+export { knowledgeItemSchema };
 
 export const queryClient = new QueryClient({
   mutationCache: new MutationCache(),
@@ -328,7 +298,7 @@ export function useViewer() {
 export function useScenarios() {
   return useQuery({
     queryKey: scenariosQueryKey,
-    queryFn: () => apiJson("/api/scenarios?limit=100", paginatedResponseSchema(scenarioSchema)),
+    queryFn: () => apiJson("/api/scenarios?page=1&pageSize=100", scenarioPageResponseSchema),
   });
 }
 
@@ -343,7 +313,7 @@ export function useScenario(scenarioId?: string) {
 export function useHistory() {
   return useQuery({
     queryKey: historyQueryKey,
-    queryFn: () => apiJson("/api/history?limit=100", paginatedResponseSchema(historySummarySchema)),
+    queryFn: () => apiJson("/api/history?page=1&pageSize=100", historyListResponseSchema),
   });
 }
 
@@ -355,7 +325,7 @@ export function useSessionDetail(sessionId: string) {
 }
 
 export function useKnowledgeItems(source?: "admin" | "auto_generated") {
-  const searchParams = new URLSearchParams({ limit: "100" });
+  const searchParams = new URLSearchParams({ page: "1", pageSize: "100" });
 
   if (source) {
     searchParams.set("source", source);
@@ -363,8 +333,7 @@ export function useKnowledgeItems(source?: "admin" | "auto_generated") {
 
   return useQuery({
     queryKey: [...knowledgeItemsQueryKey, source ?? "all"],
-    queryFn: () =>
-      apiJson(`/api/admin/knowledge-items?${searchParams.toString()}`, paginatedResponseSchema(knowledgeItemSchema)),
+    queryFn: () => apiJson(`/api/admin/knowledge-items?${searchParams.toString()}`, knowledgeItemListResponseSchema),
   });
 }
 

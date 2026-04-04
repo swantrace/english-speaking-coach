@@ -1,13 +1,18 @@
-import { communicativeFunctions, fixednessLevels, syntaxRoles } from "@english-coach/contract";
+import {
+  communicativeFunctions,
+  fixednessLevels,
+  knowledgeItemListQuerySchema,
+  knowledgeItemSourceSchema,
+  syntaxRoles,
+} from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
-import { count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, like, or } from "drizzle-orm";
 import { z } from "zod";
 import type { BackendApp } from "../http/context";
 import { parseJsonBody } from "../http/context";
-import { createPaginatedResponse, paginationQuerySchema } from "../http/pagination";
+import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
 
-const knowledgeItemSourceSchema = z.enum(["admin", "auto_generated"]);
 const adminKnowledgeItemCreateSchema = z.object({
   communicativeFunction: z.enum(communicativeFunctions).nullable().optional(),
   example: z.string().trim().min(1).nullable().optional(),
@@ -19,32 +24,53 @@ const adminKnowledgeItemCreateSchema = z.object({
 const adminKnowledgeItemPatchSchema = adminKnowledgeItemCreateSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
-const knowledgeItemsQuerySchema = paginationQuerySchema.extend({
-  source: knowledgeItemSourceSchema.optional(),
-});
+
+const knowledgeItemSortColumnMap = {
+  createdAt: knowledgeItems.createdAt,
+  pattern: knowledgeItems.pattern,
+  source: knowledgeItems.source,
+  updatedAt: knowledgeItems.updatedAt,
+} as const;
+
+function createKnowledgeItemSearchCondition(search?: string) {
+  if (!search) {
+    return null;
+  }
+
+  const pattern = `%${search}%`;
+
+  return or(like(knowledgeItems.pattern, pattern), like(knowledgeItems.example, pattern));
+}
 
 export function registerAdminRoutes(app: BackendApp) {
   app.get("/api/admin/knowledge-items", async (context) => {
-    const parsedQuery = knowledgeItemsQuerySchema.safeParse(context.req.query());
+    const parsedQuery = knowledgeItemListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 
     if (!parsedQuery.success) {
       return context.json({ error: "Invalid knowledge item query parameters" }, 400);
     }
 
-    const filterCondition = parsedQuery.data.source ? eq(knowledgeItems.source, parsedQuery.data.source) : null;
-    const { limit, offset } = parsedQuery.data;
+    const { communicativeFunction, fixednessLevel, page, pageSize, search, sortBy, sortDirection, source, syntaxRole } =
+      parsedQuery.data;
+    const offset = getPageOffset(page, pageSize);
+    const conditions = [
+      source ? eq(knowledgeItems.source, source) : null,
+      syntaxRole ? eq(knowledgeItems.syntaxRole, syntaxRole) : null,
+      fixednessLevel ? eq(knowledgeItems.fixednessLevel, fixednessLevel) : null,
+      communicativeFunction ? eq(knowledgeItems.communicativeFunction, communicativeFunction) : null,
+      createKnowledgeItemSearchCondition(search),
+    ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+    const filterCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    const orderColumn = knowledgeItemSortColumnMap[sortBy];
+    const orderExpression = sortDirection === "asc" ? asc(orderColumn) : desc(orderColumn);
     const baseQuery = db.select().from(knowledgeItems);
 
     const [records, totalResult] = await Promise.all([
-      filterCondition
-        ? baseQuery.where(filterCondition).orderBy(desc(knowledgeItems.updatedAt)).limit(limit).offset(offset)
-        : baseQuery.orderBy(desc(knowledgeItems.updatedAt)).limit(limit).offset(offset),
-      filterCondition
-        ? db.select({ total: count() }).from(knowledgeItems).where(filterCondition)
-        : db.select({ total: count() }).from(knowledgeItems),
+      baseQuery.where(filterCondition).orderBy(orderExpression, desc(knowledgeItems.id)).limit(pageSize).offset(offset),
+      db.select({ total: count() }).from(knowledgeItems).where(filterCondition),
     ]);
 
-    return context.json(createPaginatedResponse(records, totalResult[0]?.total ?? 0, limit, offset));
+    return context.json(createPageResponse(records, totalResult[0]?.total ?? 0, page, pageSize));
   });
 
   app.post("/api/admin/knowledge-items", async (context) => {
