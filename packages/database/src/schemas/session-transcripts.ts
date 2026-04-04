@@ -12,5 +12,13 @@ export const sessionTranscripts = sqliteTable("session_transcripts", {
   turns: text("turns", { mode: "json" })
     .notNull()
     .$type<Array<{ speaker: "user" | "agent"; text: string; timestampMs: number }>>(),
+  /** Array<{ id, kind, text, transcriptTurnIndex }> */
+  annotations: text("annotations", { mode: "json" }).$type<
+    Array<{ id: string; kind: "goal-progress" | "coaching"; text: string; transcriptTurnIndex: number }>
+  >(),
+  /** Array<{ transcriptTurnIndex, text }> for rewritten learner turns. */
+  rewrittenTurns: text("rewritten_turns", { mode: "json" }).$type<
+    Array<{ text: string; transcriptTurnIndex: number }>
+  >(),
   createdAt: text("created_at").notNull(),
 });

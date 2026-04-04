@@ -11,6 +11,20 @@ export const sessionTurnSchema = z.object({
 });
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 
+export const transcriptAnnotationKindSchema = z.enum(["goal-progress", "coaching"]);
+export const transcriptAnnotationSchema = z.object({
+  id: z.string(),
+  kind: transcriptAnnotationKindSchema,
+  text: z.string().trim().min(1),
+  transcriptTurnIndex: z.number().int().min(0),
+});
+export const rewrittenTranscriptTurnSchema = z.object({
+  text: z.string().trim().min(1),
+  transcriptTurnIndex: z.number().int().min(0),
+});
+export type TranscriptAnnotation = z.infer<typeof transcriptAnnotationSchema>;
+export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
+
 // ── Scenario sub-schemas ──────────────────────────────────────────────────────
 
 export const scenarioCharacterSchema = z.object({
@@ -100,6 +114,10 @@ export const sessionCompletionRequestSchema = z.object({
   transcript: z.array(sessionTurnSchema),
 });
 
+export const transcriptAnnotationUpsertRequestSchema = z.object({
+  annotations: z.array(transcriptAnnotationSchema).min(1),
+});
+
 export const lingAnalysisKnowledgeItemSchema = z.object({
   pattern: z.string().trim().min(1),
   syntaxRole: z.enum([
@@ -137,6 +155,7 @@ export const lingAnalysisErrorSchema = z.object({
 export const lingAnalysisResultSchema = z.object({
   errors: z.array(lingAnalysisErrorSchema),
   knowledgeItemsUsed: z.array(lingAnalysisKnowledgeItemSchema),
+  rewrittenUserTurns: z.array(rewrittenTranscriptTurnSchema).default([]),
   review: z.string().trim().min(1),
 });
 
@@ -162,5 +181,6 @@ export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSche
 export type SessionAgentBootstrap = z.infer<typeof sessionAgentBootstrapSchema>;
 export type SessionCompletionRequest = z.infer<typeof sessionCompletionRequestSchema>;
 export type SessionCompletionJob = SessionCompletionRequest;
+export type TranscriptAnnotationUpsertRequest = z.infer<typeof transcriptAnnotationUpsertRequestSchema>;
 export type LingAnalysisResult = z.infer<typeof lingAnalysisResultSchema>;
 export type InConversationAnalysisResult = z.infer<typeof inConversationAnalysisResultSchema>;

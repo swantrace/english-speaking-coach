@@ -36,6 +36,13 @@
       "when": 1775197402287,
       "tag": "0004_silent_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1775344086967,
+      "tag": "0005_minor_pestilence",
+      "breakpoints": true
     }
   ]
 }

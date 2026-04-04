@@ -3,11 +3,13 @@ import {
   scenarioSchema,
   sessionAgentBootstrapSchema,
   sessionCompletionRequestSchema,
+  transcriptAnnotationUpsertRequestSchema,
 } from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import { freeFormContexts, scenarios, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
+import { persistTranscriptAnnotationsForSession } from "../lib/queues/in-conversation.analysis";
 import { completeSession } from "../lib/queues/session.completion";
 
 const defaultDevelopmentApiToken = "english-coach-local-api-token";
@@ -119,5 +121,24 @@ export function registerInternalAgentRoutes(app: BackendApp) {
         userId: sessionRecord.userId,
       }),
     );
+  });
+
+  app.post("/api/internal/agent/sessions/:sessionHistoryId/transcript-annotations", async (context) => {
+    const authError = requireApiToken(context.req.raw);
+
+    if (authError) {
+      return authError;
+    }
+
+    const sessionHistoryId = context.req.param("sessionHistoryId");
+    const payload = transcriptAnnotationUpsertRequestSchema.safeParse(await context.req.json());
+
+    if (!payload.success) {
+      return context.json({ error: "Invalid transcript annotations payload" }, 400);
+    }
+
+    await persistTranscriptAnnotationsForSession(sessionHistoryId, payload.data.annotations);
+
+    return context.json({ ok: true });
   });
 }

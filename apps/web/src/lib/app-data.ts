@@ -8,6 +8,7 @@ import {
   knowledgeItemListResponseSchema,
   knowledgeItemListSortBySchema,
   knowledgeItemSchema,
+  rewrittenTranscriptTurnSchema,
   type Scenario,
   scenarioCharacterSchema,
   scenarioCursorResponseSchema,
@@ -19,6 +20,7 @@ import {
   sessionTurnSchema,
   sessionTypeSchema,
   syntaxRoles,
+  transcriptAnnotationSchema,
   userRoles,
 } from "@english-coach/contract";
 import { MutationCache, QueryClient, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
@@ -94,6 +96,7 @@ export const historyListSearchSchema = z.object({
 });
 
 export const historyDetailSearchSchema = z.object({
+  tab: z.enum(["review", "transcript", "rewritten"]).default("review"),
   turn: z.coerce.number().int().min(0).optional(),
 });
 
@@ -154,6 +157,7 @@ const historyDetailSchema = z.object({
   contextDocument: z.string().optional(),
   errors: z.array(sessionErrorSchema),
   knowledgeItems: z.array(sessionKnowledgeItemSchema),
+  rewrittenTranscript: z.array(rewrittenTranscriptTurnSchema),
   session: z.object({
     canReopen: z.boolean(),
     completedGoals: z.array(z.string()).nullable().optional(),
@@ -169,6 +173,7 @@ const historyDetailSchema = z.object({
     title: z.string(),
     userId: z.string(),
   }),
+  transcriptAnnotations: z.array(transcriptAnnotationSchema),
   transcript: z.array(sessionTurnSchema),
   transcriptCreatedAt: z.string().nullable(),
 });

@@ -1,4 +1,10 @@
-import { type GoalProgressPacket, goalProgressPacketSchema, type Scenario } from "@english-coach/contract";
+import {
+  type GoalProgressPacket,
+  goalProgressPacketSchema,
+  type Scenario,
+  type TranscriptAnnotation,
+  transcriptAnnotationSchema,
+} from "@english-coach/contract";
 
 import type { RolePlayRuntimeConfig } from "./types";
 
@@ -154,4 +160,45 @@ export function createRolePlayInstructions(config: RolePlayRuntimeConfig, sessio
     "After the tool returns, use the hint to shape the next in-character turn.",
     sessionTracker.renderCurrentStatus(),
   ].join("\n\n");
+}
+
+export function goalProgressPacketToTranscriptAnnotations(packet: GoalProgressPacket): TranscriptAnnotation[] {
+  if (packet.transcriptTurnIndex === undefined) {
+    return [];
+  }
+
+  const latestCompletedGoal = [...packet.goals].reverse().find((goal) => goal.status === "complete");
+  const currentGoal =
+    packet.goals.find((goal) => goal.id === packet.currentGoalId) ??
+    packet.goals.find((goal) => goal.status === "incomplete");
+  const slotSummary = Object.entries(packet.filledSlots)
+    .map(([slot, value]) => `${slot}: ${value}`)
+    .join(" · ");
+  const annotations: TranscriptAnnotation[] = [];
+
+  if (latestCompletedGoal) {
+    annotations.push(
+      transcriptAnnotationSchema.parse({
+        id: `goal-progress:completed:${latestCompletedGoal.id}:${packet.transcriptTurnIndex}`,
+        kind: "goal-progress",
+        text: `Completed goal: ${latestCompletedGoal.description}`,
+        transcriptTurnIndex: packet.transcriptTurnIndex,
+      }),
+    );
+  }
+
+  if (currentGoal && currentGoal.status !== "complete") {
+    annotations.push(
+      transcriptAnnotationSchema.parse({
+        id: `goal-progress:current:${currentGoal.id}:${packet.transcriptTurnIndex}:${slotSummary || "none"}`,
+        kind: "goal-progress",
+        text: slotSummary
+          ? `Current goal: ${currentGoal.description}. Captured ${slotSummary}.`
+          : `Current goal: ${currentGoal.description}. Keep steering the conversation there.`,
+        transcriptTurnIndex: packet.transcriptTurnIndex,
+      }),
+    );
+  }
+
+  return annotations;
 }

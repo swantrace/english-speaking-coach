@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { transcriptAnnotationUpsertRequestSchema } from "@english-coach/contract";
 import {
   type ScenarioGenerateJobUpdate,
   type ScenarioGenerateSubmissionResponse,
@@ -353,7 +354,8 @@ describe("backend phase 2 integration", () => {
 
     await promoteUserToAdmin(admin.email);
 
-    const scenarioId = await createScenarioRecord("Cafe Scenario");
+    const scenarioSearchPrefix = `Cafe Scenario ${Date.now()}`;
+    const scenarioId = await createScenarioRecord(scenarioSearchPrefix);
     const cursorScenarioPrefix = `Cursor Scenario ${Date.now()}`;
     const cursorScenarioA = await createScenarioRecord(cursorScenarioPrefix);
     const cursorScenarioB = await createScenarioRecord(cursorScenarioPrefix);
@@ -439,7 +441,7 @@ describe("backend phase 2 integration", () => {
     });
 
     const filteredKnowledgeItemsResponse = await app.request(
-      `http://localhost/api/admin/knowledge-items?source=auto_generated&search=${encodeURIComponent("I'd like")}&sortBy=pattern&sortDirection=asc&page=1&pageSize=5`,
+      `http://localhost/api/admin/knowledge-items?source=auto_generated&search=${encodeURIComponent(knowledgeItemPattern)}&sortBy=pattern&sortDirection=asc&page=1&pageSize=5`,
       {
         headers: {
           Cookie: admin.cookie,
@@ -490,7 +492,7 @@ describe("backend phase 2 integration", () => {
     );
 
     const adminScenarioListResponse = await app.request(
-      `http://localhost/api/admin/scenarios?search=${encodeURIComponent("Cafe Scenario")}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
+      `http://localhost/api/admin/scenarios?search=${encodeURIComponent(scenarioSearchPrefix)}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
       {
         headers: {
           Cookie: admin.cookie,
@@ -499,14 +501,18 @@ describe("backend phase 2 integration", () => {
     );
 
     expect(adminScenarioListResponse.status).toBe(200);
-    expect(adminScenarioListResponse.json()).resolves.toMatchObject({
-      items: expect.arrayContaining([expect.objectContaining({ id: scenarioId })]),
-      page: 1,
-      pageSize: 5,
-    });
+    const adminScenarioListBody = (await adminScenarioListResponse.json()) as {
+      items: Array<{ id: string }>;
+      page: number;
+      pageSize: number;
+    };
+
+    expect(adminScenarioListBody.page).toBe(1);
+    expect(adminScenarioListBody.pageSize).toBe(5);
+    expect(adminScenarioListBody.items.some((item) => item.id === scenarioId)).toBe(true);
 
     const scenarioSearchResponse = await app.request(
-      `http://localhost/api/learner/scenarios?search=${encodeURIComponent("Cafe Scenario")}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
+      `http://localhost/api/learner/scenarios?search=${encodeURIComponent(scenarioSearchPrefix)}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
       {
         headers: {
           Cookie: student.cookie,
@@ -664,8 +670,17 @@ describe("backend phase 2 integration", () => {
     });
 
     await db.insert(sessionTranscripts).values({
+      annotations: [
+        {
+          id: `history-annotation-${freeFormSessionId}`,
+          kind: "coaching",
+          text: "Ask why the verb changes in the past tense.",
+          transcriptTurnIndex: 1,
+        },
+      ],
       createdAt: now,
       id: crypto.randomUUID(),
+      rewrittenTurns: [{ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 }],
       sessionHistoryId: freeFormSessionId,
       turns: [
         { speaker: "agent", text: "What would you like?", timestampMs: Date.now() },
@@ -747,13 +762,46 @@ describe("backend phase 2 integration", () => {
     expect(historyDetailResponse.json()).resolves.toMatchObject({
       errors: [expect.objectContaining({ dimension: "lexical" })],
       knowledgeItems: [expect.objectContaining({ knowledgeItemId: createdKnowledgeItem.id, speaker: "user" })],
+      rewrittenTranscript: [expect.objectContaining({ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 })],
       session: {
         canReopen: true,
         id: freeFormSessionId,
         title: "Free-form",
       },
+      transcriptAnnotations: [
+        expect.objectContaining({
+          kind: "coaching",
+          text: "Ask why the verb changes in the past tense.",
+          transcriptTurnIndex: 1,
+        }),
+      ],
       transcript: [expect.objectContaining({ speaker: "agent" }), expect.objectContaining({ speaker: "user" })],
     });
+
+    const rolePlayAnnotationResponse = await app.request(
+      `http://localhost/api/internal/agent/sessions/${agentMetadata.sessionHistoryId}/transcript-annotations`,
+      {
+        body: JSON.stringify(
+          transcriptAnnotationUpsertRequestSchema.parse({
+            annotations: [
+              {
+                id: `role-play-annotation-${agentMetadata.sessionHistoryId}`,
+                kind: "goal-progress",
+                text: "Completed goal: Order a drink",
+                transcriptTurnIndex: 0,
+              },
+            ],
+          }),
+        ),
+        headers: {
+          Authorization: "Bearer english-coach-local-api-token",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      },
+    );
+
+    expect(rolePlayAnnotationResponse.status).toBe(200);
 
     const rolePlayHistoryDetailResponse = await app.request(
       `http://localhost/api/history/${agentMetadata.sessionHistoryId}`,
@@ -771,6 +819,13 @@ describe("backend phase 2 integration", () => {
         id: agentMetadata.sessionHistoryId,
         sessionType: "role-play",
       },
+      transcriptAnnotations: [
+        expect.objectContaining({
+          kind: "goal-progress",
+          text: "Completed goal: Order a drink",
+          transcriptTurnIndex: 0,
+        }),
+      ],
     });
 
     process.env.SCENARIO_GENERATE_SSE_MAX_DURATION_MS = "25";

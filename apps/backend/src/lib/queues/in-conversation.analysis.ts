@@ -5,7 +5,11 @@ import {
   inConversationAnalysisJobSchema,
   inConversationAnalysisQueueName,
   inConversationAnalysisResultSchema,
+  type RewrittenTranscriptTurn,
+  rewrittenTranscriptTurnSchema,
   type SessionTurn,
+  type TranscriptAnnotation,
+  transcriptAnnotationSchema,
   uiUpdatePacketSchema,
   workerFeedbackPacketSchema,
 } from "@english-coach/contract";
@@ -36,6 +40,9 @@ let inConversationAnalysisGeneratorOverride:
   | ((job: InConversationAnalysisJob) => Promise<{ observation: string; workerFeedbackMessage: string }>)
   | null = null;
 
+type TranscriptAnnotations = NonNullable<typeof sessionTranscripts.$inferSelect.annotations>;
+type TranscriptRewrittenTurns = NonNullable<typeof sessionTranscripts.$inferSelect.rewrittenTurns>;
+
 export function mergeTranscriptTurns(existingTurns: SessionTurn[], incomingTurns: SessionTurn[]) {
   const mergedTurns = [...existingTurns];
   const seenTurnKeys = new Set(existingTurns.map((turn) => `${turn.timestampMs}:${turn.speaker}:${turn.text}`));
@@ -54,29 +61,109 @@ export function mergeTranscriptTurns(existingTurns: SessionTurn[], incomingTurns
   return mergedTurns.sort((left, right) => left.timestampMs - right.timestampMs);
 }
 
-export async function persistTranscriptBatchForSession(sessionHistoryId: string, turns: SessionTurn[]) {
+function mergeTranscriptAnnotations(
+  existingAnnotations: TranscriptAnnotations,
+  incomingAnnotations: TranscriptAnnotation[],
+) {
+  const mergedById = new Map(existingAnnotations.map((annotation) => [annotation.id, annotation]));
+
+  for (const annotation of incomingAnnotations) {
+    mergedById.set(annotation.id, transcriptAnnotationSchema.parse(annotation));
+  }
+
+  return [...mergedById.values()].sort((left, right) => left.transcriptTurnIndex - right.transcriptTurnIndex);
+}
+
+function mergeRewrittenTranscriptTurns(
+  existingTurns: TranscriptRewrittenTurns,
+  incomingTurns: RewrittenTranscriptTurn[],
+) {
+  const mergedByTurnIndex = new Map(existingTurns.map((turn) => [turn.transcriptTurnIndex, turn]));
+
+  for (const turn of incomingTurns) {
+    mergedByTurnIndex.set(turn.transcriptTurnIndex, rewrittenTranscriptTurnSchema.parse(turn));
+  }
+
+  return [...mergedByTurnIndex.values()].sort((left, right) => left.transcriptTurnIndex - right.transcriptTurnIndex);
+}
+
+async function readExistingTranscriptRecord(sessionHistoryId: string) {
   const [existingTranscript] = await db
     .select()
     .from(sessionTranscripts)
     .where(eq(sessionTranscripts.sessionHistoryId, sessionHistoryId))
     .limit(1);
 
-  const nextTurns = existingTranscript ? mergeTranscriptTurns(existingTranscript.turns, turns) : turns;
+  return existingTranscript;
+}
+
+async function upsertTranscriptRecord({
+  annotations,
+  rewrittenTurns,
+  sessionHistoryId,
+  turns,
+}: {
+  annotations?: TranscriptAnnotation[];
+  rewrittenTurns?: RewrittenTranscriptTurn[];
+  sessionHistoryId: string;
+  turns?: SessionTurn[];
+}) {
+  const existingTranscript = await readExistingTranscriptRecord(sessionHistoryId);
+  const nextTurns = turns ?? existingTranscript?.turns ?? [];
+  const nextAnnotations = annotations
+    ? mergeTranscriptAnnotations(existingTranscript?.annotations ?? [], annotations)
+    : (existingTranscript?.annotations ?? []);
+  const nextRewrittenTurns = rewrittenTurns
+    ? mergeRewrittenTranscriptTurns(existingTranscript?.rewrittenTurns ?? [], rewrittenTurns)
+    : (existingTranscript?.rewrittenTurns ?? []);
 
   await db
     .insert(sessionTranscripts)
     .values({
+      annotations: nextAnnotations,
       createdAt: existingTranscript?.createdAt ?? new Date().toISOString(),
       id: existingTranscript?.id ?? crypto.randomUUID(),
+      rewrittenTurns: nextRewrittenTurns,
       sessionHistoryId,
       turns: nextTurns,
     })
     .onConflictDoUpdate({
       set: {
+        annotations: nextAnnotations,
+        rewrittenTurns: nextRewrittenTurns,
         turns: nextTurns,
       },
       target: sessionTranscripts.sessionHistoryId,
     });
+}
+
+export async function persistTranscriptBatchForSession(sessionHistoryId: string, turns: SessionTurn[]) {
+  const existingTranscript = await readExistingTranscriptRecord(sessionHistoryId);
+  const nextTurns = existingTranscript ? mergeTranscriptTurns(existingTranscript.turns, turns) : turns;
+
+  await upsertTranscriptRecord({ sessionHistoryId, turns: nextTurns });
+}
+
+export async function persistTranscriptAnnotationsForSession(
+  sessionHistoryId: string,
+  annotations: TranscriptAnnotation[],
+) {
+  if (!annotations.length) {
+    return;
+  }
+
+  await upsertTranscriptRecord({ annotations, sessionHistoryId });
+}
+
+export async function persistRewrittenTranscriptTurnsForSession(
+  sessionHistoryId: string,
+  rewrittenTurns: RewrittenTranscriptTurn[],
+) {
+  if (!rewrittenTurns.length) {
+    return;
+  }
+
+  await upsertTranscriptRecord({ rewrittenTurns, sessionHistoryId });
 }
 
 async function generateInConversationFeedback(job: InConversationAnalysisJob) {
@@ -127,6 +214,17 @@ export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob
       transcriptTurnIndex: getLatestUserTurnIndex(parsedJob),
       type: "ui-update",
     });
+
+    if (uiUpdatePacket.transcriptTurnIndex !== undefined) {
+      await persistTranscriptAnnotationsForSession(parsedJob.sessionHistoryId, [
+        transcriptAnnotationSchema.parse({
+          id: `ui-update:${parsedJob.sessionHistoryId}:${uiUpdatePacket.transcriptTurnIndex}:${uiUpdatePacket.observation}`,
+          kind: "coaching",
+          text: uiUpdatePacket.observation,
+          transcriptTurnIndex: uiUpdatePacket.transcriptTurnIndex,
+        }),
+      ]);
+    }
 
     await Promise.all([
       roomServiceClient.sendData(

@@ -1,4 +1,10 @@
-import type { GoalProgressPacket, SessionTurn, UiUpdatePacket } from "@english-coach/contract";
+import type {
+  GoalProgressPacket,
+  RewrittenTranscriptTurn,
+  SessionTurn,
+  TranscriptAnnotation,
+  UiUpdatePacket,
+} from "@english-coach/contract";
 
 export interface TranscriptMessageLike {
   from?: {
@@ -64,6 +70,15 @@ export function getTranscriptEntriesFromSessionTurns(turns: SessionTurn[]) {
     speaker: turn.speaker === "agent" ? "assistant" : "user",
     timestamp: normalizeTimestamp(turn.timestampMs),
     turnIndex: index,
+  }));
+}
+
+export function getRewrittenTranscriptEntries(entries: TranscriptEntry[], rewrittenTurns: RewrittenTranscriptTurn[]) {
+  const rewrittenByTurnIndex = new Map(rewrittenTurns.map((turn) => [turn.transcriptTurnIndex, turn.text]));
+
+  return entries.map<TranscriptEntry>((entry) => ({
+    ...entry,
+    message: entry.speaker === "user" ? (rewrittenByTurnIndex.get(entry.turnIndex) ?? entry.message) : entry.message,
   }));
 }
 
@@ -154,6 +169,34 @@ export function createTranscriptCueMap({
         },
       ];
     });
+  }
+
+  return cuesById;
+}
+
+export function createTranscriptCueMapFromAnnotations({
+  annotations,
+  entries,
+}: {
+  annotations: TranscriptAnnotation[];
+  entries: TranscriptEntry[];
+}) {
+  const cuesById: Record<string, TranscriptCue[]> = {};
+
+  for (const annotation of annotations) {
+    const anchor = getEntryByTurnIndex(entries, annotation.transcriptTurnIndex);
+
+    if (!anchor) {
+      continue;
+    }
+
+    cuesById[anchor.id] = [
+      ...(cuesById[anchor.id] ?? []),
+      {
+        kind: annotation.kind,
+        text: annotation.text,
+      },
+    ];
   }
 
   return cuesById;

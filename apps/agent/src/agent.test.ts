@@ -21,7 +21,7 @@ vi.mock("./agent/runtime-services", () => ({
 
 import { Agent } from "./agent";
 import { withLatestWorkerFeedback } from "./agent/free-form";
-import { SessionTracker } from "./agent/role-play";
+import { goalProgressPacketToTranscriptAnnotations, SessionTracker } from "./agent/role-play";
 import { toSessionTurns } from "./agent/session-turns";
 
 const scenario: Scenario = {
@@ -101,6 +101,27 @@ describe("SessionTracker", () => {
     tracker.advance("request_bill", {});
 
     expect(tracker.createHint("request_bill", {})).toContain("All scenario goals are complete");
+  });
+
+  it("derives persisted transcript annotations from goal progress packets", () => {
+    const tracker = new SessionTracker(scenario);
+
+    tracker.advance("order_food", { dish_name: "pasta" });
+
+    expect(goalProgressPacketToTranscriptAnnotations(tracker.toGoalProgressPacket(4))).toEqual([
+      {
+        id: "goal-progress:completed:order-dish:4",
+        kind: "goal-progress",
+        text: "Completed goal: Order a dish",
+        transcriptTurnIndex: 4,
+      },
+      {
+        id: "goal-progress:current:ask-for-bill:4:none",
+        kind: "goal-progress",
+        text: "Current goal: Ask for the bill. Keep steering the conversation there.",
+        transcriptTurnIndex: 4,
+      },
+    ]);
   });
 });
 

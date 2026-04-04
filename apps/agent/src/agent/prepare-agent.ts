@@ -1,7 +1,8 @@
 import { type GoalProgressPacket, sessionDispatchMetadataSchema } from "@english-coach/contract";
 
 import { Agent } from "./Agent";
-import { fetchSessionBootstrapFromBackend } from "./runtime-services";
+import { goalProgressPacketToTranscriptAnnotations } from "./role-play";
+import { fetchSessionBootstrapFromBackend, persistTranscriptAnnotations } from "./runtime-services";
 import type { LocalParticipantRef } from "./types";
 
 export async function prepareAgent(metadata: string, localParticipant: LocalParticipantRef): Promise<Agent> {
@@ -18,6 +19,12 @@ export async function prepareAgent(metadata: string, localParticipant: LocalPart
       reliable: true,
       topic: packet.type,
     });
+
+    const annotations = goalProgressPacketToTranscriptAnnotations(packet);
+
+    if (annotations.length > 0) {
+      await persistTranscriptAnnotations(session.sessionHistoryId, annotations);
+    }
   };
 
   switch (session.sessionType) {

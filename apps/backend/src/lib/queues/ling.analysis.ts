@@ -21,6 +21,7 @@ import { generateObject } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { producerRedis, workerRedis } from "../redis";
+import { persistRewrittenTranscriptTurnsForSession } from "./in-conversation.analysis";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
 
@@ -57,6 +58,7 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
           usageExcerpts: ["I'd like coffee"],
         },
       ],
+      rewrittenUserTurns: [{ text: "I went to the store.", transcriptTurnIndex: 0 }],
       review:
         "Clear effort with useful request language. Keep adding articles and model the full request form consistently.",
     });
@@ -174,6 +176,8 @@ export const lingAnalysisWorker = new Worker<{ sessionHistoryId: string }>(
         })
         .where(eq(sessionHistory.id, sessionHistoryId));
     });
+
+    await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
 
     return analysis;
   },

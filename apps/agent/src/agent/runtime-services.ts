@@ -3,6 +3,8 @@ import {
   type SessionCompletionJob,
   sessionAgentBootstrapSchema,
   sessionCompletionQueueName,
+  type TranscriptAnnotation,
+  transcriptAnnotationUpsertRequestSchema,
 } from "@english-coach/contract";
 import { Queue } from "bullmq";
 
@@ -33,6 +35,22 @@ export async function fetchSessionBootstrapFromBackend(sessionHistoryId: string)
   }
 
   return sessionAgentBootstrapSchema.parse(await response.json());
+}
+
+export async function persistTranscriptAnnotations(sessionHistoryId: string, annotations: TranscriptAnnotation[]) {
+  const payload = transcriptAnnotationUpsertRequestSchema.parse({ annotations });
+  const response = await fetch(
+    `${getBackendBaseUrl()}/api/internal/agent/sessions/${sessionHistoryId}/transcript-annotations`,
+    {
+      body: JSON.stringify(payload),
+      headers: getAgentApiHeaders(),
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to persist transcript annotations for ${sessionHistoryId}: ${response.status}`);
+  }
 }
 
 export const analysisTurnThreshold = Number(process.env.IN_CONVERSATION_ANALYSIS_TURN_COUNT ?? 4);

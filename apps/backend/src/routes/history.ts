@@ -201,8 +201,10 @@ export function registerHistoryRoutes(app: BackendApp) {
         title: record.scenarioTitle ?? "Free-form",
         userId: record.userId,
       },
+      transcriptAnnotations: transcriptRow[0]?.annotations ?? [],
       transcript: transcriptRow[0]?.turns ?? [],
       transcriptCreatedAt: transcriptRow[0]?.createdAt ?? null,
+      rewrittenTranscript: transcriptRow[0]?.rewrittenTurns ?? [],
       ...(record.contextDocument ? { contextDocument: record.contextDocument } : {}),
     });
   });

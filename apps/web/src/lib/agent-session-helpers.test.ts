@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   createHistoryTranscriptCueMap,
   createTranscriptCueMap,
+  createTranscriptCueMapFromAnnotations,
   formatAgentStateLabel,
+  getRewrittenTranscriptEntries,
   getTranscriptEntries,
   getTranscriptEntriesFromSessionTurns,
 } from "./agent-session-helpers";
@@ -136,5 +138,51 @@ describe("createTranscriptCueMap", () => {
 
     expect(cueMap["turn-0"]?.[0]?.text).toBe("Irregular past tense Ask about: why 'went' fits better than 'goed'");
     expect(cueMap["turn-2"]?.[0]?.text).toBe("Completed goals: Describe where you went");
+  });
+
+  it("maps persisted transcript annotations to exact turn anchors", () => {
+    const entries = getTranscriptEntriesFromSessionTurns([
+      { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
+      { speaker: "agent", text: "What happened there?", timestampMs: 2_000 },
+      { speaker: "user", text: "Then I bought fruit.", timestampMs: 3_000 },
+    ]);
+
+    const cueMap = createTranscriptCueMapFromAnnotations({
+      annotations: [
+        {
+          id: "annotation-1",
+          kind: "coaching",
+          text: "Ask why the irregular past tense changes here.",
+          transcriptTurnIndex: 0,
+        },
+        {
+          id: "annotation-2",
+          kind: "goal-progress",
+          text: "Completed goal: Describe what happened.",
+          transcriptTurnIndex: 2,
+        },
+      ],
+      entries,
+    });
+
+    expect(cueMap["turn-0"]?.[0]?.text).toBe("Ask why the irregular past tense changes here.");
+    expect(cueMap["turn-2"]?.[0]?.text).toBe("Completed goal: Describe what happened.");
+  });
+
+  it("replaces learner turns with rewritten transcript content when present", () => {
+    const entries = getTranscriptEntriesFromSessionTurns([
+      { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
+      { speaker: "agent", text: "What happened there?", timestampMs: 2_000 },
+      { speaker: "user", text: "Then I buyed fruit.", timestampMs: 3_000 },
+    ]);
+
+    const rewrittenEntries = getRewrittenTranscriptEntries(entries, [
+      { text: "I went to the store.", transcriptTurnIndex: 0 },
+      { text: "Then I bought fruit.", transcriptTurnIndex: 2 },
+    ]);
+
+    expect(rewrittenEntries[0]?.message).toBe("I went to the store.");
+    expect(rewrittenEntries[1]?.message).toBe("What happened there?");
+    expect(rewrittenEntries[2]?.message).toBe("Then I bought fruit.");
   });
 });
