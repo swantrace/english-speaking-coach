@@ -548,19 +548,6 @@ function FreeFormPracticePageContent({
   );
 }
 
-export function FreeFormPracticePage() {
-  const { scenarioId } = useParams({ from: "/scenarios/$scenarioId/practice/free-form" });
-  const scenario = useScenario(scenarioId);
-
-  return (
-    <FreeFormPracticePageContent
-      isScenarioPending={scenario.isPending}
-      scenario={scenario.data}
-      scenarioError={scenario.error}
-    />
-  );
-}
-
 export function FreeFormPage() {
   const location = useLocation();
   const scenarioId = useMemo(() => {

@@ -19,8 +19,6 @@ import { Route as HistorySessionIdRouteImport } from './routes/history/$sessionI
 import { Route as AdminScenariosRouteImport } from './routes/admin/scenarios'
 import { Route as AdminKnowledgeItemsRouteImport } from './routes/admin/knowledge-items'
 import { Route as ScenariosScenarioIdIndexRouteImport } from './routes/scenarios/$scenarioId/index'
-import { Route as ScenariosScenarioIdPracticeRolePlayRouteImport } from './routes/scenarios/$scenarioId/practice/role-play'
-import { Route as ScenariosScenarioIdPracticeFreeFormRouteImport } from './routes/scenarios/$scenarioId/practice/free-form'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -73,18 +71,6 @@ const ScenariosScenarioIdIndexRoute =
     path: '/scenarios/$scenarioId/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ScenariosScenarioIdPracticeRolePlayRoute =
-  ScenariosScenarioIdPracticeRolePlayRouteImport.update({
-    id: '/scenarios/$scenarioId/practice/role-play',
-    path: '/scenarios/$scenarioId/practice/role-play',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ScenariosScenarioIdPracticeFreeFormRoute =
-  ScenariosScenarioIdPracticeFreeFormRouteImport.update({
-    id: '/scenarios/$scenarioId/practice/free-form',
-    path: '/scenarios/$scenarioId/practice/free-form',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -97,8 +83,6 @@ export interface FileRoutesByFullPath {
   '/history/': typeof HistoryIndexRoute
   '/scenarios/': typeof ScenariosIndexRoute
   '/scenarios/$scenarioId/': typeof ScenariosScenarioIdIndexRoute
-  '/scenarios/$scenarioId/practice/free-form': typeof ScenariosScenarioIdPracticeFreeFormRoute
-  '/scenarios/$scenarioId/practice/role-play': typeof ScenariosScenarioIdPracticeRolePlayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -111,8 +95,6 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryIndexRoute
   '/scenarios': typeof ScenariosIndexRoute
   '/scenarios/$scenarioId': typeof ScenariosScenarioIdIndexRoute
-  '/scenarios/$scenarioId/practice/free-form': typeof ScenariosScenarioIdPracticeFreeFormRoute
-  '/scenarios/$scenarioId/practice/role-play': typeof ScenariosScenarioIdPracticeRolePlayRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -126,8 +108,6 @@ export interface FileRoutesById {
   '/history/': typeof HistoryIndexRoute
   '/scenarios/': typeof ScenariosIndexRoute
   '/scenarios/$scenarioId/': typeof ScenariosScenarioIdIndexRoute
-  '/scenarios/$scenarioId/practice/free-form': typeof ScenariosScenarioIdPracticeFreeFormRoute
-  '/scenarios/$scenarioId/practice/role-play': typeof ScenariosScenarioIdPracticeRolePlayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -142,8 +122,6 @@ export interface FileRouteTypes {
     | '/history/'
     | '/scenarios/'
     | '/scenarios/$scenarioId/'
-    | '/scenarios/$scenarioId/practice/free-form'
-    | '/scenarios/$scenarioId/practice/role-play'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -156,8 +134,6 @@ export interface FileRouteTypes {
     | '/history'
     | '/scenarios'
     | '/scenarios/$scenarioId'
-    | '/scenarios/$scenarioId/practice/free-form'
-    | '/scenarios/$scenarioId/practice/role-play'
   id:
     | '__root__'
     | '/'
@@ -170,8 +146,6 @@ export interface FileRouteTypes {
     | '/history/'
     | '/scenarios/'
     | '/scenarios/$scenarioId/'
-    | '/scenarios/$scenarioId/practice/free-form'
-    | '/scenarios/$scenarioId/practice/role-play'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -185,8 +159,6 @@ export interface RootRouteChildren {
   HistoryIndexRoute: typeof HistoryIndexRoute
   ScenariosIndexRoute: typeof ScenariosIndexRoute
   ScenariosScenarioIdIndexRoute: typeof ScenariosScenarioIdIndexRoute
-  ScenariosScenarioIdPracticeFreeFormRoute: typeof ScenariosScenarioIdPracticeFreeFormRoute
-  ScenariosScenarioIdPracticeRolePlayRoute: typeof ScenariosScenarioIdPracticeRolePlayRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -261,20 +233,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScenariosScenarioIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/scenarios/$scenarioId/practice/role-play': {
-      id: '/scenarios/$scenarioId/practice/role-play'
-      path: '/scenarios/$scenarioId/practice/role-play'
-      fullPath: '/scenarios/$scenarioId/practice/role-play'
-      preLoaderRoute: typeof ScenariosScenarioIdPracticeRolePlayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/scenarios/$scenarioId/practice/free-form': {
-      id: '/scenarios/$scenarioId/practice/free-form'
-      path: '/scenarios/$scenarioId/practice/free-form'
-      fullPath: '/scenarios/$scenarioId/practice/free-form'
-      preLoaderRoute: typeof ScenariosScenarioIdPracticeFreeFormRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -289,10 +247,6 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryIndexRoute: HistoryIndexRoute,
   ScenariosIndexRoute: ScenariosIndexRoute,
   ScenariosScenarioIdIndexRoute: ScenariosScenarioIdIndexRoute,
-  ScenariosScenarioIdPracticeFreeFormRoute:
-    ScenariosScenarioIdPracticeFreeFormRoute,
-  ScenariosScenarioIdPracticeRolePlayRoute:
-    ScenariosScenarioIdPracticeRolePlayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
