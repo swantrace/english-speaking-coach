@@ -1600,35 +1600,40 @@ function SessionExperience({
     [serverUrl, snapshot.token],
   );
   const session = useSession(tokenSource);
+  const startSession = session.start;
+  const endSession = session.end;
 
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
+    const startTimeout = window.setTimeout(() => {
+      void startSession({ signal: abortController.signal })
+        .then(() => {
+          if (!isMounted || abortController.signal.aborted) {
+            return;
+          }
 
-    void session
-      .start()
-      .then(() => {
-        if (!isMounted) {
-          return;
-        }
+          startedRef.current = true;
+          setStartError(null);
+        })
+        .catch((error: unknown) => {
+          if (!isMounted || abortController.signal.aborted) {
+            return;
+          }
 
-        startedRef.current = true;
-        setStartError(null);
-      })
-      .catch((error: unknown) => {
-        if (!isMounted) {
-          return;
-        }
-
-        setStartError(error instanceof Error ? error.message : "Failed to start the LiveKit session");
-      });
+          setStartError(error instanceof Error ? error.message : "Failed to start the LiveKit session");
+        });
+    }, 0);
 
     return () => {
       isMounted = false;
-      void session.end().catch(() => {
+      abortController.abort();
+      window.clearTimeout(startTimeout);
+      void endSession().catch(() => {
         // Ignore shutdown errors during navigation.
       });
     };
-  }, [session]);
+  }, [endSession, startSession]);
 
   useEffect(() => {
     if (session.connectionState !== ConnectionState.Disconnected || !startedRef.current) {

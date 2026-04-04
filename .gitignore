@@ -16,3 +16,4 @@ data/*.sqlite-wal
 .agents
 .vscode
 .github
+apps/ui-reference

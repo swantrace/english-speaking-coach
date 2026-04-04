@@ -1,0 +1,34 @@
+import { type GoalProgressPacket, sessionDispatchMetadataSchema } from "@english-coach/contract";
+
+import { Agent } from "./Agent";
+import { fetchSessionBootstrapFromBackend } from "./runtime-services";
+import type { LocalParticipantRef } from "./types";
+
+export async function prepareAgent(metadata: string, localParticipant: LocalParticipantRef): Promise<Agent> {
+  const { sessionHistoryId } = sessionDispatchMetadataSchema.parse(JSON.parse(metadata));
+
+  const session = await fetchSessionBootstrapFromBackend(sessionHistoryId);
+
+  const publishGoalProgress = async (packet: GoalProgressPacket) => {
+    if (!localParticipant) {
+      throw new Error("Local participant is unavailable for room data publishing.");
+    }
+
+    await localParticipant.publishData(new TextEncoder().encode(JSON.stringify(packet)), {
+      reliable: true,
+      topic: packet.type,
+    });
+  };
+
+  switch (session.sessionType) {
+    case "role-play":
+      return new Agent({
+        ...session,
+        publishGoalProgress,
+      });
+    case "free-form":
+      return new Agent(session);
+    default:
+      throw new Error(`Unsupported session type: ${JSON.stringify(session)}`);
+  }
+}

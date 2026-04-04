@@ -464,18 +464,32 @@ describe("backend phase 2 integration", () => {
     const verifier = new TokenVerifier("test-api-key", "test-secret");
     const decodedToken = await verifier.verify(rolePlayTokenBody.token);
     const agentMetadata = JSON.parse(decodedToken.roomConfig?.agents?.[0]?.metadata ?? "{}") as {
-      roomName: string;
-      scenarioId: string;
-      selectedCharacterIndex: number;
       sessionHistoryId: string;
-      sessionType: string;
-      userId: string;
     };
 
     expect(decodedToken.roomConfig?.name).toBe(rolePlayTokenBody.roomName);
-    expect(agentMetadata.scenarioId).toBe(scenarioId);
-    expect(agentMetadata.selectedCharacterIndex).toBe(1);
-    expect(agentMetadata.sessionType).toBe("role-play");
+    expect(agentMetadata.sessionHistoryId).toBeTruthy();
+
+    const rolePlayBootstrapResponse = await app.request(
+      `http://localhost/api/internal/agent/sessions/${agentMetadata.sessionHistoryId}`,
+      {
+        headers: {
+          Authorization: "Bearer english-coach-local-api-token",
+        },
+      },
+    );
+
+    expect(rolePlayBootstrapResponse.status).toBe(200);
+    expect(rolePlayBootstrapResponse.json()).resolves.toMatchObject({
+      roomName: rolePlayTokenBody.roomName,
+      scenario: {
+        id: scenarioId,
+      },
+      selectedCharacterIndex: 1,
+      sessionHistoryId: agentMetadata.sessionHistoryId,
+      sessionType: "role-play",
+      userId: student.userId,
+    });
 
     const freeFormContextId = crypto.randomUUID();
     const freeFormSessionId = crypto.randomUUID();
@@ -523,6 +537,25 @@ describe("backend phase 2 integration", () => {
         { speaker: "agent", text: "What would you like?", timestampMs: Date.now() },
         { speaker: "user", text: "I'd like a coffee.", timestampMs: Date.now() + 1_000 },
       ],
+    });
+
+    const freeFormBootstrapResponse = await app.request(
+      `http://localhost/api/internal/agent/sessions/${freeFormSessionId}`,
+      {
+        headers: {
+          Authorization: "Bearer english-coach-local-api-token",
+        },
+      },
+    );
+
+    expect(freeFormBootstrapResponse.status).toBe(200);
+    expect(freeFormBootstrapResponse.json()).resolves.toMatchObject({
+      contextDocument: "Review a conversation about ordering food politely.",
+      freeFormContextId,
+      roomName: `session-${freeFormSessionId}`,
+      sessionHistoryId: freeFormSessionId,
+      sessionType: "free-form",
+      userId: student.userId,
     });
 
     const historyListResponse = await app.request("http://localhost/api/history?limit=1&offset=0", {

@@ -7,6 +7,10 @@ type ObservationState = {
   items: UiUpdatePacket[];
 };
 
+const emptyObservationState: ObservationState = {
+  items: [],
+};
+
 const goalProgressListeners = new Set<() => void>();
 const observationListeners = new Set<() => void>();
 const goalProgressByRoom = new Map<string, GoalProgressState>();
@@ -34,12 +38,16 @@ export function resetGoalProgress(roomName: string) {
 }
 
 export function appendObservation(roomName: string, packet: UiUpdatePacket) {
-  const nextState = observationsByRoom.get(roomName) ?? { items: [] };
+  const nextState = observationsByRoom.get(roomName) ?? emptyObservationState;
 
   observationsByRoom.set(roomName, {
     items: [...nextState.items, packet],
   });
   emit(observationListeners);
+}
+
+export function getObservationsSnapshot(roomName: string) {
+  return observationsByRoom.get(roomName) ?? emptyObservationState;
 }
 
 export function resetObservations(roomName: string) {
@@ -69,6 +77,6 @@ export function useObservations(roomName: string) {
         observationListeners.delete(listener);
       };
     },
-    () => observationsByRoom.get(roomName) ?? { items: [] },
+    () => getObservationsSnapshot(roomName),
   );
 }

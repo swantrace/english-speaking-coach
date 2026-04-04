@@ -65,16 +65,20 @@ export const inConversationAnalysisJobSchema = z.object({
   turns: z.array(sessionTurnSchema),
 });
 
-export const rolePlaySessionDispatchMetadataSchema = z.object({
+export const sessionDispatchMetadataSchema = z.object({
+  sessionHistoryId: z.string(),
+});
+
+export const rolePlayAgentBootstrapSchema = z.object({
   roomName: z.string(),
-  scenarioId: z.string(),
   selectedCharacterIndex: z.number().int().min(0).max(1),
   sessionHistoryId: z.string(),
   sessionType: z.literal(sessionTypeSchema.enum["role-play"]),
   userId: z.string(),
+  scenario: scenarioSchema,
 });
 
-export const freeFormSessionDispatchMetadataSchema = z.object({
+export const freeFormAgentBootstrapSchema = z.object({
   contextDocument: z.string().trim().min(1),
   freeFormContextId: z.string(),
   roomName: z.string(),
@@ -83,9 +87,9 @@ export const freeFormSessionDispatchMetadataSchema = z.object({
   userId: z.string(),
 });
 
-export const sessionDispatchMetadataSchema = z.discriminatedUnion("sessionType", [
-  rolePlaySessionDispatchMetadataSchema,
-  freeFormSessionDispatchMetadataSchema,
+export const sessionAgentBootstrapSchema = z.discriminatedUnion("sessionType", [
+  rolePlayAgentBootstrapSchema,
+  freeFormAgentBootstrapSchema,
 ]);
 
 export const sessionCompletionRequestSchema = z.object({
@@ -142,6 +146,8 @@ export const inConversationAnalysisResultSchema = z.object({
 
 export const inConversationAnalysisQueueName = "inConversationAnalysis";
 export const inConversationAnalysisJobName = "inConversationAnalysis";
+export const sessionCompletionQueueName = "sessionCompletion";
+export const sessionCompletionJobName = "sessionCompletion";
 export const lingAnalysisQueueName = "lingAnalysis";
 export const lingAnalysisJobName = "lingAnalysis";
 
@@ -152,6 +158,8 @@ export type ScenarioGoals = z.infer<typeof scenarioGoalsSchema>;
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type InConversationAnalysisJob = z.infer<typeof inConversationAnalysisJobSchema>;
 export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSchema>;
+export type SessionAgentBootstrap = z.infer<typeof sessionAgentBootstrapSchema>;
 export type SessionCompletionRequest = z.infer<typeof sessionCompletionRequestSchema>;
+export type SessionCompletionJob = SessionCompletionRequest;
 export type LingAnalysisResult = z.infer<typeof lingAnalysisResultSchema>;
 export type InConversationAnalysisResult = z.infer<typeof inConversationAnalysisResultSchema>;

@@ -1,4 +1,4 @@
-import { sessionTypeSchema } from "@english-coach/contract";
+import { sessionDispatchMetadataSchema, sessionTypeSchema } from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import { freeFormContexts, scenarios, sessionHistory } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
@@ -45,7 +45,6 @@ export function registerSessionRoutes(app: BackendApp) {
     const sessionHistoryId = crypto.randomUUID();
     const roomName = `session-${sessionHistoryId}`;
     const startedAt = new Date().toISOString();
-    let metadata: Record<string, unknown>;
 
     if (parsedBody.data.sessionType === "role-play") {
       const [scenarioRecord] = await db
@@ -68,15 +67,6 @@ export function registerSessionRoutes(app: BackendApp) {
         startedAt,
         userId: currentUser.id,
       });
-
-      metadata = {
-        roomName,
-        scenarioId: parsedBody.data.scenarioId,
-        selectedCharacterIndex: parsedBody.data.selectedCharacterIndex,
-        sessionHistoryId,
-        sessionType: parsedBody.data.sessionType,
-        userId: currentUser.id,
-      };
     } else {
       const freeFormContextId = crypto.randomUUID();
 
@@ -93,15 +83,6 @@ export function registerSessionRoutes(app: BackendApp) {
         startedAt,
         userId: currentUser.id,
       });
-
-      metadata = {
-        contextDocument: parsedBody.data.contextDocument,
-        freeFormContextId,
-        roomName,
-        sessionHistoryId,
-        sessionType: parsedBody.data.sessionType,
-        userId: currentUser.id,
-      };
     }
 
     try {
@@ -127,7 +108,7 @@ export function registerSessionRoutes(app: BackendApp) {
       roomConfig.agents = [
         new RoomAgentDispatch({
           agentName: "english-speaking-coach-agent",
-          metadata: JSON.stringify(metadata),
+          metadata: JSON.stringify(sessionDispatchMetadataSchema.parse({ sessionHistoryId })),
         }),
       ];
 

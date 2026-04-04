@@ -1,24 +1,6 @@
-import {
-  type GoalProgressPacket,
-  goalProgressPacketSchema,
-  type Scenario,
-  type SessionDispatchMetadata,
-  workerFeedbackPacketSchema,
-} from "@english-coach/contract";
-import { llm, voice } from "@livekit/agents";
-import { z } from "zod";
+import { type GoalProgressPacket, goalProgressPacketSchema, type Scenario } from "@english-coach/contract";
 
-const workerFeedbackPrefix = "[WORKER_FEEDBACK]\n";
-type WorkerFeedbackChatContext = Pick<llm.ChatContext, "items" | "addMessage">;
-
-type RolePlayRuntimeConfig = Extract<SessionDispatchMetadata, { sessionType: "role-play" }> & {
-  publishGoalProgress: (packet: GoalProgressPacket) => Promise<void>;
-  scenario: Scenario;
-};
-
-type FreeFormRuntimeConfig = Extract<SessionDispatchMetadata, { sessionType: "free-form" }>;
-
-export type AgentRuntimeConfig = RolePlayRuntimeConfig | FreeFormRuntimeConfig;
+import type { RolePlayRuntimeConfig } from "./types";
 
 type GoalState = {
   filledSlots: Record<string, string>;
@@ -154,7 +136,7 @@ export class SessionTracker {
   }
 }
 
-function createRolePlayInstructions(config: RolePlayRuntimeConfig, sessionTracker: SessionTracker) {
+export function createRolePlayInstructions(config: RolePlayRuntimeConfig, sessionTracker: SessionTracker) {
   const userCharacter = config.scenario.characters[config.selectedCharacterIndex];
   const agentCharacter = config.scenario.characters[config.selectedCharacterIndex === 0 ? 1 : 0];
 
@@ -171,111 +153,4 @@ function createRolePlayInstructions(config: RolePlayRuntimeConfig, sessionTracke
     "After the tool returns, use the hint to shape the next in-character turn.",
     sessionTracker.renderCurrentStatus(),
   ].join("\n\n");
-}
-
-function createFreeFormInstructions(config: FreeFormRuntimeConfig) {
-  return [
-    "You are an English speaking coach for a live voice session.",
-    "Keep responses concise, practical, and easy to follow aloud.",
-    "Do not mention hidden analysis or worker feedback unless it improves the conversation naturally.",
-    "Use this context to ground the session:",
-    config.contextDocument,
-  ].join("\n\n");
-}
-
-function isWorkerFeedbackItem(item: llm.ChatItem) {
-  return item.type === "message" && item.role === "system" && item.textContent?.startsWith(workerFeedbackPrefix);
-}
-
-export function withLatestWorkerFeedback<T extends WorkerFeedbackChatContext>(chatContext: T, message: string): T {
-  chatContext.items = chatContext.items.filter((item) => !isWorkerFeedbackItem(item));
-  chatContext.addMessage({
-    content: `${workerFeedbackPrefix}${message}`,
-    role: "system",
-  });
-
-  return chatContext;
-}
-
-export class Agent extends voice.Agent {
-  private readonly rolePlayConfig: RolePlayRuntimeConfig | null;
-  private readonly sessionTracker: SessionTracker | null;
-
-  constructor(private readonly config: AgentRuntimeConfig) {
-    const sessionTracker = config.sessionType === "role-play" ? new SessionTracker(config.scenario) : null;
-    let refreshInstructions: (() => Promise<void>) | null = null;
-
-    const tools =
-      config.sessionType === "role-play" && sessionTracker
-        ? {
-            detectIntentAndSlot: llm.tool({
-              description:
-                "Call this when the learner makes meaningful progress on the current role-play goal. Provide the detected intent and any extracted slots from the learner's latest utterance.",
-              parameters: z.object({
-                intent: z.string().trim().min(1),
-                slots: z.record(z.string(), z.string()).default({}),
-              }),
-              execute: async ({ intent, slots }) => {
-                sessionTracker.advance(intent, slots);
-                await config.publishGoalProgress(sessionTracker.toGoalProgressPacket());
-
-                if (refreshInstructions) {
-                  await refreshInstructions();
-                }
-
-                return sessionTracker.createHint(intent, slots);
-              },
-            }),
-          }
-        : undefined;
-
-    const agentOptions = {
-      instructions:
-        config.sessionType === "role-play" && sessionTracker
-          ? createRolePlayInstructions(config, sessionTracker)
-          : createFreeFormInstructions(config as FreeFormRuntimeConfig),
-    } as ConstructorParameters<typeof voice.Agent>[0];
-
-    if (tools) {
-      agentOptions.tools = tools;
-    }
-
-    super(agentOptions);
-
-    this.rolePlayConfig = config.sessionType === "role-play" ? config : null;
-    this.sessionTracker = sessionTracker;
-    refreshInstructions = () => this.refreshRolePlayInstructions();
-  }
-
-  async publishInitialGoalProgress() {
-    if (!this.rolePlayConfig || !this.sessionTracker) {
-      return;
-    }
-
-    await this.rolePlayConfig.publishGoalProgress(this.sessionTracker.toGoalProgressPacket());
-  }
-
-  getCompletedGoalIds() {
-    return this.sessionTracker?.getCompletedGoalIds() ?? [];
-  }
-
-  private async refreshRolePlayInstructions() {
-    if (!this.rolePlayConfig || !this.sessionTracker) {
-      return;
-    }
-
-    this._instructions = createRolePlayInstructions(this.rolePlayConfig, this.sessionTracker);
-    await this.updateChatCtx(this.chatCtx.copy());
-  }
-
-  async appendWorkerFeedback(payload: unknown) {
-    if (this.config.sessionType !== "free-form") {
-      return;
-    }
-
-    const packet = workerFeedbackPacketSchema.parse(payload);
-    const nextChatContext = withLatestWorkerFeedback(this.chatCtx.copy(), packet.message);
-
-    await this.updateChatCtx(nextChatContext);
-  }
 }

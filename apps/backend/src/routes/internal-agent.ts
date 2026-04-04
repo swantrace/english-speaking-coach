@@ -1,12 +1,33 @@
-import { lingAnalysisJobName, scenarioSchema, sessionCompletionRequestSchema } from "@english-coach/contract";
+import {
+  lingAnalysisJobName,
+  scenarioSchema,
+  sessionAgentBootstrapSchema,
+  sessionCompletionRequestSchema,
+} from "@english-coach/contract";
 import { db } from "@english-coach/database";
-import { scenarios, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
+import { freeFormContexts, scenarios, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
-import { lingAnalysisQueue } from "../lib/queues/ling.analysis";
+import { completeSession } from "../lib/queues/session.completion";
+
+const defaultDevelopmentApiToken = "english-coach-local-api-token";
+
+function getExpectedApiToken(env: NodeJS.ProcessEnv = process.env) {
+  const configuredToken = env.API_TOKEN?.trim();
+
+  if (configuredToken) {
+    return configuredToken;
+  }
+
+  if (env.NODE_ENV?.trim().toLowerCase() !== "production") {
+    return defaultDevelopmentApiToken;
+  }
+
+  return undefined;
+}
 
 function requireApiToken(request: Request) {
-  const expectedToken = process.env.API_TOKEN?.trim();
+  const expectedToken = getExpectedApiToken();
 
   if (!expectedToken) {
     return new Response(JSON.stringify({ error: "API_TOKEN is not configured" }), {
@@ -28,86 +49,75 @@ function requireApiToken(request: Request) {
 }
 
 export function registerInternalAgentRoutes(app: BackendApp) {
-  app.get("/api/internal/agent/scenarios/:id", async (context) => {
+  app.get("/api/internal/agent/sessions/:sessionHistoryId", async (context) => {
     const authError = requireApiToken(context.req.raw);
 
     if (authError) {
       return authError;
     }
 
-    const [record] = await db
+    const sessionHistoryId = context.req.param("sessionHistoryId");
+
+    const [sessionRecord] = await db
       .select()
-      .from(scenarios)
-      .where(eq(scenarios.id, context.req.param("id")))
-      .limit(1);
-
-    if (!record) {
-      return context.json({ error: "Scenario not found" }, 404);
-    }
-
-    return context.json(scenarioSchema.parse(record));
-  });
-
-  app.post("/api/internal/agent/session-complete", async (context) => {
-    const authError = requireApiToken(context.req.raw);
-
-    if (authError) {
-      return authError;
-    }
-
-    const rawBody = await context.req.json<unknown>().catch(() => ({}));
-    const parsedBody = sessionCompletionRequestSchema.safeParse(rawBody);
-
-    if (!parsedBody.success) {
-      return context.json({ error: "Invalid request body" }, 400);
-    }
-
-    const [existingSession] = await db
-      .select({ id: sessionHistory.id, completedGoals: sessionHistory.completedGoals })
       .from(sessionHistory)
-      .where(eq(sessionHistory.id, parsedBody.data.sessionHistoryId))
+      .where(eq(sessionHistory.id, sessionHistoryId))
       .limit(1);
 
-    if (!existingSession) {
+    if (!sessionRecord) {
       return context.json({ error: "Session not found" }, 404);
     }
 
-    const now = new Date().toISOString();
+    if (sessionRecord.sessionType === "role-play") {
+      if (!sessionRecord.scenarioId || sessionRecord.selectedCharacterIndex === null) {
+        return context.json({ error: "Role-play session is incomplete" }, 500);
+      }
 
-    await db.transaction(async (transaction) => {
-      await transaction
-        .insert(sessionTranscripts)
-        .values({
-          createdAt: now,
-          id: crypto.randomUUID(),
-          sessionHistoryId: parsedBody.data.sessionHistoryId,
-          turns: parsedBody.data.transcript,
-        })
-        .onConflictDoUpdate({
-          set: {
-            turns: parsedBody.data.transcript,
-          },
-          target: sessionTranscripts.sessionHistoryId,
-        });
+      const [scenarioRecord] = await db
+        .select()
+        .from(scenarios)
+        .where(eq(scenarios.id, sessionRecord.scenarioId))
+        .limit(1);
 
-      await transaction
-        .update(sessionHistory)
-        .set({
-          completedGoals: parsedBody.data.completedGoals ?? existingSession.completedGoals ?? [],
-          endedAt: now,
-        })
-        .where(eq(sessionHistory.id, parsedBody.data.sessionHistoryId));
-    });
+      if (!scenarioRecord) {
+        return context.json({ error: "Scenario not found" }, 404);
+      }
 
-    await lingAnalysisQueue.add(
-      lingAnalysisJobName,
-      { sessionHistoryId: parsedBody.data.sessionHistoryId },
-      {
-        jobId: `${lingAnalysisJobName}:${parsedBody.data.sessionHistoryId}`,
-        removeOnComplete: true,
-      },
+      return context.json(
+        sessionAgentBootstrapSchema.parse({
+          roomName: `session-${sessionRecord.id}`,
+          scenario: scenarioSchema.parse(scenarioRecord),
+          selectedCharacterIndex: sessionRecord.selectedCharacterIndex,
+          sessionHistoryId: sessionRecord.id,
+          sessionType: sessionRecord.sessionType,
+          userId: sessionRecord.userId,
+        }),
+      );
+    }
+
+    if (!sessionRecord.freeFormContextId) {
+      return context.json({ error: "Free-form session is incomplete" }, 500);
+    }
+
+    const [freeFormContextRecord] = await db
+      .select()
+      .from(freeFormContexts)
+      .where(eq(freeFormContexts.id, sessionRecord.freeFormContextId))
+      .limit(1);
+
+    if (!freeFormContextRecord) {
+      return context.json({ error: "Free-form context not found" }, 404);
+    }
+
+    return context.json(
+      sessionAgentBootstrapSchema.parse({
+        contextDocument: freeFormContextRecord.content,
+        freeFormContextId: freeFormContextRecord.id,
+        roomName: `session-${sessionRecord.id}`,
+        sessionHistoryId: sessionRecord.id,
+        sessionType: sessionRecord.sessionType,
+        userId: sessionRecord.userId,
+      }),
     );
-
-    return context.json({ status: "accepted" }, 202);
   });
 }

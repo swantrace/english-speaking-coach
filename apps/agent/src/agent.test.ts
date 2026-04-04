@@ -1,8 +1,28 @@
-import type { Scenario } from "@english-coach/contract";
+import type { Scenario, SessionAgentBootstrap, SessionCompletionJob } from "@english-coach/contract";
 import { llm } from "@livekit/agents";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SessionTracker, withLatestWorkerFeedback } from "./agent";
+const dependencyMocks = vi.hoisted(() => ({
+  addInConversationAnalysisJob: vi.fn(),
+  addSessionCompletionJob: vi.fn(),
+  fetchSessionBootstrapFromBackend: vi.fn(),
+}));
+
+vi.mock("./agent/runtime-services", () => ({
+  analysisTurnThreshold: 2,
+  fetchSessionBootstrapFromBackend: dependencyMocks.fetchSessionBootstrapFromBackend,
+  inConversationAnalysisQueue: {
+    add: dependencyMocks.addInConversationAnalysisJob,
+  },
+  sessionCompletionQueue: {
+    add: dependencyMocks.addSessionCompletionJob,
+  },
+}));
+
+import { Agent } from "./agent";
+import { withLatestWorkerFeedback } from "./agent/free-form";
+import { SessionTracker } from "./agent/role-play";
+import { toSessionTurns } from "./agent/session-turns";
 
 const scenario: Scenario = {
   characters: [
@@ -41,6 +61,21 @@ const scenario: Scenario = {
   title: "Restaurant practice",
   updatedAt: new Date().toISOString(),
 };
+
+const freeFormBootstrap: Extract<SessionAgentBootstrap, { sessionType: "free-form" }> = {
+  contextDocument: "Discuss dinner plans.",
+  freeFormContextId: "context-1",
+  roomName: "room-1",
+  sessionHistoryId: "history-1",
+  sessionType: "free-form",
+  userId: "user-1",
+};
+
+beforeEach(() => {
+  dependencyMocks.addInConversationAnalysisJob.mockReset();
+  dependencyMocks.addSessionCompletionJob.mockReset();
+  dependencyMocks.fetchSessionBootstrapFromBackend.mockReset();
+});
 
 describe("SessionTracker", () => {
   it("marks a goal complete when its intent and slots are satisfied", () => {
@@ -96,5 +131,83 @@ describe("withLatestWorkerFeedback", () => {
       { role: "user", text: "Hello coach." },
       { role: "system", text: "[WORKER_FEEDBACK]\nFocus on specificity." },
     ]);
+  });
+});
+
+describe("toSessionTurns", () => {
+  it("extracts only user and assistant message turns from chat context", () => {
+    const chatContext = new llm.ChatContext();
+
+    chatContext.addMessage({ content: "System note", role: "system" });
+    chatContext.addMessage({ content: "Hello coach.", createdAt: 1, role: "user" });
+    chatContext.addMessage({ content: "Hello learner.", createdAt: 2, role: "assistant" });
+
+    expect(toSessionTurns(chatContext)).toEqual([
+      { speaker: "user", text: "Hello coach.", timestampMs: 1 },
+      { speaker: "agent", text: "Hello learner.", timestampMs: 2 },
+    ]);
+  });
+});
+
+describe("Agent analysis", () => {
+  it("enqueues in-conversation analysis after the threshold and assistant reply", async () => {
+    const agent = new Agent(freeFormBootstrap);
+    dependencyMocks.addInConversationAnalysisJob.mockResolvedValue(undefined);
+
+    const initialContext = agent.chatCtx.copy();
+    initialContext.addMessage({ content: "Hi", createdAt: 1, role: "user" });
+    initialContext.addMessage({ content: "Hello", createdAt: 2, role: "assistant" });
+    initialContext.addMessage({ content: "I want pasta", createdAt: 3, role: "user" });
+    await agent.updateChatCtx(initialContext);
+
+    expect(await agent.analyzeTurns(0)).toBe(0);
+    expect(dependencyMocks.addInConversationAnalysisJob).not.toHaveBeenCalled();
+
+    const nextContext = agent.chatCtx.copy();
+    nextContext.addMessage({ content: "What kind of pasta?", createdAt: 4, role: "assistant" });
+    await agent.updateChatCtx(nextContext);
+
+    expect(await agent.analyzeTurns(0)).toBe(4);
+    expect(dependencyMocks.addInConversationAnalysisJob).toHaveBeenCalledWith(
+      "inConversationAnalysis",
+      {
+        roomName: "room-1",
+        sessionHistoryId: "history-1",
+        turns: [
+          { speaker: "user", text: "Hi", timestampMs: 1 },
+          { speaker: "agent", text: "Hello", timestampMs: 2 },
+          { speaker: "user", text: "I want pasta", timestampMs: 3 },
+          { speaker: "agent", text: "What kind of pasta?", timestampMs: 4 },
+        ],
+      },
+      {
+        removeOnComplete: true,
+      },
+    );
+    expect(dependencyMocks.addSessionCompletionJob).not.toHaveBeenCalled();
+  });
+
+  it("only sends the remaining free-form turns during session completion", async () => {
+    const agent = new Agent(freeFormBootstrap);
+    dependencyMocks.addSessionCompletionJob.mockResolvedValue(undefined);
+
+    const chatContext = agent.chatCtx.copy();
+    chatContext.addMessage({ content: "Earlier turn", createdAt: 1, role: "user" });
+    chatContext.addMessage({ content: "Recent reply", createdAt: 2, role: "assistant" });
+    chatContext.addMessage({ content: "Newest user turn", createdAt: 3, role: "user" });
+    await agent.updateChatCtx(chatContext);
+
+    await agent.analyzeSession(2);
+
+    expect(dependencyMocks.addSessionCompletionJob).toHaveBeenCalledWith(
+      "sessionCompletion",
+      {
+        completedGoals: [],
+        roomName: "room-1",
+        sessionHistoryId: "history-1",
+        transcript: [{ speaker: "user", text: "Newest user turn", timestampMs: 3 }],
+      },
+      { jobId: "sessionCompletion:history-1", removeOnComplete: true },
+    );
   });
 });
