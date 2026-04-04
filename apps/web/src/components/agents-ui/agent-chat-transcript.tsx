@@ -1,13 +1,23 @@
 import type { AgentState, ReceivedMessage } from "@livekit/components-react";
-import { formatAgentStateLabel, getTranscriptEntries } from "../../lib/agent-session-helpers";
+import { formatAgentStateLabel, getTranscriptEntries, type TranscriptCue } from "../../lib/agent-session-helpers";
+
+function cueToneClasses(kind: TranscriptCue["kind"]) {
+  if (kind === "goal-progress") {
+    return "border-orange-300/20 bg-orange-300/10 text-orange-50";
+  }
+
+  return "border-emerald-300/15 bg-emerald-300/10 text-emerald-50/90";
+}
 
 export function AgentChatTranscript({
   agentState,
   className = "",
+  cuesById,
   messages,
 }: {
   agentState?: AgentState;
   className?: string;
+  cuesById?: Record<string, TranscriptCue[]>;
   messages: ReceivedMessage[];
 }) {
   const transcriptEntries = getTranscriptEntries(messages);
@@ -27,6 +37,18 @@ export function AgentChatTranscript({
               {entry.timestamp ? <span>{entry.timestamp.toLocaleTimeString()}</span> : null}
             </div>
             <p className="mt-2 text-sm leading-7 text-slate-100">{entry.message}</p>
+            {cuesById?.[entry.id]?.length ? (
+              <div className="mt-3 grid gap-2">
+                {cuesById[entry.id].map((cue) => (
+                  <div
+                    className={`rounded-[14px] border px-3 py-2 text-xs leading-6 ${cueToneClasses(cue.kind)}`}
+                    key={`${entry.id}:${cue.kind}:${cue.text}`}
+                  >
+                    {cue.text}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ))
       ) : (

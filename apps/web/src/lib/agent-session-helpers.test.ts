@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAgentStateLabel, getTranscriptEntries } from "./agent-session-helpers";
+import { createTranscriptCueMap, formatAgentStateLabel, getTranscriptEntries } from "./agent-session-helpers";
 
 describe("getTranscriptEntries", () => {
   it("filters blank messages and preserves speaker metadata", () => {
@@ -48,5 +48,56 @@ describe("formatAgentStateLabel", () => {
   it("humanizes session agent states", () => {
     expect(formatAgentStateLabel("pre-connect-buffering")).toBe("pre connect buffering");
     expect(formatAgentStateLabel("role_play_ready")).toBe("role play ready");
+  });
+});
+
+describe("createTranscriptCueMap", () => {
+  it("attaches role-play progress cues to the latest learner turn", () => {
+    const entries = getTranscriptEntries([
+      { from: { isLocal: true }, id: "user-1", message: "I want a table for two." },
+      { from: { isLocal: false }, id: "assistant-1", message: "Certainly." },
+      { from: { isLocal: true }, id: "user-2", message: "Could I also get some water?" },
+    ]);
+
+    const cueMap = createTranscriptCueMap({
+      entries,
+      goalProgress: {
+        currentGoalId: "goal-2",
+        filledSlots: { drink: "water" },
+        goals: [
+          { description: "Greet the waiter", id: "goal-1", optional: false, status: "complete" as const },
+          { description: "Order a drink", id: "goal-2", optional: false, status: "incomplete" as const },
+        ],
+        type: "goal-progress",
+      },
+    });
+
+    expect(cueMap["user-2"]?.map((cue) => cue.text)).toEqual([
+      "Completed goal: Greet the waiter",
+      "Current goal: Order a drink. Captured drink: water.",
+    ]);
+  });
+
+  it("distributes free-form coaching cues across recent learner turns", () => {
+    const entries = getTranscriptEntries([
+      { from: { isLocal: true }, id: "user-1", message: "Yesterday I goed to the store." },
+      { from: { isLocal: false }, id: "assistant-1", message: "Tell me more." },
+      { from: { isLocal: true }, id: "user-2", message: "I buyed fruit there." },
+    ]);
+
+    const cueMap = createTranscriptCueMap({
+      entries,
+      observations: [
+        { observation: "Try asking why the past tense changes here.", sessionHistoryId: "s-1", type: "ui-update" },
+        {
+          observation: "There is another irregular verb worth noticing in your second sentence.",
+          sessionHistoryId: "s-1",
+          type: "ui-update",
+        },
+      ],
+    });
+
+    expect(cueMap["user-1"]?.[0]?.text).toBe("There is another irregular verb worth noticing in your second sentence.");
+    expect(cueMap["user-2"]?.[0]?.text).toBe("Try asking why the past tense changes here.");
   });
 });

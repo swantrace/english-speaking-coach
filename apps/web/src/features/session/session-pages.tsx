@@ -19,7 +19,7 @@ import { ConnectionState, type Room, RoomEvent, TokenSource, Track } from "livek
 import { type FormEvent, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { AgentChatTranscript } from "../../components/agents-ui/agent-chat-transcript";
 import { AgentSessionProvider } from "../../components/agents-ui/agent-session-provider";
-import { formatAgentStateLabel } from "../../lib/agent-session-helpers";
+import { createTranscriptCueMap, formatAgentStateLabel, getTranscriptEntries } from "../../lib/agent-session-helpers";
 import { connectionStyles, ellipsize, liveKitUrl } from "../../lib/app-data";
 import { AuthGate, Card, PageState } from "../../lib/app-shell";
 import {
@@ -51,7 +51,7 @@ function MissionSidebar({
   const currentGoalId = goalProgress?.currentGoalId ?? goals.find((goal) => goal.status === "incomplete")?.id ?? "";
 
   return (
-    <div className="grid gap-5">
+    <div className="grid content-start gap-4 xl:sticky xl:top-4">
       <Card className="grid gap-4 p-5">
         <div className="grid gap-2">
           <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Scene</span>
@@ -72,8 +72,8 @@ function MissionSidebar({
 
       <Card className="grid gap-4 p-5">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl text-white">Mission</h2>
-          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Live goals</span>
+          <h2 className="text-xl text-white">Mission cues</h2>
+          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Live progress</span>
         </div>
         <div className="grid gap-3">
           {goals.map((goal) => {
@@ -134,14 +134,14 @@ function ObservationsSidebar({ roomName, contextDocument }: { roomName: string; 
   const observations = useObservations(roomName);
 
   return (
-    <Card className="grid gap-4 p-5">
+    <Card className="grid content-start gap-4 p-5 xl:sticky xl:top-4">
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl text-white">Live observations</h2>
+          <h2 className="text-xl text-white">Follow-up prompts</h2>
           <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Worker packets</span>
         </div>
         <p className="text-sm leading-7 text-slate-300">
-          The worker appends observations here every few turns as it analyses the conversation.
+          The worker appends short prompts here every few turns so the learner can ask the agent about them.
         </p>
       </div>
       {contextDocument ? (
@@ -239,6 +239,19 @@ function SessionCenter({ roomName }: { roomName: string }) {
   const { isSending, messages, send } = useSessionMessages(session);
   const { microphoneTrack, state } = useAgent(session);
   const [chatMessage, setChatMessage] = useState("");
+  const snapshot = getSessionLaunchSnapshot(roomName);
+  const goalProgress = useGoalProgress(roomName);
+  const observations = useObservations(roomName);
+  const transcriptEntries = useMemo(() => getTranscriptEntries(messages), [messages]);
+  const cuesById = useMemo(
+    () =>
+      createTranscriptCueMap({
+        entries: transcriptEntries,
+        goalProgress: snapshot?.sessionType === "role-play" ? goalProgress : null,
+        observations: snapshot?.sessionType === "free-form" ? observations.items : [],
+      }),
+    [goalProgress, observations.items, snapshot?.sessionType, transcriptEntries],
+  );
 
   const handleMessageSend = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -254,55 +267,75 @@ function SessionCenter({ roomName }: { roomName: string }) {
   };
 
   return (
-    <Card className="grid gap-6 p-6">
-      <div className="grid gap-3 text-center">
-        <span className="mx-auto w-fit rounded-full border border-orange-300/20 bg-orange-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-orange-100">
-          Voice Session
-        </span>
-        <h1 className="text-3xl text-white sm:text-4xl">Room {roomName}</h1>
-        <div className="flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.18em] text-slate-500">
-          <span
-            className={`rounded-full border px-3 py-1 ${
-              connectionStyles[session.connectionState as keyof typeof connectionStyles]
-            }`}
-          >
-            {session.connectionState}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-slate-200">
-            Agent {formatAgentStateLabel(state)}
-          </span>
+    <div className="grid gap-6">
+      <Card className="grid gap-5 p-6">
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-500">
+            <span className="rounded-full border border-orange-300/20 bg-orange-300/10 px-3 py-1 text-orange-100">
+              {snapshot?.sessionType === "role-play" ? "Role-play session" : "Free-form session"}
+            </span>
+            <span
+              className={`rounded-full border px-3 py-1 ${
+                connectionStyles[session.connectionState as keyof typeof connectionStyles]
+              }`}
+            >
+              {session.connectionState}
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-slate-200">
+              Agent {formatAgentStateLabel(state)}
+            </span>
+          </div>
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_18rem] md:items-start">
+            <div className="grid gap-2">
+              <h1 className="text-3xl text-white sm:text-4xl">Room {roomName}</h1>
+              <p className="max-w-3xl text-sm leading-7 text-slate-300">
+                Keep the transcript central. Voice responses, packet-driven hints, and text nudges should all feed the
+                same conversation surface instead of splitting attention across separate panes.
+              </p>
+            </div>
+            <div className="rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-200">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Active context</p>
+              <p className="mt-2 leading-7 text-slate-300">
+                {snapshot?.sessionType === "role-play" && snapshot.scenario
+                  ? `${snapshot.scenario.title} with ${snapshot.scenario.characters[snapshot.selectedCharacterIndex ?? 0]?.name ?? "your selected role"}`
+                  : ellipsize(snapshot?.contextDocument ?? "Open coaching", 120)}
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </Card>
 
       <ConnectionStateToast className="lk-coach-toast" />
 
-      <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="grid gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg text-white">Agent voice</h2>
-            <span className="text-xs uppercase tracking-[0.18em] text-slate-500">LiveKit audio</span>
+      <Card className="grid gap-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="grid gap-1">
+            <h2 className="text-lg text-white">Live transcript</h2>
+            <p className="text-sm text-slate-400">
+              Transcript turns stay primary. Role-play progress and free-form prompts appear as lighter helper text
+              beneath the relevant learner turns.
+            </p>
           </div>
-          <div className="grid min-h-40 place-items-center rounded-[22px] border border-orange-300/15 bg-orange-300/10 p-6">
-            {microphoneTrack ? (
-              <BarVisualizer barCount={9} options={{ minHeight: 6 }} trackRef={microphoneTrack} />
-            ) : (
-              <span className="text-sm text-slate-400">Waiting for the agent audio track...</span>
-            )}
-          </div>
+          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Session messages API</span>
         </div>
+        <div className="max-h-[42rem] overflow-auto pr-1">
+          <AgentChatTranscript agentState={state} cuesById={cuesById} messages={messages} />
+        </div>
+      </Card>
 
-        <div className="grid gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <Card className="grid gap-4 p-5">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg text-white">Session controls</h2>
-            <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Session provider</span>
+            <h2 className="text-lg text-white">Steer the session</h2>
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Text + microphone</span>
           </div>
           <form
             className="grid gap-4 rounded-[22px] border border-cyan-300/15 bg-cyan-300/10 p-5"
             onSubmit={(event) => void handleMessageSend(event)}
           >
             <p className="text-sm leading-7 text-slate-200">
-              The room now runs through LiveKit session management, so chat and transcript updates come from the session
-              message stream.
+              Use the microphone for the main flow. Send text only when you want to nudge the agent or ask for a quick
+              redirect without breaking cadence.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <TrackToggle
@@ -328,7 +361,7 @@ function SessionCenter({ roomName }: { roomName: string }) {
                 <textarea
                   className="min-h-24 rounded-[18px] border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-50 outline-none transition focus:border-cyan-300/40"
                   onChange={(event) => setChatMessage(event.target.value)}
-                  placeholder="Type if you want to steer the session with text as well as voice."
+                  placeholder="Ask the agent to slow down, switch focus, or clarify something."
                   value={chatMessage}
                 />
               </label>
@@ -337,19 +370,28 @@ function SessionCenter({ roomName }: { roomName: string }) {
               </Button>
             </div>
           </form>
-        </div>
-      </div>
+        </Card>
 
-      <div className="grid gap-4 rounded-[24px] border border-white/10 bg-slate-950/60 p-5">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg text-white">Session transcript</h2>
-          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Agent messages API</span>
-        </div>
-        <div className="max-h-[28rem] overflow-auto pr-1">
-          <AgentChatTranscript messages={messages} agentState={state} />
-        </div>
+        <Card className="grid gap-4 p-5">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg text-white">Agent voice</h2>
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-500">LiveKit audio</span>
+          </div>
+          <div className="grid min-h-48 place-items-center rounded-[22px] border border-orange-300/15 bg-orange-300/10 p-6">
+            {microphoneTrack ? (
+              <BarVisualizer barCount={9} options={{ minHeight: 6 }} trackRef={microphoneTrack} />
+            ) : (
+              <span className="text-sm text-slate-400">Waiting for the agent audio track...</span>
+            )}
+          </div>
+          <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-slate-300">
+            {snapshot?.sessionType === "role-play"
+              ? "Watch the transcript for mission progress cues under your turns while the right rail keeps the goal list visible."
+              : "Watch the transcript for follow-up prompts under your turns while the right rail keeps the recent coaching cues easy to skim."}
+          </div>
+        </Card>
       </div>
-    </Card>
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 import {
   adminScenarioListResponseSchema,
   communicativeFunctions,
+  defaultScenarioCursorPageSize,
   fixednessLevels,
   historyListResponseSchema,
   historyListSortBySchema,
@@ -9,6 +10,7 @@ import {
   knowledgeItemSchema,
   type Scenario,
   scenarioCharacterSchema,
+  scenarioCursorResponseSchema,
   scenarioDialogueTurnSchema,
   scenarioGoalsSchema,
   scenarioListSortBySchema,
@@ -19,7 +21,7 @@ import {
   syntaxRoles,
   userRoles,
 } from "@english-coach/contract";
-import { MutationCache, QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { MutationCache, QueryClient, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { startTransition } from "react";
 import { z } from "zod";
@@ -78,11 +80,8 @@ const optionalRouteSearchSchema = z.preprocess((value) => {
 }, z.string().max(200).optional());
 
 export const learnerScenariosSearchSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(12),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
   search: optionalRouteSearchSchema,
-  sortBy: scenarioListSortBySchema.default("updatedAt"),
-  sortDirection: z.enum(["asc", "desc"]).default("desc"),
 });
 
 export const historyListSearchSchema = z.object({
@@ -365,7 +364,33 @@ export function useScenarios() {
   return useLearnerScenarios({ page: 1, pageSize: 100, sortBy: "updatedAt", sortDirection: "desc" });
 }
 
-export function useLearnerScenarios(query: z.infer<typeof learnerScenariosSearchSchema>) {
+export function useInfiniteLearnerScenarios(query: z.infer<typeof learnerScenariosSearchSchema>) {
+  const pageSize = query.pageSize ?? defaultScenarioCursorPageSize;
+
+  return useInfiniteQuery({
+    queryKey: [...scenariosQueryKey, "infinite", { pageSize, search: query.search }],
+    queryFn: ({ pageParam }) => {
+      const searchParams = createSearchParams({
+        cursor: typeof pageParam === "string" ? pageParam : undefined,
+        pageSize,
+        pagination: "cursor",
+        search: query.search,
+      });
+
+      return apiJson(`/api/learner/scenarios?${searchParams.toString()}`, scenarioCursorResponseSchema);
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+  });
+}
+
+export function useLearnerScenarios(query: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  sortBy: z.infer<typeof scenarioListSortBySchema>;
+  sortDirection: "asc" | "desc";
+}) {
   const searchParams = createSearchParams({
     page: query.page,
     pageSize: query.pageSize,

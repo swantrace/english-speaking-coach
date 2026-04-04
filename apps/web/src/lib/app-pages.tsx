@@ -2,7 +2,6 @@ export { AdminKnowledgeItemsPage, AdminScenarioPage } from "../features/admin/ad
 export {
   FreeFormPage,
   FreeFormPracticePage,
-  RolePlayPracticePage,
   ScenarioBrowserPage,
   ScenarioDetailPage,
 } from "../features/scenarios/scenario-pages";

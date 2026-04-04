@@ -85,7 +85,6 @@ export function AdminGate({ children }: { children: ReactNode }) {
     if (!viewer.isPending && !isAdmin(viewer.data?.user ?? null)) {
       void navigate({
         replace: true,
-        search: { page: 1, pageSize: 12, sortBy: "updatedAt", sortDirection: "desc" },
         to: "/scenarios",
       });
     }

@@ -49,6 +49,7 @@ export function createCursorListResponseSchema<TItem extends z.ZodTypeAny>(itemS
     items: z.array(itemSchema),
     limit: z.number().int().min(1),
     nextCursor: z.string().nullable(),
+    total: z.number().int().min(0),
   });
 }
 

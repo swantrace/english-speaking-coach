@@ -73,12 +73,18 @@ export function registerScenarioRoutes(app: BackendApp) {
           ? and(searchCondition, cursorCondition)
           : searchCondition
         : cursorCondition;
-      const records = await db
-        .select()
-        .from(scenarios)
-        .where(whereCondition ?? undefined)
-        .orderBy(desc(scenarios.updatedAt), desc(scenarios.id))
-        .limit(pageSize + 1);
+      const [records, totalResult] = await Promise.all([
+        db
+          .select()
+          .from(scenarios)
+          .where(whereCondition ?? undefined)
+          .orderBy(desc(scenarios.updatedAt), desc(scenarios.id))
+          .limit(pageSize + 1),
+        db
+          .select({ total: count() })
+          .from(scenarios)
+          .where(searchCondition ?? undefined),
+      ]);
       const hasMore = records.length > pageSize;
       const pageRecords = hasMore ? records.slice(0, pageSize) : records;
 
@@ -90,6 +96,7 @@ export function registerScenarioRoutes(app: BackendApp) {
           nextCursor: hasMore
             ? encodeScenarioCursor(pageRecords[pageRecords.length - 1] as { id: string; updatedAt: string })
             : null,
+          total: totalResult[0]?.total ?? 0,
         }),
       );
     }

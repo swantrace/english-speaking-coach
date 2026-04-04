@@ -1,12 +1,13 @@
 import type { Scenario } from "@english-coach/contract";
 import { Button, Input } from "@english-coach/ui";
 import { Link, useLocation, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   createScenarioContextDocument,
   ellipsize,
-  useLearnerScenarios,
+  useInfiniteLearnerScenarios,
   useScenario,
   useSessionLauncher,
 } from "../../lib/app-data";
@@ -48,44 +49,103 @@ function useScenarioBrowserQueryState() {
   return {
     ...currentSearch,
     query: {
-      page: currentSearch.page,
       pageSize: currentSearch.pageSize,
       search: currentSearch.search,
-      sortBy: currentSearch.sortBy,
-      sortDirection: currentSearch.sortDirection,
     },
     searchInput,
-    setPage: (page: number) => void navigate({ search: (previous) => ({ ...previous, page }), to: "/scenarios" }),
-    setPageSize: (pageSize: number) =>
-      void navigate({ search: (previous) => ({ ...previous, page: 1, pageSize }), to: "/scenarios" }),
     setSearchInput,
-    setSortBy: (sortBy: "updatedAt" | "createdAt" | "title") =>
-      void navigate({ search: (previous) => ({ ...previous, page: 1, sortBy }), to: "/scenarios" }),
-    setSortDirection: (sortDirection: "asc" | "desc") =>
-      void navigate({ search: (previous) => ({ ...previous, page: 1, sortDirection }), to: "/scenarios" }),
   };
 }
 
 export function ScenarioBrowserPage() {
   const queryState = useScenarioBrowserQueryState();
-  const scenarios = useLearnerScenarios(queryState.query);
-  const canGoBack = queryState.page > 1;
-  const totalPages = scenarios.data?.totalPages ?? 0;
-  const canGoForward = totalPages === 0 ? false : queryState.page < totalPages;
+  const scenarios = useInfiniteLearnerScenarios(queryState.query);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [columnCount, setColumnCount] = useState(1);
+  const scenarioItems = useMemo(
+    () => scenarios.data?.pages.flatMap((page) => page.items) ?? [],
+    [scenarios.data?.pages],
+  );
+  const totalScenarios = scenarios.data?.pages[0]?.total ?? scenarioItems.length;
+  const loadedRows = Math.ceil(scenarioItems.length / columnCount);
+  const totalRowCount = loadedRows + (scenarios.hasNextPage ? 1 : 0);
+
+  useEffect(() => {
+    const resolveColumnCount = (width: number) => {
+      if (width >= 1280) {
+        return 4;
+      }
+
+      if (width >= 900) {
+        return 2;
+      }
+
+      return 1;
+    };
+
+    const updateColumnCount = () => {
+      const scrollContainer = scrollContainerRef.current;
+      const measuredWidth = scrollContainer?.clientWidth ?? window.innerWidth;
+
+      setColumnCount(resolveColumnCount(measuredWidth));
+    };
+
+    updateColumnCount();
+
+    window.addEventListener("resize", updateColumnCount);
+
+    const scrollContainer = scrollContainerRef.current;
+    const resizeObserver =
+      scrollContainer && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            updateColumnCount();
+          })
+        : null;
+
+    if (scrollContainer && resizeObserver) {
+      resizeObserver.observe(scrollContainer);
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateColumnCount);
+      resizeObserver?.disconnect();
+    };
+  }, []);
+
+  const rowVirtualizer = useVirtualizer({
+    count: totalRowCount,
+    estimateSize: () => (columnCount === 1 ? 340 : 320),
+    getScrollElement: () => scrollContainerRef.current,
+    overscan: 4,
+  });
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+
+  useEffect(() => {
+    const lastRow = virtualRows[virtualRows.length - 1];
+
+    if (!lastRow || !scenarios.hasNextPage || scenarios.isFetchingNextPage) {
+      return;
+    }
+
+    if (lastRow.index >= Math.max(loadedRows - 1, 0)) {
+      void scenarios.fetchNextPage();
+    }
+  }, [loadedRows, scenarios, virtualRows]);
 
   return (
     <AuthGate>
       <div className="grid gap-8">
         <PageIntro
           badge="Scenario Browser"
-          description="Browse finished practice scenarios, study the example dialogue, then enter a voice session with a clear mission and real-time progress updates."
+          description="Browse finished practice scenarios, open one detail page, and launch a mission-driven voice session once the role and goal preview feel right."
           title="Choose a scene that pushes the exact speaking behavior you want to improve."
           aside={
             <div className="grid gap-4">
               <dl className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-200">
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-400">Available scenarios</dt>
-                  <dd>{scenarios.data?.total ?? 0}</dd>
+                  <dd>{totalScenarios}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-400">Practice modes</dt>
@@ -99,108 +159,107 @@ export function ScenarioBrowserPage() {
           }
         />
 
-        <Card className="grid gap-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_10rem]">
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Search scenarios</span>
-              <Input
-                aria-label="Search scenarios"
-                className="border-white/10 bg-slate-950/60 text-slate-50"
-                onChange={(event) => queryState.setSearchInput(event.target.value)}
-                placeholder="Search by title or setting"
-                value={queryState.searchInput}
-              />
-            </div>
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Sort by</span>
-              <select
-                aria-label="Sort scenarios by"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) => queryState.setSortBy(event.target.value as typeof queryState.sortBy)}
-                value={queryState.sortBy}
-              >
-                <option value="updatedAt">Recently updated</option>
-                <option value="createdAt">Newest created</option>
-                <option value="title">Title</option>
-              </select>
-            </div>
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Direction</span>
-              <select
-                aria-label="Scenario sort direction"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) => queryState.setSortDirection(event.target.value as typeof queryState.sortDirection)}
-                value={queryState.sortDirection}
-              >
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
-              </select>
-            </div>
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Page size</span>
-              <select
-                aria-label="Scenario page size"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) => queryState.setPageSize(Number(event.target.value))}
-                value={String(queryState.pageSize)}
-              >
-                {[12, 24, 48].map((size) => (
-                  <option key={size} value={size}>
-                    {size} per page
-                  </option>
-                ))}
-              </select>
-            </div>
+        <Card className="mx-auto grid w-full max-w-2xl gap-4 text-center">
+          <div className="grid gap-2">
+            <span className="text-sm uppercase tracking-[0.18em] text-slate-400">Find a scenario fast</span>
+            <h2 className="text-2xl text-white">Search the mission library</h2>
+            <p className="text-sm leading-7 text-slate-300">
+              Search is debounced and the list keeps loading in the background as you scroll.
+            </p>
           </div>
+          <Input
+            aria-label="Search scenarios"
+            className="mx-auto h-12 max-w-xl border-white/10 bg-slate-950/60 text-center text-base text-slate-50"
+            onChange={(event) => queryState.setSearchInput(event.target.value)}
+            placeholder="Search by title, setting, or character"
+            value={queryState.searchInput}
+          />
         </Card>
 
         {scenarios.isPending ? <LoadingPanel label="Loading scenarios..." /> : null}
         {scenarios.error ? <PageState description={scenarios.error.message} title="Could not load scenarios" /> : null}
-        {!scenarios.isPending && !scenarios.error && (scenarios.data?.items.length ?? 0) === 0 ? (
+        {!scenarios.isPending && !scenarios.error && scenarioItems.length === 0 ? (
           <PageState
             description="No scenarios exist yet. An admin can generate them from the admin scenario page."
             title="No scenarios yet"
           />
         ) : null}
 
-        {scenarios.data?.items.length ? (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {scenarios.data.items.map((scenario) => (
-              <Card className="grid gap-5" key={scenario.id}>
-                <div className="grid gap-3">
-                  <span className="w-fit rounded-full border border-orange-300/20 bg-orange-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-orange-100">
-                    {scenario.characters[0].name} / {scenario.characters[1].name}
-                  </span>
-                  <h2 className="text-2xl text-white">{scenario.title}</h2>
-                  <p className="text-sm leading-7 text-slate-300">{ellipsize(scenario.setting, 180)}</p>
-                </div>
-                <div className="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.18em] text-slate-500">
-                  <span>{scenario.goals.goals.length} goals</span>
-                  <span>{scenario.exampleDialogue.length} dialogue turns</span>
-                </div>
-                <Button asChild size="lg">
-                  <Link params={{ scenarioId: scenario.id }} to="/scenarios/$scenarioId">
-                    Start Practice
-                  </Link>
-                </Button>
-              </Card>
-            ))}
-          </div>
-        ) : null}
-
-        {scenarios.data?.items.length ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
-            <span>
-              Page {queryState.page} of {Math.max(totalPages, 1)} · {scenarios.data.total} scenarios
-            </span>
-            <div className="flex items-center gap-3">
-              <Button disabled={!canGoBack} onClick={() => queryState.setPage(queryState.page - 1)} variant="outline">
-                Previous
-              </Button>
-              <Button disabled={!canGoForward} onClick={() => queryState.setPage(queryState.page + 1)}>
-                Next
-              </Button>
+        {scenarioItems.length ? (
+          <Card className="grid gap-4 p-3 sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-300">
+              <span>
+                Showing {scenarioItems.length} of {totalScenarios} scenarios
+              </span>
+              <span>{scenarios.isFetchingNextPage ? "Loading more..." : "Scroll to keep exploring"}</span>
             </div>
+
+            <div
+              className="h-[68vh] overflow-auto rounded-[24px] border border-white/10 bg-slate-950/35"
+              ref={scrollContainerRef}
+            >
+              <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+                {virtualRows.map((virtualRow) => {
+                  if (virtualRow.index >= loadedRows) {
+                    return (
+                      <div
+                        className="absolute left-0 top-0 flex w-full items-center justify-center px-4 py-6 text-sm text-slate-400"
+                        data-index={virtualRow.index}
+                        key={virtualRow.key}
+                        ref={rowVirtualizer.measureElement}
+                        style={{ transform: `translateY(${virtualRow.start}px)` }}
+                      >
+                        {scenarios.hasNextPage ? "Loading more scenarios..." : "You reached the end of the library."}
+                      </div>
+                    );
+                  }
+
+                  const rowStart = virtualRow.index * columnCount;
+                  const rowItems = scenarioItems.slice(rowStart, rowStart + columnCount);
+
+                  return (
+                    <div
+                      className="absolute left-0 top-0 w-full px-3 py-3"
+                      data-index={virtualRow.index}
+                      key={virtualRow.key}
+                      ref={rowVirtualizer.measureElement}
+                      style={{ transform: `translateY(${virtualRow.start}px)` }}
+                    >
+                      <div
+                        className="grid gap-5"
+                        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+                      >
+                        {rowItems.map((scenario) => (
+                          <Card className="grid gap-5" key={scenario.id}>
+                            <div className="grid gap-3">
+                              <span className="w-fit rounded-full border border-orange-300/20 bg-orange-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-orange-100">
+                                {scenario.characters[0].name} / {scenario.characters[1].name}
+                              </span>
+                              <h2 className="text-2xl text-white">{scenario.title}</h2>
+                              <p className="text-sm leading-7 text-slate-300">{ellipsize(scenario.setting, 180)}</p>
+                            </div>
+                            <div className="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                              <span>{scenario.goals.goals.length} goals</span>
+                              <span>{scenario.exampleDialogue.length} dialogue turns</span>
+                            </div>
+                            <Button asChild size="lg">
+                              <Link params={{ scenarioId: scenario.id }} to="/scenarios/$scenarioId">
+                                Open Scenario
+                              </Link>
+                            </Button>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+        ) : null}
+        {scenarios.isFetching && !scenarios.isFetchingNextPage && !scenarios.isPending ? (
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
+            Refreshing scenario results...
           </div>
         ) : null}
       </div>
@@ -210,7 +269,12 @@ export function ScenarioBrowserPage() {
 
 export function ScenarioDetailPage() {
   const { scenarioId } = useParams({ from: "/scenarios/$scenarioId/" });
+  const { character } = useSearch({ from: "/scenarios/$scenarioId/" });
+  const navigate = useNavigate({ from: "/scenarios/$scenarioId/" });
   const scenario = useScenario(scenarioId);
+  const { rolePlayLaunch } = useSessionLauncher();
+
+  const selectedCharacterIndex = character ?? 0;
 
   return (
     <AuthGate>
@@ -266,32 +330,79 @@ export function ScenarioDetailPage() {
 
             <Card className="grid content-start gap-5">
               <div className="grid gap-2">
-                <h2 className="text-2xl text-white">Choose your role</h2>
+                <h2 className="text-2xl text-white">Choose your role and launch</h2>
                 <p className="text-sm leading-7 text-slate-300">
-                  Pick the character you will play. The agent automatically takes the other role.
+                  Pick the character you will play, review the mission, then enter the live room from this page.
                 </p>
               </div>
 
               <div className="grid gap-4">
                 {scenario.data.characters.map((character, index) => (
-                  <Card className="grid gap-4 border-white/8 bg-white/[0.03] p-5" key={character.name}>
+                  <button
+                    className={`grid gap-4 rounded-[22px] border px-5 py-5 text-left transition ${
+                      selectedCharacterIndex === index
+                        ? "border-cyan-300/40 bg-cyan-300/10"
+                        : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                    }`}
+                    key={character.name}
+                    onClick={() => {
+                      void navigate({
+                        replace: true,
+                        search: { character: index },
+                        to: "/scenarios/$scenarioId",
+                      });
+                    }}
+                    type="button"
+                  >
                     <div className="grid gap-2">
                       <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Character {index + 1}</span>
                       <h3 className="text-xl text-white">{character.name}</h3>
                       <p className="text-sm leading-7 text-slate-300">{character.description}</p>
                     </div>
-                    <Button asChild size="lg">
-                      <Link
-                        params={{ scenarioId: scenario.data.id }}
-                        search={{ character: index }}
-                        to="/scenarios/$scenarioId/practice/role-play"
-                      >
-                        Practice As {character.name}
-                      </Link>
-                    </Button>
-                  </Card>
+                    <span className="text-sm font-medium text-cyan-100">
+                      {selectedCharacterIndex === index ? "Selected for launch" : `Play as ${character.name}`}
+                    </span>
+                  </button>
                 ))}
               </div>
+
+              <div className="grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-200">
+                <div className="grid gap-2">
+                  <h3 className="text-lg text-white">Mission preview</h3>
+                  <p className="leading-7 text-slate-300">
+                    Goals stay visible during the call and update from room data packets while you work through the
+                    scene.
+                  </p>
+                </div>
+                {scenario.data.goals.goals.map((goal) => (
+                  <div className="flex items-center justify-between gap-4" key={goal.id}>
+                    <span>{goal.description}</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      {goal.optional ? "optional" : "required"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                disabled={rolePlayLaunch.isPending}
+                onClick={() => {
+                  void rolePlayLaunch.mutateAsync({
+                    scenario: scenario.data,
+                    selectedCharacterIndex,
+                  });
+                }}
+                size="lg"
+              >
+                {rolePlayLaunch.isPending
+                  ? "Starting session..."
+                  : `Enter Voice Session as ${scenario.data.characters[selectedCharacterIndex]?.name ?? "this role"}`}
+              </Button>
+              {rolePlayLaunch.error ? (
+                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                  {rolePlayLaunch.error.message}
+                </div>
+              ) : null}
 
               <div className="rounded-[22px] border border-emerald-300/15 bg-emerald-300/10 p-5">
                 <div className="grid gap-3">
@@ -306,102 +417,6 @@ export function ScenarioDetailPage() {
                   </Button>
                 </div>
               </div>
-            </Card>
-          </div>
-        </div>
-      ) : null}
-    </AuthGate>
-  );
-}
-
-export function RolePlayPracticePage() {
-  const { scenarioId } = useParams({ from: "/scenarios/$scenarioId/practice/role-play" });
-  const { character } = useSearch({ from: "/scenarios/$scenarioId/practice/role-play" });
-  const scenario = useScenario(scenarioId);
-  const { rolePlayLaunch } = useSessionLauncher();
-  const [selectedCharacterIndex, setSelectedCharacterIndex] = useState<number | undefined>(character);
-
-  useEffect(() => {
-    setSelectedCharacterIndex(character);
-  }, [character]);
-
-  return (
-    <AuthGate>
-      {scenario.isPending ? <LoadingPanel label="Preparing role-play setup..." /> : null}
-      {scenario.error ? <PageState description={scenario.error.message} title="Could not load scenario" /> : null}
-      {scenario.data ? (
-        <div className="grid gap-8">
-          <PageIntro
-            badge="Role-play Setup"
-            description="Confirm your role, then the backend will mint a LiveKit token and dispatch the agent into a private room for this session."
-            title={`Practice ${scenario.data.title} as a live mission-driven conversation.`}
-          />
-
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <Card className="grid gap-4">
-              <h2 className="text-2xl text-white">Select your character</h2>
-              <div className="grid gap-4">
-                {scenario.data.characters.map((characterOption, index) => {
-                  const isSelected = selectedCharacterIndex === index;
-
-                  return (
-                    <button
-                      className={`grid gap-2 rounded-[22px] border px-4 py-4 text-left transition ${
-                        isSelected
-                          ? "border-cyan-300/40 bg-cyan-300/10"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/20"
-                      }`}
-                      key={characterOption.name}
-                      onClick={() => setSelectedCharacterIndex(index)}
-                      type="button"
-                    >
-                      <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Character {index + 1}</span>
-                      <span className="text-xl text-white">{characterOption.name}</span>
-                      <span className="text-sm leading-7 text-slate-300">{characterOption.description}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
-
-            <Card className="grid gap-5">
-              <div className="grid gap-2">
-                <h2 className="text-2xl text-white">Mission preview</h2>
-                <p className="text-sm leading-7 text-slate-300">
-                  Goals stay visible during the call and update from room data packets.
-                </p>
-              </div>
-              <div className="grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-200">
-                {scenario.data.goals.goals.map((goal) => (
-                  <div className="flex items-center justify-between gap-4" key={goal.id}>
-                    <span>{goal.description}</span>
-                    <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                      {goal.optional ? "optional" : "required"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <Button
-                disabled={selectedCharacterIndex === undefined || rolePlayLaunch.isPending}
-                onClick={() => {
-                  if (!scenario.data || selectedCharacterIndex === undefined) {
-                    return;
-                  }
-
-                  void rolePlayLaunch.mutateAsync({
-                    scenario: scenario.data,
-                    selectedCharacterIndex,
-                  });
-                }}
-                size="lg"
-              >
-                {rolePlayLaunch.isPending ? "Starting session..." : "Enter Voice Session"}
-              </Button>
-              {rolePlayLaunch.error ? (
-                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                  {rolePlayLaunch.error.message}
-                </div>
-              ) : null}
             </Card>
           </div>
         </div>
