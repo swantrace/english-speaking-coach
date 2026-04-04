@@ -1,7 +1,9 @@
 import { Button, Input } from "@english-coach/ui";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { TranscriptEntryList } from "../../components/agents-ui/agent-chat-transcript";
+import { createHistoryTranscriptCueMap, getTranscriptEntriesFromSessionTurns } from "../../lib/agent-session-helpers";
 import {
   formatTimestamp,
   humanizeLabel,
@@ -224,9 +226,56 @@ export function HistoryListPage() {
 
 export function HistoryDetailPage() {
   const { sessionId } = useParams({ from: "/history/$sessionId" });
+  const historySearch = useSearch({ from: "/history/$sessionId" });
+  const navigate = useNavigate({ from: "/history/$sessionId" });
   const detail = useSessionDetail(sessionId);
   const [showAllTranscript, setShowAllTranscript] = useState(false);
   const { freeFormLaunch } = useSessionLauncher();
+  const transcriptEntries = useMemo(
+    () => (detail.data ? getTranscriptEntriesFromSessionTurns(detail.data.transcript) : []),
+    [detail.data],
+  );
+  const transcriptCueMap = useMemo(
+    () =>
+      detail.data
+        ? createHistoryTranscriptCueMap({
+            completedGoals: detail.data.session.completedGoals,
+            entries: transcriptEntries,
+            errors: detail.data.errors,
+            scenarioGoals: detail.data.session.scenario?.goals.goals,
+          })
+        : {},
+    [detail.data, transcriptEntries],
+  );
+  const visibleEntries = showAllTranscript ? transcriptEntries : transcriptEntries.slice(-8);
+  const selectedEntry =
+    historySearch.turn === undefined
+      ? undefined
+      : transcriptEntries.find((entry) => entry.turnIndex === historySearch.turn);
+
+  useEffect(() => {
+    if (historySearch.turn === undefined || !transcriptEntries.length) {
+      return;
+    }
+
+    if (!showAllTranscript && !visibleEntries.some((entry) => entry.turnIndex === historySearch.turn)) {
+      setShowAllTranscript(true);
+    }
+  }, [historySearch.turn, showAllTranscript, transcriptEntries.length, visibleEntries]);
+
+  useEffect(() => {
+    if (!selectedEntry) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      document.getElementById(selectedEntry.id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [selectedEntry]);
 
   return (
     <AuthGate>
@@ -412,23 +461,33 @@ export function HistoryDetailPage() {
           <Card className="grid gap-4">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-2xl text-white">Transcript</h2>
-              <Button onClick={() => setShowAllTranscript((current) => !current)} variant="outline">
-                {showAllTranscript ? "Show latest turns" : "Expand full transcript"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                {historySearch.turn !== undefined ? (
+                  <Button
+                    onClick={() => {
+                      void navigate({ search: () => ({}), to: "/history/$sessionId" });
+                    }}
+                    variant="ghost"
+                  >
+                    Clear turn focus
+                  </Button>
+                ) : null}
+                <Button onClick={() => setShowAllTranscript((current) => !current)} variant="outline">
+                  {showAllTranscript ? "Show latest turns" : "Expand full transcript"}
+                </Button>
+              </div>
             </div>
-            <div className="grid gap-3">
-              {(showAllTranscript ? detail.data.transcript : detail.data.transcript.slice(-8)).map((turn) => (
-                <div
-                  className={`rounded-[18px] border px-4 py-3 ${
-                    turn.speaker === "user" ? "border-cyan-300/18 bg-cyan-300/10" : "border-white/10 bg-white/[0.03]"
-                  }`}
-                  key={`${turn.timestampMs}:${turn.text}`}
-                >
-                  <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{turn.speaker}</span>
-                  <p className="mt-2 text-sm leading-7 text-slate-100">{turn.text}</p>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm leading-7 text-slate-300">
+              Click any turn to set a stable `turn` query param and deep-link directly to that point in the transcript.
+            </p>
+            <TranscriptEntryList
+              cuesById={transcriptCueMap}
+              entries={visibleEntries}
+              onSelectEntry={(entry) => {
+                void navigate({ search: () => ({ turn: entry.turnIndex }), to: "/history/$sessionId" });
+              }}
+              selectedEntryId={selectedEntry?.id}
+            />
           </Card>
         </div>
       ) : null}

@@ -97,7 +97,7 @@ export class SessionTracker {
     ].join(" ");
   }
 
-  toGoalProgressPacket(): GoalProgressPacket {
+  toGoalProgressPacket(transcriptTurnIndex?: number): GoalProgressPacket {
     const currentGoal = this.getCurrentGoal();
     const fallbackGoalId = this.scenario.goals.goals.at(-1)?.id ?? "complete";
 
@@ -110,6 +110,7 @@ export class SessionTracker {
         optional: goal.optional,
         status: this.completedGoalIds.has(goal.id) ? "complete" : "incomplete",
       })),
+      transcriptTurnIndex,
       type: "goal-progress",
     });
   }

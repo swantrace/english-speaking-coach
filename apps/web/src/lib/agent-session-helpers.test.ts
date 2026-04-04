@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createTranscriptCueMap, formatAgentStateLabel, getTranscriptEntries } from "./agent-session-helpers";
+import {
+  createHistoryTranscriptCueMap,
+  createTranscriptCueMap,
+  formatAgentStateLabel,
+  getTranscriptEntries,
+  getTranscriptEntriesFromSessionTurns,
+} from "./agent-session-helpers";
 
 describe("getTranscriptEntries", () => {
   it("filters blank messages and preserves speaker metadata", () => {
@@ -68,11 +74,12 @@ describe("createTranscriptCueMap", () => {
           { description: "Greet the waiter", id: "goal-1", optional: false, status: "complete" as const },
           { description: "Order a drink", id: "goal-2", optional: false, status: "incomplete" as const },
         ],
+        transcriptTurnIndex: 0,
         type: "goal-progress",
       },
     });
 
-    expect(cueMap["user-2"]?.map((cue) => cue.text)).toEqual([
+    expect(cueMap["user-1"]?.map((cue) => cue.text)).toEqual([
       "Completed goal: Greet the waiter",
       "Current goal: Order a drink. Captured drink: water.",
     ]);
@@ -88,16 +95,46 @@ describe("createTranscriptCueMap", () => {
     const cueMap = createTranscriptCueMap({
       entries,
       observations: [
-        { observation: "Try asking why the past tense changes here.", sessionHistoryId: "s-1", type: "ui-update" },
+        {
+          observation: "Try asking why the past tense changes here.",
+          sessionHistoryId: "s-1",
+          transcriptTurnIndex: 0,
+          type: "ui-update",
+        },
         {
           observation: "There is another irregular verb worth noticing in your second sentence.",
           sessionHistoryId: "s-1",
+          transcriptTurnIndex: 2,
           type: "ui-update",
         },
       ],
     });
 
-    expect(cueMap["user-1"]?.[0]?.text).toBe("There is another irregular verb worth noticing in your second sentence.");
-    expect(cueMap["user-2"]?.[0]?.text).toBe("Try asking why the past tense changes here.");
+    expect(cueMap["user-1"]?.[0]?.text).toBe("Try asking why the past tense changes here.");
+    expect(cueMap["user-2"]?.[0]?.text).toBe("There is another irregular verb worth noticing in your second sentence.");
+  });
+
+  it("creates read-only history cues from completed goals and matched errors", () => {
+    const entries = getTranscriptEntriesFromSessionTurns([
+      { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
+      { speaker: "agent", text: "What happened there?", timestampMs: 2_000 },
+      { speaker: "user", text: "Then I bought fruit.", timestampMs: 3_000 },
+    ]);
+
+    const cueMap = createHistoryTranscriptCueMap({
+      completedGoals: ["goal-1"],
+      entries,
+      errors: [
+        {
+          errorDescription: "Irregular past tense",
+          suggestion: "why 'went' fits better than 'goed'",
+          utterance: "I goed to the store.",
+        },
+      ],
+      scenarioGoals: [{ description: "Describe where you went", id: "goal-1" }],
+    });
+
+    expect(cueMap["turn-0"]?.[0]?.text).toBe("Irregular past tense Ask about: why 'went' fits better than 'goed'");
+    expect(cueMap["turn-2"]?.[0]?.text).toBe("Completed goals: Describe where you went");
   });
 });

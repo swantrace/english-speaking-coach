@@ -93,6 +93,10 @@ export const historyListSearchSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
 });
 
+export const historyDetailSearchSchema = z.object({
+  turn: z.coerce.number().int().min(0).optional(),
+});
+
 export const adminScenariosSearchSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(9),

@@ -22,6 +22,16 @@ export const inConversationAnalysisQueue = new Queue<InConversationAnalysisJob>(
   connection: producerRedis,
 });
 
+function getLatestUserTurnIndex(job: InConversationAnalysisJob) {
+  for (let index = job.turns.length - 1; index >= 0; index -= 1) {
+    if (job.turns[index]?.speaker === "user") {
+      return job.transcriptStartIndex + index;
+    }
+  }
+
+  return undefined;
+}
+
 let inConversationAnalysisGeneratorOverride:
   | ((job: InConversationAnalysisJob) => Promise<{ observation: string; workerFeedbackMessage: string }>)
   | null = null;
@@ -114,6 +124,7 @@ export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob
     const uiUpdatePacket = uiUpdatePacketSchema.parse({
       observation: result.observation,
       sessionHistoryId: parsedJob.sessionHistoryId,
+      transcriptTurnIndex: getLatestUserTurnIndex(parsedJob),
       type: "ui-update",
     });
 

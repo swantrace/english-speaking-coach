@@ -17,6 +17,7 @@ describe("getObservationsSnapshot", () => {
     appendObservation("room-b", {
       observation: "Notice the hesitation before the answer.",
       sessionHistoryId: "session-1",
+      transcriptTurnIndex: 4,
       type: "ui-update",
     });
 
@@ -26,6 +27,7 @@ describe("getObservationsSnapshot", () => {
     expect(snapshot.items[0]).toMatchObject({
       observation: "Notice the hesitation before the answer.",
       sessionHistoryId: "session-1",
+      transcriptTurnIndex: 4,
       type: "ui-update",
     });
   });

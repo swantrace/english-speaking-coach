@@ -62,6 +62,7 @@ export const inConversationAnalysisJobSchema = z.object({
   sessionHistoryId: z.string(),
   /** LiveKit room name — worker uses this to dispatch data packets back to the room. */
   roomName: z.string(),
+  transcriptStartIndex: z.number().int().min(0),
   turns: z.array(sessionTurnSchema),
 });
 

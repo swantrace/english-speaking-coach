@@ -84,7 +84,8 @@ describe("SessionTracker", () => {
     tracker.advance("order_food", { dish_name: "pasta" });
 
     expect(tracker.getCompletedGoalIds()).toEqual(["order-dish"]);
-    expect(tracker.toGoalProgressPacket().currentGoalId).toBe("ask-for-bill");
+    expect(tracker.toGoalProgressPacket(3).currentGoalId).toBe("ask-for-bill");
+    expect(tracker.toGoalProgressPacket(3).transcriptTurnIndex).toBe(3);
   });
 
   it("renders remaining slots for the active goal", () => {
@@ -173,6 +174,7 @@ describe("Agent analysis", () => {
       {
         roomName: "room-1",
         sessionHistoryId: "history-1",
+        transcriptStartIndex: 0,
         turns: [
           { speaker: "user", text: "Hi", timestampMs: 1 },
           { speaker: "agent", text: "Hello", timestampMs: 2 },

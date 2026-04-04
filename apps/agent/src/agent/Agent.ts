@@ -33,7 +33,7 @@ export class Agent extends voice.Agent {
               }),
               execute: async ({ intent, slots }) => {
                 sessionTracker.advance(intent, slots);
-                await config.publishGoalProgress(sessionTracker.toGoalProgressPacket());
+                await config.publishGoalProgress(sessionTracker.toGoalProgressPacket(this.getLatestUserTurnIndex()));
 
                 if (refreshInstructions) {
                   await refreshInstructions();
@@ -110,6 +110,7 @@ export class Agent extends voice.Agent {
       inConversationAnalysisJobSchema.parse({
         roomName: this.config.roomName,
         sessionHistoryId: this.config.sessionHistoryId,
+        transcriptStartIndex: lastAnalysisTurnIndex,
         turns: pendingTurns,
       }),
       {
@@ -169,5 +170,17 @@ export class Agent extends voice.Agent {
     const nextChatContext = withLatestWorkerFeedback(this.chatCtx.copy(), packet.message);
 
     await this.updateChatCtx(nextChatContext);
+  }
+
+  private getLatestUserTurnIndex() {
+    const turns = toSessionTurns(this.chatCtx);
+
+    for (let index = turns.length - 1; index >= 0; index -= 1) {
+      if (turns[index]?.speaker === "user") {
+        return index;
+      }
+    }
+
+    return undefined;
   }
 }

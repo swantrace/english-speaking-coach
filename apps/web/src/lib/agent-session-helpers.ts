@@ -1,4 +1,4 @@
-import type { GoalProgressPacket, UiUpdatePacket } from "@english-coach/contract";
+import type { GoalProgressPacket, SessionTurn, UiUpdatePacket } from "@english-coach/contract";
 
 export interface TranscriptMessageLike {
   from?: {
@@ -14,6 +14,7 @@ export interface TranscriptEntry {
   message: string;
   speaker: "assistant" | "user";
   timestamp: Date | null;
+  turnIndex: number;
 }
 
 export interface TranscriptCue {
@@ -50,15 +51,34 @@ export function getTranscriptEntries(messages: TranscriptMessageLike[]) {
         message: text,
         speaker: message.from?.isLocal ? "user" : "assistant",
         timestamp,
+        turnIndex: index,
       },
     ];
   });
+}
+
+export function getTranscriptEntriesFromSessionTurns(turns: SessionTurn[]) {
+  return turns.map<TranscriptEntry>((turn, index) => ({
+    id: `turn-${index}`,
+    message: turn.text,
+    speaker: turn.speaker === "agent" ? "assistant" : "user",
+    timestamp: normalizeTimestamp(turn.timestampMs),
+    turnIndex: index,
+  }));
 }
 
 function getAnchorEntries(entries: TranscriptEntry[]) {
   const userEntries = entries.filter((entry) => entry.speaker === "user");
 
   return userEntries.length ? userEntries : entries;
+}
+
+function getEntryByTurnIndex(entries: TranscriptEntry[], transcriptTurnIndex?: number) {
+  if (transcriptTurnIndex === undefined) {
+    return null;
+  }
+
+  return entries.find((entry) => entry.turnIndex === transcriptTurnIndex) ?? null;
 }
 
 export function createTranscriptCueMap({
@@ -77,7 +97,10 @@ export function createTranscriptCueMap({
   }
 
   if (goalProgress) {
-    const goalAnchor = getAnchorEntries(entries).at(-1) ?? entries.at(-1);
+    const goalAnchor =
+      getEntryByTurnIndex(entries, goalProgress.transcriptTurnIndex) ??
+      getAnchorEntries(entries).at(-1) ??
+      entries.at(-1);
     const currentGoal =
       goalProgress.goals.find((goal) => goal.id === goalProgress.currentGoalId) ??
       goalProgress.goals.find((goal) => goal.status === "incomplete");
@@ -113,7 +136,11 @@ export function createTranscriptCueMap({
     const recentObservations = observations.slice(-Math.max(anchorEntries.length, 1)).reverse();
 
     recentObservations.forEach((observation, index) => {
-      const anchor = anchorEntries.at(index) ?? anchorEntries.at(-1) ?? entries.at(-1);
+      const anchor =
+        getEntryByTurnIndex(entries, observation.transcriptTurnIndex) ??
+        anchorEntries.at(index) ??
+        anchorEntries.at(-1) ??
+        entries.at(-1);
 
       if (!anchor) {
         return;
@@ -127,6 +154,63 @@ export function createTranscriptCueMap({
         },
       ];
     });
+  }
+
+  return cuesById;
+}
+
+export function createHistoryTranscriptCueMap({
+  completedGoals,
+  entries,
+  errors,
+  scenarioGoals,
+}: {
+  completedGoals?: string[] | null;
+  entries: TranscriptEntry[];
+  errors: Array<{ errorDescription: string; suggestion: string; utterance: string }>;
+  scenarioGoals?: Array<{ description: string; id: string }>;
+}) {
+  const cuesById: Record<string, TranscriptCue[]> = {};
+
+  if (!entries.length) {
+    return cuesById;
+  }
+
+  if (completedGoals?.length && scenarioGoals?.length) {
+    const completedGoalDescriptions = scenarioGoals
+      .filter((goal) => completedGoals.includes(goal.id))
+      .map((goal) => goal.description);
+    const latestUserEntry = getAnchorEntries(entries).at(-1) ?? entries.at(-1);
+
+    if (latestUserEntry && completedGoalDescriptions.length) {
+      cuesById[latestUserEntry.id] = [
+        ...(cuesById[latestUserEntry.id] ?? []),
+        {
+          kind: "goal-progress",
+          text: `Completed goals: ${completedGoalDescriptions.join(" · ")}`,
+        },
+      ];
+    }
+  }
+
+  for (const error of errors) {
+    const matchingEntry = entries.find(
+      (entry) =>
+        entry.speaker === "user" &&
+        (entry.message.includes(error.utterance) || error.utterance.includes(entry.message)),
+    );
+
+    if (!matchingEntry) {
+      continue;
+    }
+
+    cuesById[matchingEntry.id] = [
+      ...(cuesById[matchingEntry.id] ?? []),
+      {
+        kind: "coaching",
+        text: `${error.errorDescription} Ask about: ${error.suggestion}`,
+      },
+    ];
   }
 
   return cuesById;

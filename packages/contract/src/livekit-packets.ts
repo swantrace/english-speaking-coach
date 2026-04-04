@@ -14,6 +14,7 @@ export const goalProgressPacketSchema = z.object({
   currentGoalId: z.string(),
   /** slot name → extracted value */
   filledSlots: z.record(z.string(), z.string()),
+  transcriptTurnIndex: z.number().int().min(0).optional(),
 });
 
 /** Sent by the lingAnalysis worker → agent (free-form sessions only). */
@@ -28,6 +29,7 @@ export const uiUpdatePacketSchema = z.object({
   type: z.literal("ui-update"),
   sessionHistoryId: z.string(),
   observation: z.string(),
+  transcriptTurnIndex: z.number().int().min(0).optional(),
 });
 
 export type GoalProgressPacket = z.infer<typeof goalProgressPacketSchema>;
