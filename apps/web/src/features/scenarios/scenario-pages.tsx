@@ -1,19 +1,77 @@
 import type { Scenario } from "@english-coach/contract";
-import { Button } from "@english-coach/ui";
-import { Link, useLocation, useParams, useSearch } from "@tanstack/react-router";
+import { Button, Input } from "@english-coach/ui";
+import { Link, useLocation, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   createScenarioContextDocument,
   ellipsize,
+  useLearnerScenarios,
   useScenario,
-  useScenarios,
   useSessionLauncher,
 } from "../../lib/app-data";
 import { AuthGate, Card, LoadingPanel, PageIntro, PageState } from "../../lib/app-shell";
 
+function useScenarioBrowserQueryState() {
+  const currentSearch = useSearch({ from: "/scenarios/" });
+  const navigate = useNavigate({ from: "/scenarios/" });
+  const [searchInput, setSearchInput] = useState(currentSearch.search ?? "");
+
+  useEffect(() => {
+    setSearchInput(currentSearch.search ?? "");
+  }, [currentSearch.search]);
+
+  useEffect(() => {
+    const nextSearch = searchInput.trim() || undefined;
+
+    if (nextSearch === currentSearch.search) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void navigate({
+        replace: true,
+        search: (previous) => ({
+          ...previous,
+          page: 1,
+          search: nextSearch,
+        }),
+        to: "/scenarios",
+      });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [currentSearch.search, navigate, searchInput]);
+
+  return {
+    ...currentSearch,
+    query: {
+      page: currentSearch.page,
+      pageSize: currentSearch.pageSize,
+      search: currentSearch.search,
+      sortBy: currentSearch.sortBy,
+      sortDirection: currentSearch.sortDirection,
+    },
+    searchInput,
+    setPage: (page: number) => void navigate({ search: (previous) => ({ ...previous, page }), to: "/scenarios" }),
+    setPageSize: (pageSize: number) =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, pageSize }), to: "/scenarios" }),
+    setSearchInput,
+    setSortBy: (sortBy: "updatedAt" | "createdAt" | "title") =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, sortBy }), to: "/scenarios" }),
+    setSortDirection: (sortDirection: "asc" | "desc") =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, sortDirection }), to: "/scenarios" }),
+  };
+}
+
 export function ScenarioBrowserPage() {
-  const scenarios = useScenarios();
+  const queryState = useScenarioBrowserQueryState();
+  const scenarios = useLearnerScenarios(queryState.query);
+  const canGoBack = queryState.page > 1;
+  const totalPages = scenarios.data?.totalPages ?? 0;
+  const canGoForward = totalPages === 0 ? false : queryState.page < totalPages;
 
   return (
     <AuthGate>
@@ -40,6 +98,61 @@ export function ScenarioBrowserPage() {
             </div>
           }
         />
+
+        <Card className="grid gap-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_10rem]">
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Search scenarios</span>
+              <Input
+                aria-label="Search scenarios"
+                className="border-white/10 bg-slate-950/60 text-slate-50"
+                onChange={(event) => queryState.setSearchInput(event.target.value)}
+                placeholder="Search by title or setting"
+                value={queryState.searchInput}
+              />
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Sort by</span>
+              <select
+                aria-label="Sort scenarios by"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) => queryState.setSortBy(event.target.value as typeof queryState.sortBy)}
+                value={queryState.sortBy}
+              >
+                <option value="updatedAt">Recently updated</option>
+                <option value="createdAt">Newest created</option>
+                <option value="title">Title</option>
+              </select>
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Direction</span>
+              <select
+                aria-label="Scenario sort direction"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) => queryState.setSortDirection(event.target.value as typeof queryState.sortDirection)}
+                value={queryState.sortDirection}
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Page size</span>
+              <select
+                aria-label="Scenario page size"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) => queryState.setPageSize(Number(event.target.value))}
+                value={String(queryState.pageSize)}
+              >
+                {[12, 24, 48].map((size) => (
+                  <option key={size} value={size}>
+                    {size} per page
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </Card>
 
         {scenarios.isPending ? <LoadingPanel label="Loading scenarios..." /> : null}
         {scenarios.error ? <PageState description={scenarios.error.message} title="Could not load scenarios" /> : null}
@@ -72,6 +185,22 @@ export function ScenarioBrowserPage() {
                 </Button>
               </Card>
             ))}
+          </div>
+        ) : null}
+
+        {scenarios.data?.items.length ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
+            <span>
+              Page {queryState.page} of {Math.max(totalPages, 1)} · {scenarios.data.total} scenarios
+            </span>
+            <div className="flex items-center gap-3">
+              <Button disabled={!canGoBack} onClick={() => queryState.setPage(queryState.page - 1)} variant="outline">
+                Previous
+              </Button>
+              <Button disabled={!canGoForward} onClick={() => queryState.setPage(queryState.page + 1)}>
+                Next
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

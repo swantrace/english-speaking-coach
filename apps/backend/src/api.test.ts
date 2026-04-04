@@ -466,7 +466,7 @@ describe("backend phase 2 integration", () => {
       ]),
     );
 
-    const scenarioListResponse = await app.request("http://localhost/api/scenarios?limit=25&offset=0", {
+    const scenarioListResponse = await app.request("http://localhost/api/learner/scenarios?limit=25&offset=0", {
       headers: {
         Cookie: student.cookie,
       },
@@ -489,8 +489,24 @@ describe("backend phase 2 integration", () => {
       }),
     );
 
+    const adminScenarioListResponse = await app.request(
+      `http://localhost/api/admin/scenarios?search=${encodeURIComponent("Cafe Scenario")}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+      },
+    );
+
+    expect(adminScenarioListResponse.status).toBe(200);
+    expect(adminScenarioListResponse.json()).resolves.toMatchObject({
+      items: expect.arrayContaining([expect.objectContaining({ id: scenarioId })]),
+      page: 1,
+      pageSize: 5,
+    });
+
     const scenarioSearchResponse = await app.request(
-      `http://localhost/api/scenarios?search=${encodeURIComponent("Cafe Scenario")}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
+      `http://localhost/api/learner/scenarios?search=${encodeURIComponent("Cafe Scenario")}&sortBy=title&sortDirection=asc&page=1&pageSize=5`,
       {
         headers: {
           Cookie: student.cookie,
@@ -510,7 +526,7 @@ describe("backend phase 2 integration", () => {
     expect(scenarioSearchBody.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: scenarioId })]));
 
     const firstCursorScenarioResponse = await app.request(
-      `http://localhost/api/scenarios?pagination=cursor&search=${encodeURIComponent(cursorScenarioPrefix)}&pageSize=1`,
+      `http://localhost/api/learner/scenarios?pagination=cursor&search=${encodeURIComponent(cursorScenarioPrefix)}&pageSize=1`,
       {
         headers: {
           Cookie: student.cookie,
@@ -534,7 +550,7 @@ describe("backend phase 2 integration", () => {
     expect(firstCursorScenarioBody.nextCursor).toBeTruthy();
 
     const secondCursorScenarioResponse = await app.request(
-      `http://localhost/api/scenarios?pagination=cursor&search=${encodeURIComponent(cursorScenarioPrefix)}&pageSize=1&cursor=${encodeURIComponent(firstCursorScenarioBody.nextCursor ?? "")}`,
+      `http://localhost/api/learner/scenarios?pagination=cursor&search=${encodeURIComponent(cursorScenarioPrefix)}&pageSize=1&cursor=${encodeURIComponent(firstCursorScenarioBody.nextCursor ?? "")}`,
       {
         headers: {
           Cookie: student.cookie,

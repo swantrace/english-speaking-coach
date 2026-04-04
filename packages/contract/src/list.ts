@@ -54,7 +54,7 @@ export function createCursorListResponseSchema<TItem extends z.ZodTypeAny>(itemS
 
 export const scenarioListSortBySchema = z.enum(["updatedAt", "createdAt", "title"]);
 export const scenarioPaginationModeSchema = z.enum(["page", "cursor"]);
-export const scenarioListQuerySchema = pageListQuerySchema
+export const learnerScenarioListQuerySchema = pageListQuerySchema
   .extend({
     cursor: optionalCursorSchema,
     pagination: scenarioPaginationModeSchema.default(scenarioPaginationModeSchema.enum.page),
@@ -72,6 +72,11 @@ export const scenarioListQuerySchema = pageListQuerySchema
       path: ["pagination"],
     },
   );
+export const adminScenarioListQuerySchema = pageListQuerySchema.extend({
+  search: optionalSearchTextSchema,
+  sortBy: scenarioListSortBySchema.default(scenarioListSortBySchema.enum.updatedAt),
+  sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
+});
 
 export const historySummarySchema = z.object({
   canReopen: z.boolean(),
@@ -122,11 +127,15 @@ export const knowledgeItemListQuerySchema = pageListQuerySchema.extend({
 
 export const scenarioPageResponseSchema = createPageListResponseSchema(scenarioSchema);
 export const scenarioCursorResponseSchema = createCursorListResponseSchema(scenarioSchema);
+export const adminScenarioListResponseSchema = createPageListResponseSchema(scenarioSchema);
 export const historyListResponseSchema = createPageListResponseSchema(historySummarySchema);
 export const knowledgeItemListResponseSchema = createPageListResponseSchema(knowledgeItemSchema);
 
 export type SortDirection = z.infer<typeof sortDirectionSchema>;
-export type ScenarioListQuery = z.infer<typeof scenarioListQuerySchema>;
+export const scenarioListQuerySchema = learnerScenarioListQuerySchema;
+export type LearnerScenarioListQuery = z.infer<typeof learnerScenarioListQuerySchema>;
+export type AdminScenarioListQuery = z.infer<typeof adminScenarioListQuerySchema>;
+export type ScenarioListQuery = LearnerScenarioListQuery;
 export type HistorySummary = z.infer<typeof historySummarySchema>;
 export type HistoryListQuery = z.infer<typeof historyListQuerySchema>;
 export type KnowledgeItemSource = z.infer<typeof knowledgeItemSourceSchema>;
@@ -134,5 +143,6 @@ export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
 export type ScenarioPageResponse = z.infer<typeof scenarioPageResponseSchema>;
 export type ScenarioCursorResponse = z.infer<typeof scenarioCursorResponseSchema>;
+export type AdminScenarioListResponse = z.infer<typeof adminScenarioListResponseSchema>;
 export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 export type KnowledgeItemListResponse = z.infer<typeof knowledgeItemListResponseSchema>;

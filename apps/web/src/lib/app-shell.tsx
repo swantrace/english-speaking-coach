@@ -83,7 +83,11 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!viewer.isPending && !isAdmin(viewer.data?.user ?? null)) {
-      void navigate({ replace: true, to: "/scenarios" });
+      void navigate({
+        replace: true,
+        search: { page: 1, pageSize: 12, sortBy: "updatedAt", sortDirection: "desc" },
+        to: "/scenarios",
+      });
     }
   }, [navigate, viewer.data?.user, viewer.isPending]);
 

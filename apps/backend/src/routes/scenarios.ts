@@ -1,6 +1,8 @@
 import {
+  adminScenarioListQuerySchema,
+  adminScenarioListResponseSchema,
+  learnerScenarioListQuerySchema,
   scenarioCursorResponseSchema,
-  scenarioListQuerySchema,
   scenarioPageResponseSchema,
   scenarioSchema,
 } from "@english-coach/contract";
@@ -43,8 +45,8 @@ function createScenarioSearchCondition(search?: string) {
 }
 
 export function registerScenarioRoutes(app: BackendApp) {
-  app.get("/api/scenarios", async (context) => {
-    const parsedQuery = scenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
+  app.get("/api/learner/scenarios", async (context) => {
+    const parsedQuery = learnerScenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 
     if (!parsedQuery.success) {
       return context.json({ error: "Invalid scenario query parameters" }, 400);
@@ -111,6 +113,44 @@ export function registerScenarioRoutes(app: BackendApp) {
 
     return context.json(
       scenarioPageResponseSchema.parse(
+        createPageResponse(
+          records.map((record) => scenarioSchema.parse(record)),
+          totalResult[0]?.total ?? 0,
+          page,
+          pageSize,
+        ),
+      ),
+    );
+  });
+
+  app.get("/api/admin/scenarios", async (context) => {
+    const parsedQuery = adminScenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
+
+    if (!parsedQuery.success) {
+      return context.json({ error: "Invalid scenario query parameters" }, 400);
+    }
+
+    const { page, pageSize, search, sortBy, sortDirection } = parsedQuery.data;
+    const offset = getPageOffset(page, pageSize);
+    const searchCondition = createScenarioSearchCondition(search);
+    const orderColumn = scenarioSortColumnMap[sortBy];
+    const orderExpression = sortDirection === "asc" ? asc(orderColumn) : desc(orderColumn);
+    const [records, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(scenarios)
+        .where(searchCondition ?? undefined)
+        .orderBy(orderExpression, desc(scenarios.id))
+        .limit(pageSize)
+        .offset(offset),
+      db
+        .select({ total: count() })
+        .from(scenarios)
+        .where(searchCondition ?? undefined),
+    ]);
+
+    return context.json(
+      adminScenarioListResponseSchema.parse(
         createPageResponse(
           records.map((record) => scenarioSchema.parse(record)),
           totalResult[0]?.total ?? 0,

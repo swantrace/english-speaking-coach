@@ -70,6 +70,8 @@ export const requireAdminMiddleware: MiddlewareHandler<{ Variables: AppVariables
 
 export function registerAccessPolicies(app: BackendApp) {
   for (const path of [
+    "/api/learner/scenarios",
+    "/api/learner/scenarios/*",
     "/api/scenarios",
     "/api/scenarios/*",
     "/api/history",

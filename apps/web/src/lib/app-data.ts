@@ -1,13 +1,17 @@
 import {
+  adminScenarioListResponseSchema,
   communicativeFunctions,
   fixednessLevels,
   historyListResponseSchema,
+  historyListSortBySchema,
   knowledgeItemListResponseSchema,
+  knowledgeItemListSortBySchema,
   knowledgeItemSchema,
   type Scenario,
   scenarioCharacterSchema,
   scenarioDialogueTurnSchema,
   scenarioGoalsSchema,
+  scenarioListSortBySchema,
   scenarioPageResponseSchema,
   scenarioSchema,
   sessionTurnSchema,
@@ -62,6 +66,49 @@ const sessionTokenResponseSchema = z.object({
 
 export const rolePlaySearchSchema = z.object({
   character: z.coerce.number().int().min(0).max(1).optional(),
+});
+
+const optionalRouteSearchSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}, z.string().max(200).optional());
+
+export const learnerScenariosSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(12),
+  search: optionalRouteSearchSchema,
+  sortBy: scenarioListSortBySchema.default("updatedAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export const historyListSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  search: optionalRouteSearchSchema,
+  sessionType: sessionTypeSchema.optional(),
+  sortBy: historyListSortBySchema.default("startedAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export const adminScenariosSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(9),
+  search: optionalRouteSearchSchema,
+  sortBy: scenarioListSortBySchema.default("updatedAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export const adminKnowledgeItemsSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  search: optionalRouteSearchSchema,
+  sortBy: knowledgeItemListSortBySchema.default("updatedAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc"),
+  source: z.enum(["all", "admin", "auto_generated"]).default("all"),
 });
 
 export const freeFormSearchSchema = z.object({
@@ -129,9 +176,28 @@ export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 
 export const viewerQueryKey = ["viewer"] as const;
 export const scenariosQueryKey = ["scenarios"] as const;
+export const adminScenariosQueryKey = ["admin-scenarios"] as const;
 export const historyQueryKey = ["history"] as const;
 export const knowledgeItemsQueryKey = ["knowledge-items"] as const;
 export { knowledgeItemSchema };
+
+function appendSearchParam(searchParams: URLSearchParams, key: string, value: string | number | undefined) {
+  if (value === undefined || value === "") {
+    return;
+  }
+
+  searchParams.set(key, String(value));
+}
+
+function createSearchParams(values: Record<string, string | number | undefined>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(values).forEach(([key, value]) => {
+    appendSearchParam(searchParams, key, value);
+  });
+
+  return searchParams;
+}
 
 export const queryClient = new QueryClient({
   mutationCache: new MutationCache(),
@@ -296,9 +362,36 @@ export function useViewer() {
 }
 
 export function useScenarios() {
+  return useLearnerScenarios({ page: 1, pageSize: 100, sortBy: "updatedAt", sortDirection: "desc" });
+}
+
+export function useLearnerScenarios(query: z.infer<typeof learnerScenariosSearchSchema>) {
+  const searchParams = createSearchParams({
+    page: query.page,
+    pageSize: query.pageSize,
+    search: query.search,
+    sortBy: query.sortBy,
+    sortDirection: query.sortDirection,
+  });
+
   return useQuery({
-    queryKey: scenariosQueryKey,
-    queryFn: () => apiJson("/api/scenarios?page=1&pageSize=100", scenarioPageResponseSchema),
+    queryKey: [...scenariosQueryKey, query],
+    queryFn: () => apiJson(`/api/learner/scenarios?${searchParams.toString()}`, scenarioPageResponseSchema),
+  });
+}
+
+export function useAdminScenarios(query: z.infer<typeof adminScenariosSearchSchema>) {
+  const searchParams = createSearchParams({
+    page: query.page,
+    pageSize: query.pageSize,
+    search: query.search,
+    sortBy: query.sortBy,
+    sortDirection: query.sortDirection,
+  });
+
+  return useQuery({
+    queryKey: [...adminScenariosQueryKey, query],
+    queryFn: () => apiJson(`/api/admin/scenarios?${searchParams.toString()}`, adminScenarioListResponseSchema),
   });
 }
 
@@ -311,9 +404,22 @@ export function useScenario(scenarioId?: string) {
 }
 
 export function useHistory() {
+  return useHistoryList({ page: 1, pageSize: 100, sortBy: "startedAt", sortDirection: "desc" });
+}
+
+export function useHistoryList(query: z.infer<typeof historyListSearchSchema>) {
+  const searchParams = createSearchParams({
+    page: query.page,
+    pageSize: query.pageSize,
+    search: query.search,
+    sessionType: query.sessionType,
+    sortBy: query.sortBy,
+    sortDirection: query.sortDirection,
+  });
+
   return useQuery({
-    queryKey: historyQueryKey,
-    queryFn: () => apiJson("/api/history?page=1&pageSize=100", historyListResponseSchema),
+    queryKey: [...historyQueryKey, query],
+    queryFn: () => apiJson(`/api/history?${searchParams.toString()}`, historyListResponseSchema),
   });
 }
 
@@ -325,14 +431,27 @@ export function useSessionDetail(sessionId: string) {
 }
 
 export function useKnowledgeItems(source?: "admin" | "auto_generated") {
-  const searchParams = new URLSearchParams({ page: "1", pageSize: "100" });
+  return useKnowledgeItemsList({
+    page: 1,
+    pageSize: 100,
+    sortBy: "updatedAt",
+    sortDirection: "desc",
+    source: source ?? "all",
+  });
+}
 
-  if (source) {
-    searchParams.set("source", source);
-  }
+export function useKnowledgeItemsList(query: z.infer<typeof adminKnowledgeItemsSearchSchema>) {
+  const searchParams = createSearchParams({
+    page: query.page,
+    pageSize: query.pageSize,
+    search: query.search,
+    sortBy: query.sortBy,
+    sortDirection: query.sortDirection,
+    source: query.source === "all" ? undefined : query.source,
+  });
 
   return useQuery({
-    queryKey: [...knowledgeItemsQueryKey, source ?? "all"],
+    queryKey: [...knowledgeItemsQueryKey, query],
     queryFn: () => apiJson(`/api/admin/knowledge-items?${searchParams.toString()}`, knowledgeItemListResponseSchema),
   });
 }

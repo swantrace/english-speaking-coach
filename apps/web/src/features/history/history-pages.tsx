@@ -1,19 +1,76 @@
-import { Button } from "@english-coach/ui";
-import { Link, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { Button, Input } from "@english-coach/ui";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   formatTimestamp,
   humanizeLabel,
   sessionToneMap,
-  useHistory,
+  useHistoryList,
   useSessionDetail,
   useSessionLauncher,
 } from "../../lib/app-data";
 import { AuthGate, Card, LoadingPanel, PageIntro, PageState } from "../../lib/app-shell";
 
+function useHistoryListQueryState() {
+  const currentSearch = useSearch({ from: "/history/" });
+  const navigate = useNavigate({ from: "/history/" });
+  const [searchInput, setSearchInput] = useState(currentSearch.search ?? "");
+
+  useEffect(() => {
+    setSearchInput(currentSearch.search ?? "");
+  }, [currentSearch.search]);
+
+  useEffect(() => {
+    const nextSearch = searchInput.trim() || undefined;
+
+    if (nextSearch === currentSearch.search) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void navigate({
+        replace: true,
+        search: (previous) => ({ ...previous, page: 1, search: nextSearch }),
+        to: "/history",
+      });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [currentSearch.search, navigate, searchInput]);
+
+  return {
+    ...currentSearch,
+    query: {
+      page: currentSearch.page,
+      pageSize: currentSearch.pageSize,
+      search: currentSearch.search,
+      sessionType: currentSearch.sessionType,
+      sortBy: currentSearch.sortBy,
+      sortDirection: currentSearch.sortDirection,
+    },
+    searchInput,
+    setPage: (page: number) => void navigate({ search: (previous) => ({ ...previous, page }), to: "/history" }),
+    setPageSize: (pageSize: number) =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, pageSize }), to: "/history" }),
+    setSearchInput,
+    setSessionType: (sessionType: "role-play" | "free-form" | undefined) =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, sessionType }), to: "/history" }),
+    setSortBy: (sortBy: "startedAt" | "endedAt" | "title") =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, sortBy }), to: "/history" }),
+    setSortDirection: (sortDirection: "asc" | "desc") =>
+      void navigate({ search: (previous) => ({ ...previous, page: 1, sortDirection }), to: "/history" }),
+  };
+}
+
 export function HistoryListPage() {
-  const history = useHistory();
+  const queryState = useHistoryListQueryState();
+  const history = useHistoryList(queryState.query);
+  const canGoBack = queryState.page > 1;
+  const totalPages = history.data?.totalPages ?? 0;
+  const canGoForward = totalPages === 0 ? false : queryState.page < totalPages;
 
   return (
     <AuthGate>
@@ -23,6 +80,78 @@ export function HistoryListPage() {
           description="Only ended sessions appear here. Role-play stays review-only. Free-form sessions can be launched again from the detail page when their context is available."
           title="Review what you practised, what the agent modelled, and where your errors cluster."
         />
+
+        <Card className="grid gap-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_10rem]">
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Search history</span>
+              <Input
+                aria-label="Search session history"
+                className="border-white/10 bg-slate-950/60 text-slate-50"
+                onChange={(event) => queryState.setSearchInput(event.target.value)}
+                placeholder="Search title or review"
+                value={queryState.searchInput}
+              />
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Mode</span>
+              <select
+                aria-label="Filter history by mode"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) =>
+                  queryState.setSessionType(
+                    event.target.value ? (event.target.value as typeof queryState.sessionType) : undefined,
+                  )
+                }
+                value={queryState.sessionType ?? ""}
+              >
+                <option value="">All modes</option>
+                <option value="role-play">Role-play</option>
+                <option value="free-form">Free-form</option>
+              </select>
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Sort by</span>
+              <select
+                aria-label="Sort history by"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) => queryState.setSortBy(event.target.value as typeof queryState.sortBy)}
+                value={queryState.sortBy}
+              >
+                <option value="startedAt">Started at</option>
+                <option value="endedAt">Ended at</option>
+                <option value="title">Title</option>
+              </select>
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Direction</span>
+              <select
+                aria-label="History sort direction"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) => queryState.setSortDirection(event.target.value as typeof queryState.sortDirection)}
+                value={queryState.sortDirection}
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+            <div className="grid gap-2 text-sm text-slate-300">
+              <span>Page size</span>
+              <select
+                aria-label="History page size"
+                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                onChange={(event) => queryState.setPageSize(Number(event.target.value))}
+                value={String(queryState.pageSize)}
+              >
+                {[10, 20, 50].map((size) => (
+                  <option key={size} value={size}>
+                    {size} per page
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </Card>
 
         {history.isPending ? <LoadingPanel label="Loading session history..." /> : null}
         {history.error ? (
@@ -70,6 +199,22 @@ export function HistoryListPage() {
                 </div>
               </Card>
             ))}
+          </div>
+        ) : null}
+
+        {history.data?.items.length ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
+            <span>
+              Page {queryState.page} of {Math.max(totalPages, 1)} · {history.data.total} sessions
+            </span>
+            <div className="flex items-center gap-3">
+              <Button disabled={!canGoBack} onClick={() => queryState.setPage(queryState.page - 1)} variant="outline">
+                Previous
+              </Button>
+              <Button disabled={!canGoForward} onClick={() => queryState.setPage(queryState.page + 1)}>
+                Next
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

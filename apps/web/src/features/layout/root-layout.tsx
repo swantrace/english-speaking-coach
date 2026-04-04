@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
 import {
+  adminScenariosQueryKey,
   getAuthenticatedHomePath,
   historyQueryKey,
   isAdmin,
@@ -112,6 +113,7 @@ export function RootLayout() {
                           await queryClient.invalidateQueries({ queryKey: viewerQueryKey });
                           await queryClient.invalidateQueries({ queryKey: historyQueryKey });
                           await queryClient.invalidateQueries({ queryKey: scenariosQueryKey });
+                          await queryClient.invalidateQueries({ queryKey: adminScenariosQueryKey });
                         })
                         .finally(() => {
                           setSignOutState("idle");

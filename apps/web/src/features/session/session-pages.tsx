@@ -418,7 +418,11 @@ function SessionExperience({
     resetGoalProgress(roomName);
     resetObservations(roomName);
     startTransition(() => {
-      void navigate({ replace: true, to: "/history" });
+      void navigate({
+        replace: true,
+        search: { page: 1, pageSize: 10, sortBy: "startedAt", sortDirection: "desc" },
+        to: "/history",
+      });
     });
   }, [navigate, roomName, session.connectionState]);
 
