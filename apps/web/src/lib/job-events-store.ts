@@ -49,6 +49,7 @@ interface CreateJobEventsStoreOptions<TSubmissionItem, TSubmissionResult, TJobEv
 
 export interface JobEventsStore<TSubmissionItem, TSubmissionResult, TJobEvent extends { jobId: string }> {
   connect: () => void;
+  connectToEventsUrl: (eventsUrl: string) => void;
   disconnect: () => void;
   getSnapshot: () => JobEventsStoreState<TJobEvent, TSubmissionResult>;
   submit: (items: TSubmissionItem[]) => Promise<{
@@ -220,6 +221,15 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
     connectToUrl(state.eventsUrl);
   };
 
+  const connectToEventsUrl = (eventsUrl: string) => {
+    const nextUrl =
+      eventsUrl.startsWith("http://") || eventsUrl.startsWith("https://")
+        ? eventsUrl
+        : joinApiUrl(options.apiBaseUrl, eventsUrl);
+
+    connectToUrl(nextUrl, true);
+  };
+
   const disconnect = () => {
     if (!eventSource) {
       setState({ connectionState: "closed" });
@@ -299,6 +309,7 @@ export function createJobEventsStore<TSubmissionItem, TSubmissionResult, TJobEve
 
   return {
     connect,
+    connectToEventsUrl,
     disconnect,
     getSnapshot: () => state,
     submit,

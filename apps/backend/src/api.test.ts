@@ -657,6 +657,37 @@ describe("backend phase 2 integration", () => {
       userId: admin.userId,
     });
 
+    const knowledgeSubmissionHistoryResponse = await app.request(
+      "http://localhost/api/admin/knowledge-items/generate/submissions?limit=5&jobsPerSubmission=3",
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+      },
+    );
+
+    expect(knowledgeSubmissionHistoryResponse.status).toBe(200);
+    expect(await knowledgeSubmissionHistoryResponse.json()).toMatchObject({
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          eventsUrl: expect.stringContaining(generateKnowledgeBody.submissionId),
+          id: generateKnowledgeBody.submissionId,
+          jobs: expect.arrayContaining([
+            expect.objectContaining({
+              jobId: queuedKnowledgeJobId,
+              status: "completed",
+              submissionId: generateKnowledgeBody.submissionId,
+            }),
+          ]),
+          summary: expect.objectContaining({
+            completed: 1,
+            totalJobs: 1,
+          }),
+          totalCount: 3,
+        }),
+      ]),
+    });
+
     const listKnowledgeItemsResponse = await app.request(
       "http://localhost/api/admin/knowledge-items?source=auto_generated&reviewStatus=pending_review&page=1&pageSize=5",
       {

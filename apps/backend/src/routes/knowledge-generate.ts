@@ -5,10 +5,16 @@ import {
   knowledgeGenerateDefaultEventsLimit,
   knowledgeGenerateEventsQuerySchema,
   knowledgeGenerateEventsSubscriberPrefix,
+  knowledgeGenerateHistoryQuerySchema,
+  knowledgeGenerateSubmissionHistoryResponseSchema,
   knowledgeGenerateSubmissionItemSchema,
+  knowledgeGenerateSubmissionKind,
   knowledgeGenerateSubmissionResponseSchema,
   knowledgeGenerateSubmissionTransportRequestSchema,
 } from "@english-coach/contract/knowledge-generate";
+import { db } from "@english-coach/database";
+import { submissionJobs, submissions } from "@english-coach/database/schema";
+import { desc, eq, inArray } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import {
@@ -212,5 +218,78 @@ export function registerKnowledgeGenerateRoutes(app: BackendApp) {
         ? `${knowledgeGenerateEventsSubscriberPrefix}.${submissionId}`
         : `${knowledgeGenerateEventsSubscriberPrefix}.idle`,
     });
+  });
+
+  app.get("/api/admin/knowledge-items/generate/submissions", async (context) => {
+    const parsedQuery = knowledgeGenerateHistoryQuerySchema.safeParse(context.req.query());
+
+    if (!parsedQuery.success) {
+      return context.json({ error: "Invalid submission history query parameters" }, 400);
+    }
+
+    const { jobsPerSubmission, limit } = parsedQuery.data;
+    const submissionRows = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.kind, knowledgeGenerateSubmissionKind))
+      .orderBy(desc(submissions.updatedAt))
+      .limit(limit);
+
+    if (submissionRows.length === 0) {
+      return context.json(knowledgeGenerateSubmissionHistoryResponseSchema.parse({ items: [] }));
+    }
+
+    const submissionIds = submissionRows.map((submission) => submission.id);
+    const jobRows = await db
+      .select()
+      .from(submissionJobs)
+      .where(inArray(submissionJobs.submissionId, submissionIds))
+      .orderBy(desc(submissionJobs.id));
+
+    const jobsBySubmissionId = new Map<string, typeof jobRows>();
+
+    for (const job of jobRows) {
+      const existingJobs = jobsBySubmissionId.get(job.submissionId) ?? [];
+      existingJobs.push(job);
+      jobsBySubmissionId.set(job.submissionId, existingJobs);
+    }
+
+    return context.json(
+      knowledgeGenerateSubmissionHistoryResponseSchema.parse({
+        items: submissionRows.map((submission) => {
+          const relatedJobs = jobsBySubmissionId.get(submission.id) ?? [];
+
+          return {
+            createdAt: submission.createdAt,
+            eventsUrl: createKnowledgeGenerateEventsUrl({
+              limit: knowledgeGenerateDefaultEventsLimit,
+              submissionId: submission.id,
+            }),
+            id: submission.id,
+            jobs: relatedJobs.slice(0, jobsPerSubmission).map((job) => ({
+              cursor: job.cursor,
+              error: job.error ?? undefined,
+              jobId: job.jobId,
+              message: job.message,
+              processedAt: job.processedAt ?? undefined,
+              progress: job.progress,
+              queuedAt: job.queuedAt,
+              status: job.status,
+              submissionId: job.submissionId,
+            })),
+            summary: {
+              completed: relatedJobs.filter((job) => job.status === "completed").length,
+              failed: relatedJobs.filter((job) => job.status === "failed").length,
+              queued: relatedJobs.filter((job) => job.status === "queued").length,
+              started: relatedJobs.filter((job) => job.status === "started").length,
+              totalJobs: relatedJobs.length,
+            },
+            totalCount: submission.totalCount,
+            updatedAt: submission.updatedAt,
+            userId: submission.userId ?? null,
+          };
+        }),
+      }),
+    );
   });
 }

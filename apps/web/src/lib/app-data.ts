@@ -5,6 +5,7 @@ import {
   fixednessLevels,
   historyListResponseSchema,
   historyListSortBySchema,
+  knowledgeGenerateSubmissionHistoryResponseSchema,
   knowledgeItemListResponseSchema,
   knowledgeItemListSortBySchema,
   knowledgeItemReviewStatusSchema,
@@ -194,6 +195,7 @@ export const scenariosQueryKey = ["scenarios"] as const;
 export const adminScenariosQueryKey = ["admin-scenarios"] as const;
 export const historyQueryKey = ["history"] as const;
 export const knowledgeItemsQueryKey = ["knowledge-items"] as const;
+export const knowledgeGenerateHistoryQueryKey = ["knowledge-generate-history"] as const;
 export { knowledgeItemSchema };
 
 function appendSearchParam(searchParams: URLSearchParams, key: string, value: string | number | undefined) {
@@ -499,6 +501,22 @@ export function useKnowledgeItemsList(query: z.infer<typeof adminKnowledgeItemsS
   return useQuery({
     queryKey: [...knowledgeItemsQueryKey, query],
     queryFn: () => apiJson(`/api/admin/knowledge-items?${searchParams.toString()}`, knowledgeItemListResponseSchema),
+  });
+}
+
+export function useKnowledgeGenerateHistory(limit = 8, jobsPerSubmission = 5) {
+  const searchParams = createSearchParams({
+    jobsPerSubmission,
+    limit,
+  });
+
+  return useQuery({
+    queryKey: [...knowledgeGenerateHistoryQueryKey, { jobsPerSubmission, limit }],
+    queryFn: () =>
+      apiJson(
+        `/api/admin/knowledge-items/generate/submissions?${searchParams.toString()}`,
+        knowledgeGenerateSubmissionHistoryResponseSchema,
+      ),
   });
 }
 

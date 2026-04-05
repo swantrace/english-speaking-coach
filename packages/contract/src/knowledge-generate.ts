@@ -25,6 +25,10 @@ export const knowledgeGenerateEventsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(knowledgeGenerateDefaultEventsLimit),
   submissionId: z.string().min(1).optional(),
 });
+export const knowledgeGenerateHistoryQuerySchema = z.object({
+  jobsPerSubmission: z.coerce.number().int().min(1).max(20).default(5),
+  limit: z.coerce.number().int().min(1).max(20).default(8),
+});
 
 export const knowledgeGenerateSubmissionItemSchema = z.object({
   message: z.string().min(1),
@@ -92,6 +96,29 @@ export const knowledgeGenerateSubmissionResponseSchema = createJobEventsSubmissi
   submissionId: z.string().min(1),
 });
 
+export const knowledgeGenerateSubmissionHistorySummarySchema = z.object({
+  completed: z.number().int().min(0),
+  failed: z.number().int().min(0),
+  queued: z.number().int().min(0),
+  started: z.number().int().min(0),
+  totalJobs: z.number().int().min(0),
+});
+
+export const knowledgeGenerateSubmissionHistoryItemSchema = z.object({
+  createdAt: z.string(),
+  eventsUrl: z.string(),
+  id: z.string(),
+  jobs: z.array(knowledgeGenerateJobUpdateSchema),
+  summary: knowledgeGenerateSubmissionHistorySummarySchema,
+  totalCount: z.number().int().min(0),
+  updatedAt: z.string(),
+  userId: z.string().nullable(),
+});
+
+export const knowledgeGenerateSubmissionHistoryResponseSchema = z.object({
+  items: z.array(knowledgeGenerateSubmissionHistoryItemSchema),
+});
+
 export function createKnowledgeGenerateEventsUrl({
   cursor,
   limit = knowledgeGenerateDefaultEventsLimit,
@@ -116,8 +143,13 @@ export function createKnowledgeGenerateEventsUrl({
 export type AdminKnowledgeItemCreate = z.infer<typeof adminKnowledgeItemCreateSchema>;
 export type AdminKnowledgeItemUpdate = z.infer<typeof adminKnowledgeItemUpdateSchema>;
 export type KnowledgeGenerateEventsQuery = z.infer<typeof knowledgeGenerateEventsQuerySchema>;
+export type KnowledgeGenerateHistoryQuery = z.infer<typeof knowledgeGenerateHistoryQuerySchema>;
 export type KnowledgeGenerateSubmissionBody = z.infer<typeof knowledgeGenerateSubmissionBodySchema>;
 export type KnowledgeGenerateSubmissionItem = z.infer<typeof knowledgeGenerateSubmissionItemSchema>;
+export type KnowledgeGenerateSubmissionHistoryItem = z.infer<typeof knowledgeGenerateSubmissionHistoryItemSchema>;
+export type KnowledgeGenerateSubmissionHistoryResponse = z.infer<
+  typeof knowledgeGenerateSubmissionHistoryResponseSchema
+>;
 export type KnowledgeGenerateSubmissionResult = z.infer<typeof knowledgeGenerateSubmissionResultSchema>;
 export type KnowledgeGenerateJobUpdate = z.infer<typeof knowledgeGenerateJobUpdateSchema>;
 export type KnowledgeGenerateSubmissionResponse = z.infer<typeof knowledgeGenerateSubmissionResponseSchema>;

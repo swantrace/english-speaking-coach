@@ -55,6 +55,7 @@ import {
   getJobStatusTone,
   humanizeLabel,
   knowledgeItemsQueryKey,
+  useKnowledgeGenerateHistory,
   useKnowledgeItemsList,
   useViewer,
 } from "../../lib/app-data";
@@ -337,6 +338,7 @@ export function AdminKnowledgeItemsPage() {
     source: "auto_generated",
     tab: "generate",
   });
+  const generationHistory = useKnowledgeGenerateHistory();
   const store = useKnowledgeGenerateStore();
   const [message, setMessage] = useState(
     [
@@ -732,6 +734,9 @@ export function AdminKnowledgeItemsPage() {
                   <Button onClick={() => void pendingReview.refetch()} variant="outline">
                     Refresh review queue
                   </Button>
+                  <Button onClick={() => void generationHistory.refetch()} variant="outline">
+                    Refresh submission history
+                  </Button>
                 </div>
               </Card>
 
@@ -774,6 +779,104 @@ export function AdminKnowledgeItemsPage() {
                 </div>
               </Card>
             </div>
+
+            <Card className="grid gap-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="grid gap-2">
+                  <h2 className="text-2xl text-white">Recent submissions</h2>
+                  <p className="text-sm leading-7 text-slate-300">
+                    Revisit recent knowledge-generation batches after reload and reconnect the live stream for any
+                    submission.
+                  </p>
+                </div>
+                <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                  {generationHistory.data?.items.length ?? 0} tracked
+                </span>
+              </div>
+
+              {generationHistory.error ? (
+                <PageState description={generationHistory.error.message} title="Could not load submission history" />
+              ) : (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {generationHistory.data?.items.length ? (
+                    generationHistory.data.items.map((submission) => (
+                      <div
+                        className="grid gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-5"
+                        key={submission.id}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="grid gap-1">
+                            <h3 className="text-lg text-white">Submission {ellipsize(submission.id, 18)}</h3>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                              {submission.totalCount} requested · updated {formatTimestamp(submission.updatedAt)}
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => knowledgeGenerateStore.connectToEventsUrl(submission.eventsUrl)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Reconnect stream
+                          </Button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-slate-300">
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                            {submission.summary.totalJobs} jobs
+                          </span>
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-emerald-100">
+                            {submission.summary.completed} completed
+                          </span>
+                          <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-amber-100">
+                            {submission.summary.started} started
+                          </span>
+                          <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-sky-100">
+                            {submission.summary.queued} queued
+                          </span>
+                          <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-rose-100">
+                            {submission.summary.failed} failed
+                          </span>
+                        </div>
+
+                        <div className="grid gap-3">
+                          {submission.jobs.length ? (
+                            submission.jobs.map((job) => (
+                              <div
+                                className="rounded-[18px] border border-white/10 bg-slate-950/55 p-4"
+                                key={job.jobId}
+                              >
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="max-w-[72%] truncate text-sm text-slate-100">{job.message}</span>
+                                  <span
+                                    className={`rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] ${getJobStatusTone(job.status)}`}
+                                  >
+                                    {job.status}
+                                  </span>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between gap-4 text-xs text-slate-500">
+                                  <span>{job.progress}%</span>
+                                  <span>{formatTimestamp(job.processedAt ?? job.queuedAt)}</span>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-[18px] border border-dashed border-white/10 px-4 py-6 text-center text-sm text-slate-500">
+                              No persisted jobs for this submission yet.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[24px] border border-dashed border-white/10 px-4 py-10 text-center text-sm text-slate-500 lg:col-span-2">
+                      {generationHistory.isPending
+                        ? "Loading submission history..."
+                        : "No recent knowledge-generation submissions yet."}
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
 
             <Card className="grid gap-5">
               <div className="flex items-center justify-between gap-4">
