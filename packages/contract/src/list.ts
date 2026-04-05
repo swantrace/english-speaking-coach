@@ -105,6 +105,7 @@ export const historyListQuerySchema = pageListQuerySchema.extend({
 });
 
 export const knowledgeItemSourceSchema = z.enum(["admin", "auto_generated"]);
+export const knowledgeItemReviewStatusSchema = z.enum(["pending_review", "approved", "rejected"]);
 export const knowledgeItemSchema = z.object({
   communicativeFunction: z.enum(communicativeFunctions).nullable(),
   createdAt: z.string(),
@@ -112,15 +113,20 @@ export const knowledgeItemSchema = z.object({
   fixednessLevel: z.enum(fixednessLevels).nullable(),
   id: z.string(),
   pattern: z.string(),
+  reviewStatus: knowledgeItemReviewStatusSchema,
+  reviewedAt: z.string().nullable(),
+  reviewedByUserId: z.string().nullable(),
+  submissionId: z.string().nullable(),
   source: knowledgeItemSourceSchema,
   syntaxRole: z.enum(syntaxRoles).nullable(),
   updatedAt: z.string(),
 });
 
-export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "source"]);
+export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "reviewStatus", "source"]);
 export const knowledgeItemListQuerySchema = pageListQuerySchema.extend({
   communicativeFunction: z.enum(communicativeFunctions).optional(),
   fixednessLevel: z.enum(fixednessLevels).optional(),
+  reviewStatus: knowledgeItemReviewStatusSchema.optional(),
   search: optionalSearchTextSchema,
   sortBy: knowledgeItemListSortBySchema.default(knowledgeItemListSortBySchema.enum.updatedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
@@ -142,6 +148,7 @@ export type ScenarioListQuery = LearnerScenarioListQuery;
 export type HistorySummary = z.infer<typeof historySummarySchema>;
 export type HistoryListQuery = z.infer<typeof historyListQuerySchema>;
 export type KnowledgeItemSource = z.infer<typeof knowledgeItemSourceSchema>;
+export type KnowledgeItemReviewStatus = z.infer<typeof knowledgeItemReviewStatusSchema>;
 export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
 export type ScenarioPageResponse = z.infer<typeof scenarioPageResponseSchema>;

@@ -4,10 +4,12 @@ import { cors } from "hono/cors";
 import type { AppVariables } from "./http/context";
 import { attachRequestSession, registerAccessPolicies } from "./http/guards";
 import { authTrustedOrigins } from "./lib/auth/options";
+import { knowledgeGenerateWorker } from "./lib/queues/knowledge.generate";
 import { scenarioGenerateWorker } from "./lib/queues/scenario.generate";
 import { registerRoutes } from "./routes";
 
 migrateDatabase();
+void knowledgeGenerateWorker;
 void scenarioGenerateWorker;
 
 export const app = new Hono<{ Variables: AppVariables }>();

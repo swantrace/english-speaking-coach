@@ -110,10 +110,12 @@ function useAdminKnowledgeQueryState() {
     query: {
       page: currentSearch.page,
       pageSize: currentSearch.pageSize,
+      reviewStatus: undefined,
       search: currentSearch.search,
       sortBy: currentSearch.sortBy,
       sortDirection: currentSearch.sortDirection,
       source: currentSearch.source,
+      tab: "manage" as const,
     },
     searchInput,
     setPage: (page: number) =>
@@ -124,7 +126,7 @@ function useAdminKnowledgeQueryState() {
         to: "/admin/knowledge-items",
       }),
     setSearchInput,
-    setSortBy: (sortBy: "updatedAt" | "createdAt" | "pattern" | "source") =>
+    setSortBy: (sortBy: "updatedAt" | "createdAt" | "pattern" | "reviewStatus" | "source") =>
       void navigate({
         search: (previous) => ({ ...previous, page: 1, sortBy }),
         to: "/admin/knowledge-items",

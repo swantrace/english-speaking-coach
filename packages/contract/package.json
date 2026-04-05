@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./job-events": "./src/job-events.ts",
+    "./knowledge-generate": "./src/knowledge-generate.ts",
     "./scenario-generate": "./src/scenario-generate.ts"
   },
   "scripts": {

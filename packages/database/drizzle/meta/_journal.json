@@ -50,6 +50,13 @@
       "when": 1775352000000,
       "tag": "0006_scenario_review_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1775355600000,
+      "tag": "0007_knowledge_review_pipeline",
+      "breakpoints": true
     }
   ]
 }

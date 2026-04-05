@@ -7,6 +7,7 @@ import {
   historyListSortBySchema,
   knowledgeItemListResponseSchema,
   knowledgeItemListSortBySchema,
+  knowledgeItemReviewStatusSchema,
   knowledgeItemSchema,
   rewrittenTranscriptTurnSchema,
   type Scenario,
@@ -31,7 +32,6 @@ import { startTransition } from "react";
 import { z } from "zod";
 import { apiBaseUrl } from "./api-base-url";
 import { resetGoalProgress, resetObservations } from "./livekit-packet-stores";
-import type { ScenarioGenerateSubmissionItem } from "./scenario-generate-store";
 import { saveSessionLaunchSnapshot } from "./session-launch-store";
 
 export const roleToneMap = {
@@ -116,10 +116,12 @@ export const adminScenariosSearchSchema = z.object({
 export const adminKnowledgeItemsSearchSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  reviewStatus: knowledgeItemReviewStatusSchema.optional(),
   search: optionalRouteSearchSchema,
   sortBy: knowledgeItemListSortBySchema.default("updatedAt"),
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
   source: z.enum(["all", "admin", "auto_generated"]).default("all"),
+  tab: z.enum(["manage", "generate"]).default("manage"),
 });
 
 export const freeFormSearchSchema = z.object({
@@ -313,7 +315,7 @@ export function createScenarioContextDocument(scenario: Scenario) {
     .join("\n")}`;
 }
 
-export function createSubmission(message: string, shouldFail: boolean): ScenarioGenerateSubmissionItem[] {
+export function createSubmission(message: string, shouldFail: boolean) {
   return message
     .split("\n")
     .map((line) => line.trim())
@@ -475,9 +477,11 @@ export function useKnowledgeItems(source?: "admin" | "auto_generated") {
   return useKnowledgeItemsList({
     page: 1,
     pageSize: 100,
+    reviewStatus: undefined,
     sortBy: "updatedAt",
     sortDirection: "desc",
     source: source ?? "all",
+    tab: "manage",
   });
 }
 
@@ -485,6 +489,7 @@ export function useKnowledgeItemsList(query: z.infer<typeof adminKnowledgeItemsS
   const searchParams = createSearchParams({
     page: query.page,
     pageSize: query.pageSize,
+    reviewStatus: query.reviewStatus,
     search: query.search,
     sortBy: query.sortBy,
     sortDirection: query.sortDirection,

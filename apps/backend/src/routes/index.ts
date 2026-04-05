@@ -3,6 +3,7 @@ import { registerAdminRoutes } from "./admin";
 import { registerAuthRoutes } from "./auth";
 import { registerHistoryRoutes } from "./history";
 import { registerInternalAgentRoutes } from "./internal-agent";
+import { registerKnowledgeGenerateRoutes } from "./knowledge-generate";
 import { registerScenarioGenerateRoutes } from "./scenario-generate";
 import { registerScenarioRoutes } from "./scenarios";
 import { registerSessionRoutes } from "./session";
@@ -13,6 +14,7 @@ export function registerRoutes(app: BackendApp) {
   registerSystemRoutes(app);
   registerInternalAgentRoutes(app);
   registerSessionRoutes(app);
+  registerKnowledgeGenerateRoutes(app);
   registerScenarioGenerateRoutes(app);
   registerScenarioRoutes(app);
   registerAdminRoutes(app);

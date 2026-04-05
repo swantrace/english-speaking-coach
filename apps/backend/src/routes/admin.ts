@@ -2,32 +2,24 @@ import {
   communicativeFunctions,
   fixednessLevels,
   knowledgeItemListQuerySchema,
-  knowledgeItemSourceSchema,
+  knowledgeItemReviewStatusSchema,
   syntaxRoles,
 } from "@english-coach/contract";
+import {
+  adminKnowledgeItemCreateSchema,
+  adminKnowledgeItemUpdateSchema,
+} from "@english-coach/contract/knowledge-generate";
 import { db } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
 import { and, asc, count, desc, eq, like, or } from "drizzle-orm";
-import { z } from "zod";
 import type { BackendApp } from "../http/context";
 import { parseJsonBody } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
 
-const adminKnowledgeItemCreateSchema = z.object({
-  communicativeFunction: z.enum(communicativeFunctions).nullable().optional(),
-  example: z.string().trim().min(1).nullable().optional(),
-  fixednessLevel: z.enum(fixednessLevels).nullable().optional(),
-  pattern: z.string().trim().min(1),
-  source: knowledgeItemSourceSchema.default("admin"),
-  syntaxRole: z.enum(syntaxRoles).nullable().optional(),
-});
-const adminKnowledgeItemPatchSchema = adminKnowledgeItemCreateSchema
-  .partial()
-  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
-
 const knowledgeItemSortColumnMap = {
   createdAt: knowledgeItems.createdAt,
   pattern: knowledgeItems.pattern,
+  reviewStatus: knowledgeItems.reviewStatus,
   source: knowledgeItems.source,
   updatedAt: knowledgeItems.updatedAt,
 } as const;
@@ -50,11 +42,22 @@ export function registerAdminRoutes(app: BackendApp) {
       return context.json({ error: "Invalid knowledge item query parameters" }, 400);
     }
 
-    const { communicativeFunction, fixednessLevel, page, pageSize, search, sortBy, sortDirection, source, syntaxRole } =
-      parsedQuery.data;
+    const {
+      communicativeFunction,
+      fixednessLevel,
+      page,
+      pageSize,
+      reviewStatus,
+      search,
+      sortBy,
+      sortDirection,
+      source,
+      syntaxRole,
+    } = parsedQuery.data;
     const offset = getPageOffset(page, pageSize);
     const conditions = [
       source ? eq(knowledgeItems.source, source) : null,
+      reviewStatus ? eq(knowledgeItems.reviewStatus, reviewStatus) : null,
       syntaxRole ? eq(knowledgeItems.syntaxRole, syntaxRole) : null,
       fixednessLevel ? eq(knowledgeItems.fixednessLevel, fixednessLevel) : null,
       communicativeFunction ? eq(knowledgeItems.communicativeFunction, communicativeFunction) : null,
@@ -90,7 +93,14 @@ export function registerAdminRoutes(app: BackendApp) {
       fixednessLevel: parsedBody.data.fixednessLevel ?? null,
       id: knowledgeItemId,
       pattern: parsedBody.data.pattern,
+      reviewStatus: parsedBody.data.reviewStatus,
+      reviewedAt: parsedBody.data.reviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review ? null : now,
+      reviewedByUserId:
+        parsedBody.data.reviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review
+          ? null
+          : (context.get("user")?.id ?? null),
       source: parsedBody.data.source,
+      submissionId: null,
       syntaxRole: parsedBody.data.syntaxRole ?? null,
       updatedAt: now,
     });
@@ -101,7 +111,7 @@ export function registerAdminRoutes(app: BackendApp) {
   });
 
   app.patch("/api/admin/knowledge-items/:id", async (context) => {
-    const parsedBody = await parseJsonBody(context, adminKnowledgeItemPatchSchema);
+    const parsedBody = await parseJsonBody(context, adminKnowledgeItemUpdateSchema);
 
     if (!parsedBody.success) {
       return parsedBody.response;
@@ -118,6 +128,9 @@ export function registerAdminRoutes(app: BackendApp) {
       return context.json({ error: "Knowledge item not found" }, 404);
     }
 
+    const nextReviewStatus = parsedBody.data.reviewStatus ?? existingRecord.reviewStatus;
+    const now = new Date().toISOString();
+
     await db
       .update(knowledgeItems)
       .set({
@@ -131,7 +144,13 @@ export function registerAdminRoutes(app: BackendApp) {
         pattern: parsedBody.data.pattern ?? existingRecord.pattern,
         source: parsedBody.data.source ?? existingRecord.source,
         syntaxRole: parsedBody.data.syntaxRole === undefined ? existingRecord.syntaxRole : parsedBody.data.syntaxRole,
-        updatedAt: new Date().toISOString(),
+        reviewStatus: nextReviewStatus,
+        reviewedAt: nextReviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review ? null : now,
+        reviewedByUserId:
+          nextReviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review
+            ? null
+            : (context.get("user")?.id ?? null),
+        updatedAt: now,
       })
       .where(eq(knowledgeItems.id, knowledgeItemId));
 

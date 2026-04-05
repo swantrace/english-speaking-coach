@@ -113,7 +113,11 @@ async function resolveKnowledgeItemId(result: LingAnalysisResult["knowledgeItems
     fixednessLevel: result.fixednessLevel,
     id: knowledgeItemId,
     pattern: result.pattern,
+    reviewStatus: "pending_review",
+    reviewedAt: null,
+    reviewedByUserId: null,
     source: "auto_generated",
+    submissionId: null,
     syntaxRole: result.syntaxRole,
     updatedAt: now,
   });

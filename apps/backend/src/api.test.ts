@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { transcriptAnnotationUpsertRequestSchema } from "@english-coach/contract";
 import {
+  type KnowledgeGenerateJobUpdate,
+  type KnowledgeGenerateSubmissionResponse,
+  knowledgeGenerateSubmitPath,
+} from "@english-coach/contract/knowledge-generate";
+import {
   type ScenarioGenerateJobUpdate,
   type ScenarioGenerateSubmissionResponse,
   scenarioGenerateSubmitPath,
@@ -19,6 +24,12 @@ import {
 import { desc, eq } from "drizzle-orm";
 import { TokenVerifier } from "livekit-server-sdk";
 import { app } from "./api";
+import {
+  getKnowledgeGenerateSnapshots,
+  knowledgeGenerateQueue,
+  knowledgeGenerateWorker,
+  setKnowledgeGeneratorForTests,
+} from "./lib/queues/knowledge.generate";
 import {
   getScenarioGenerateSnapshots,
   publishScenarioGenerateProgress,
@@ -83,6 +94,31 @@ async function waitForSnapshot(
   }
 
   throw new Error(`Timed out waiting for scenario snapshot for submission ${submissionId}`);
+}
+
+async function waitForKnowledgeSnapshot(
+  submissionId: string,
+  predicate: (message: KnowledgeGenerateJobUpdate) => boolean,
+  timeoutMs = 30000,
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const snapshots = await getKnowledgeGenerateSnapshots({
+      limit: 10,
+      submissionId,
+    });
+
+    const match = snapshots.find(predicate);
+
+    if (match) {
+      return match;
+    }
+
+    await Bun.sleep(250);
+  }
+
+  throw new Error(`Timed out waiting for knowledge snapshot for submission ${submissionId}`);
 }
 
 async function signUpAndCreateSession(label: string) {
@@ -174,6 +210,12 @@ describe("backend phase 2 integration", () => {
 
   beforeAll(async () => {
     process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR = "1";
+    process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR = "1";
+    await knowledgeGenerateQueue.waitUntilReady();
+    await knowledgeGenerateWorker.waitUntilReady();
+    await knowledgeGenerateQueue.drain();
+    await knowledgeGenerateQueue.clean(0, 1000, "completed");
+    await knowledgeGenerateQueue.clean(0, 1000, "failed");
     await scenarioGenerateQueue.waitUntilReady();
     await scenarioGenerateWorker.waitUntilReady();
     await scenarioGenerateQueue.drain();
@@ -182,9 +224,20 @@ describe("backend phase 2 integration", () => {
   });
 
   beforeEach(async () => {
+    await knowledgeGenerateQueue.drain();
+    await knowledgeGenerateQueue.clean(0, 1000, "completed");
+    await knowledgeGenerateQueue.clean(0, 1000, "failed");
     await scenarioGenerateQueue.drain();
     await scenarioGenerateQueue.clean(0, 1000, "completed");
     await scenarioGenerateQueue.clean(0, 1000, "failed");
+
+    setKnowledgeGeneratorForTests(async (prompt) => ({
+      communicativeFunction: "give_or_seek_information",
+      example: `Could you explain ${prompt}?`,
+      fixednessLevel: "restricted_collocation",
+      pattern: `Could you explain <np> ${prompt}`,
+      syntaxRole: "clause_pattern",
+    }));
 
     setScenarioGeneratorForTests(async (prompt) => ({
       characters: [
@@ -216,6 +269,8 @@ describe("backend phase 2 integration", () => {
   });
 
   afterAll(() => {
+    delete process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR;
+    setKnowledgeGeneratorForTests(null);
     delete process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR;
     setScenarioGeneratorForTests(null);
     subscriber.disconnect();
@@ -470,7 +525,7 @@ describe("backend phase 2 integration", () => {
     expect(deletedScenarioResponse.status).toBe(404);
   });
 
-  test("supports admin knowledge item CRUD, history detail reads, session token minting, and SSE timeout", async () => {
+  test("supports admin knowledge item CRUD, knowledge generation review flows, history detail reads, session token minting, and SSE timeout", async () => {
     const student = await signUpAndCreateSession("student-history");
     const admin = await signUpAndCreateSession("admin-history");
 
@@ -482,6 +537,7 @@ describe("backend phase 2 integration", () => {
     const cursorScenarioA = await createScenarioRecord(cursorScenarioPrefix);
     const cursorScenarioB = await createScenarioRecord(cursorScenarioPrefix);
     const knowledgeItemPattern = `I'd like <np> ${Date.now()}`;
+    const knowledgeGeneratePrompt = `support escalation phrases ${Date.now()}`;
 
     const createKnowledgeItemResponse = await app.request("http://localhost/api/admin/knowledge-items", {
       body: JSON.stringify({
@@ -500,8 +556,15 @@ describe("backend phase 2 integration", () => {
     });
 
     expect(createKnowledgeItemResponse.status).toBe(201);
-    const createdKnowledgeItem = (await createKnowledgeItemResponse.json()) as { id: string; pattern: string };
+    const createdKnowledgeItem = (await createKnowledgeItemResponse.json()) as {
+      id: string;
+      pattern: string;
+      reviewStatus: string;
+      source: string;
+    };
     expect(createdKnowledgeItem.pattern).toBe(knowledgeItemPattern);
+    expect(createdKnowledgeItem.reviewStatus).toBe("approved");
+    expect(createdKnowledgeItem.source).toBe("admin");
 
     const secondaryKnowledgeItemResponse = await app.request("http://localhost/api/admin/knowledge-items", {
       body: JSON.stringify({
@@ -511,6 +574,7 @@ describe("backend phase 2 integration", () => {
         pattern: `Thank you for <np> ${Date.now()}`,
         source: "admin",
         syntaxRole: "clause_pattern",
+        reviewStatus: "approved",
       }),
       headers: {
         Cookie: admin.cookie,
@@ -525,7 +589,7 @@ describe("backend phase 2 integration", () => {
       `http://localhost/api/admin/knowledge-items/${createdKnowledgeItem.id}`,
       {
         body: JSON.stringify({
-          source: "auto_generated",
+          reviewStatus: "pending_review",
         }),
         headers: {
           Cookie: admin.cookie,
@@ -536,9 +600,65 @@ describe("backend phase 2 integration", () => {
     );
 
     expect(patchKnowledgeItemResponse.status).toBe(200);
+    expect(await patchKnowledgeItemResponse.json()).toMatchObject({
+      id: createdKnowledgeItem.id,
+      reviewStatus: "pending_review",
+      source: "admin",
+    });
+
+    const generateKnowledgeResponse = await app.request(`http://localhost${knowledgeGenerateSubmitPath}`, {
+      body: JSON.stringify({
+        items: [
+          { message: knowledgeGeneratePrompt, queuedAt: new Date().toISOString() },
+          { message: "" },
+          { message: 123 },
+        ],
+      }),
+      headers: {
+        Cookie: admin.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(generateKnowledgeResponse.status).toBe(200);
+
+    const generateKnowledgeBody = (await generateKnowledgeResponse.json()) as KnowledgeGenerateSubmissionResponse;
+
+    expect(generateKnowledgeBody.summary).toEqual({
+      enqueueFailed: 0,
+      invalid: 2,
+      queued: 1,
+      total: 3,
+    });
+
+    const queuedKnowledgeJobId = generateKnowledgeBody.results[0]?.jobId;
+
+    if (!queuedKnowledgeJobId) {
+      throw new Error("Expected queued knowledge generation job id");
+    }
+
+    const completedKnowledgeSnapshot = await waitForKnowledgeSnapshot(
+      generateKnowledgeBody.submissionId,
+      (snapshot) => snapshot.jobId === queuedKnowledgeJobId && snapshot.status === "completed",
+    );
+
+    expect(completedKnowledgeSnapshot.status).toBe("completed");
+
+    const [knowledgeSubmissionRecord] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, generateKnowledgeBody.submissionId))
+      .limit(1);
+
+    expect(knowledgeSubmissionRecord).toMatchObject({
+      id: generateKnowledgeBody.submissionId,
+      kind: "knowledge.generate",
+      userId: admin.userId,
+    });
 
     const listKnowledgeItemsResponse = await app.request(
-      "http://localhost/api/admin/knowledge-items?source=auto_generated&limit=1&offset=0",
+      "http://localhost/api/admin/knowledge-items?source=auto_generated&reviewStatus=pending_review&page=1&pageSize=5",
       {
         headers: {
           Cookie: admin.cookie,
@@ -547,23 +667,30 @@ describe("backend phase 2 integration", () => {
     );
 
     expect(listKnowledgeItemsResponse.status).toBe(200);
-    expect(listKnowledgeItemsResponse.json()).resolves.toMatchObject({
-      items: [
-        expect.objectContaining({
-          id: createdKnowledgeItem.id,
-          source: "auto_generated",
-        }),
-      ],
-      limit: 1,
-      offset: 0,
-      page: 1,
-      pageSize: 1,
-      total: expect.any(Number),
-      totalPages: expect.any(Number),
+    const listedKnowledgeItemsBody = (await listKnowledgeItemsResponse.json()) as {
+      items: Array<{
+        id: string;
+        pattern: string;
+        reviewStatus: string;
+        source: string;
+        submissionId: string | null;
+      }>;
+      total: number;
+    };
+
+    const generatedKnowledgeItem = listedKnowledgeItemsBody.items.find(
+      (item) => item.submissionId === generateKnowledgeBody.submissionId,
+    );
+
+    expect(generatedKnowledgeItem).toBeTruthy();
+    expect(generatedKnowledgeItem).toMatchObject({
+      reviewStatus: "pending_review",
+      source: "auto_generated",
+      submissionId: generateKnowledgeBody.submissionId,
     });
 
     const filteredKnowledgeItemsResponse = await app.request(
-      `http://localhost/api/admin/knowledge-items?source=auto_generated&search=${encodeURIComponent(knowledgeItemPattern)}&sortBy=pattern&sortDirection=asc&page=1&pageSize=5`,
+      `http://localhost/api/admin/knowledge-items?source=auto_generated&reviewStatus=pending_review&search=${encodeURIComponent(knowledgeGeneratePrompt)}&sortBy=pattern&sortDirection=asc&page=1&pageSize=5`,
       {
         headers: {
           Cookie: admin.cookie,
@@ -573,7 +700,7 @@ describe("backend phase 2 integration", () => {
 
     expect(filteredKnowledgeItemsResponse.status).toBe(200);
     const filteredKnowledgeItemsBody = (await filteredKnowledgeItemsResponse.json()) as {
-      items: Array<{ id: string; pattern: string; source: string }>;
+      items: Array<{ id: string; pattern: string; reviewStatus: string; source: string }>;
       page: number;
       pageSize: number;
     };
@@ -583,12 +710,33 @@ describe("backend phase 2 integration", () => {
     expect(filteredKnowledgeItemsBody.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: createdKnowledgeItem.id,
-          pattern: knowledgeItemPattern,
+          id: generatedKnowledgeItem?.id,
+          pattern: generatedKnowledgeItem?.pattern,
+          reviewStatus: "pending_review",
           source: "auto_generated",
         }),
       ]),
     );
+
+    const approveGeneratedKnowledgeItemResponse = await app.request(
+      `http://localhost/api/admin/knowledge-items/${generatedKnowledgeItem?.id}`,
+      {
+        body: JSON.stringify({ reviewStatus: "approved" }),
+        headers: {
+          Cookie: admin.cookie,
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      },
+    );
+
+    expect(approveGeneratedKnowledgeItemResponse.status).toBe(200);
+    expect(await approveGeneratedKnowledgeItemResponse.json()).toMatchObject({
+      id: generatedKnowledgeItem?.id,
+      reviewStatus: "approved",
+      source: "auto_generated",
+      submissionId: generateKnowledgeBody.submissionId,
+    });
 
     const scenarioListResponse = await app.request("http://localhost/api/learner/scenarios?limit=25&offset=0", {
       headers: {

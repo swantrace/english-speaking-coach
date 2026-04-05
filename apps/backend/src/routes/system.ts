@@ -1,5 +1,6 @@
 import { databasePath } from "@english-coach/database";
 import type { BackendApp } from "../http/context";
+import { knowledgeGenerateQueueName } from "../lib/queues/knowledge.generate";
 import { scenarioGenerateQueueName } from "../lib/queues/scenario.generate";
 
 export function registerSystemRoutes(app: BackendApp) {
@@ -7,7 +8,7 @@ export function registerSystemRoutes(app: BackendApp) {
     return context.json({
       auth: "ok",
       databasePath,
-      queue: scenarioGenerateQueueName,
+      queues: [scenarioGenerateQueueName, knowledgeGenerateQueueName],
       service: "backend-api",
       status: "ok",
     });

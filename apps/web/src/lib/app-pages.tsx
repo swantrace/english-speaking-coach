@@ -1,4 +1,4 @@
-export { AdminKnowledgeItemsPage } from "../features/admin/admin-pages";
+export { AdminKnowledgeItemsPage } from "../features/admin/admin-knowledge-page";
 export { AdminScenarioPage } from "../features/admin/admin-scenario-page";
 export {
   FreeFormPage,
