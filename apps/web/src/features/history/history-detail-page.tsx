@@ -310,7 +310,9 @@ export function HistoryDetailPage() {
           {activeTab === "transcript" || activeTab === "rewritten" ? (
             <Card className="grid gap-4">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl text-white">{activeTab === "rewritten" ? "Rewritten transcript" : "Transcript"}</h2>
+                <h2 className="text-2xl text-white">
+                  {activeTab === "rewritten" ? "Rewritten transcript" : "Transcript"}
+                </h2>
                 <div className="flex flex-wrap items-center gap-3">
                   {historySearch.turn !== undefined ? (
                     <Button

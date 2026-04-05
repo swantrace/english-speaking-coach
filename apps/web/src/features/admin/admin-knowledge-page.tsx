@@ -1,12 +1,7 @@
 import { type KnowledgeItem, type KnowledgeItemReviewStatus, knowledgeItemSchema } from "@english-coach/contract";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@english-coach/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@english-coach/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   apiJson,
   apiVoid,
@@ -17,10 +12,8 @@ import {
   useKnowledgeItemsList,
   useViewer,
 } from "../../lib/app-data";
-import { AdminGate, PageIntro } from "../../lib/app-shell";
+import { AdminGate, LoadingPanel, PageIntro } from "../../lib/app-shell";
 import { knowledgeGenerateStore, useKnowledgeGenerateStore } from "../../lib/knowledge-generate-store";
-import { AdminKnowledgeGenerateTab } from "./admin-knowledge-generate-tab";
-import { AdminKnowledgeManageTab } from "./admin-knowledge-manage-tab";
 import { useAdminKnowledgeQueryState } from "./admin-knowledge-query-state";
 import {
   createDraftFromKnowledgeItem,
@@ -28,8 +21,23 @@ import {
   type KnowledgeItemFormDraft,
   parseKnowledgeItemDraft,
 } from "./admin-knowledge-types";
-import { DeleteKnowledgeItemDialog } from "./delete-knowledge-item-dialog";
-import { KnowledgeItemFormDialog } from "./knowledge-item-form-dialog";
+
+const AdminKnowledgeGenerateTab = lazy(() =>
+  import("./admin-knowledge-generate-tab").then((module) => ({ default: module.AdminKnowledgeGenerateTab })),
+);
+const AdminKnowledgeManageTab = lazy(() =>
+  import("./admin-knowledge-manage-tab").then((module) => ({ default: module.AdminKnowledgeManageTab })),
+);
+const DeleteKnowledgeItemDialog = lazy(() =>
+  import("./delete-knowledge-item-dialog").then((module) => ({ default: module.DeleteKnowledgeItemDialog })),
+);
+const KnowledgeItemFormDialog = lazy(() =>
+  import("./knowledge-item-form-dialog").then((module) => ({ default: module.KnowledgeItemFormDialog })),
+);
+
+function AdminKnowledgeFallback() {
+  return <LoadingPanel label="Loading admin tools..." />;
+}
 
 export function AdminKnowledgeItemsPage() {
   const viewer = useViewer();
@@ -200,72 +208,84 @@ export function AdminKnowledgeItemsPage() {
           </TabsList>
 
           <TabsContent className="grid gap-6" value="manage">
-            <AdminKnowledgeManageTab
-              isDeletePending={deleteKnowledgeItem.isPending}
-              isReviewStatusPending={updateKnowledgeItemReviewStatus.isPending}
-              isSavePending={saveKnowledgeItem.isPending}
-              items={items}
-              onDelete={setKnowledgeItemToDelete}
-              onOpenCreate={openCreateDialog}
-              onOpenEdit={openEditDialog}
-              onReviewStatusChange={(knowledgeItemId, reviewStatus) =>
-                void updateKnowledgeItemReviewStatus.mutateAsync({ knowledgeItemId, reviewStatus })
-              }
-              queryState={queryState}
-            />
+            <Suspense fallback={<AdminKnowledgeFallback />}>
+              <AdminKnowledgeManageTab
+                isDeletePending={deleteKnowledgeItem.isPending}
+                isReviewStatusPending={updateKnowledgeItemReviewStatus.isPending}
+                isSavePending={saveKnowledgeItem.isPending}
+                items={items}
+                onDelete={setKnowledgeItemToDelete}
+                onOpenCreate={openCreateDialog}
+                onOpenEdit={openEditDialog}
+                onReviewStatusChange={(knowledgeItemId, reviewStatus) =>
+                  void updateKnowledgeItemReviewStatus.mutateAsync({ knowledgeItemId, reviewStatus })
+                }
+                queryState={queryState}
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent className="grid gap-6" value="generate">
-            <AdminKnowledgeGenerateTab
-              batchCount={batchItems.length}
-              generationHistory={generationHistory}
-              message={message}
-              onApprovePendingReview={(item) =>
-                void updateKnowledgeItemReviewStatus.mutateAsync({ knowledgeItemId: item.id, reviewStatus: "approved" })
-              }
-              onMessageChange={setMessage}
-              onOpenPendingReview={openEditDialog}
-              onReconnectStream={(eventsUrl) => knowledgeGenerateStore.connectToEventsUrl(eventsUrl)}
-              onRejectPendingReview={(item) =>
-                void updateKnowledgeItemReviewStatus.mutateAsync({ knowledgeItemId: item.id, reviewStatus: "rejected" })
-              }
-              onRefreshGenerationHistory={() => void generationHistory.refetch()}
-              onRefreshPendingReview={() => void pendingReview.refetch()}
-              onShouldFailChange={setShouldFail}
-              onSubmitBatch={() => void knowledgeGenerateStore.submit(batchItems)}
-              pendingReview={pendingReview}
-              reviewMutationPending={updateKnowledgeItemReviewStatus.isPending}
-              shouldFail={shouldFail}
-              store={store}
-            />
+            <Suspense fallback={<AdminKnowledgeFallback />}>
+              <AdminKnowledgeGenerateTab
+                batchCount={batchItems.length}
+                generationHistory={generationHistory}
+                message={message}
+                onApprovePendingReview={(item) =>
+                  void updateKnowledgeItemReviewStatus.mutateAsync({
+                    knowledgeItemId: item.id,
+                    reviewStatus: "approved",
+                  })
+                }
+                onMessageChange={setMessage}
+                onOpenPendingReview={openEditDialog}
+                onReconnectStream={(eventsUrl) => knowledgeGenerateStore.connectToEventsUrl(eventsUrl)}
+                onRejectPendingReview={(item) =>
+                  void updateKnowledgeItemReviewStatus.mutateAsync({
+                    knowledgeItemId: item.id,
+                    reviewStatus: "rejected",
+                  })
+                }
+                onRefreshGenerationHistory={() => void generationHistory.refetch()}
+                onRefreshPendingReview={() => void pendingReview.refetch()}
+                onShouldFailChange={setShouldFail}
+                onSubmitBatch={() => void knowledgeGenerateStore.submit(batchItems)}
+                pendingReview={pendingReview}
+                reviewMutationPending={updateKnowledgeItemReviewStatus.isPending}
+                shouldFail={shouldFail}
+                store={store}
+              />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
 
-      <KnowledgeItemFormDialog
-        draft={formDraft}
-        error={formError}
-        isPending={saveKnowledgeItem.isPending}
-        mode={formMode}
-        onDraftChange={setFormDraft}
-        onOpenChange={(open) => {
-          setIsFormOpen(open);
-          if (!open) {
-            setFormError(undefined);
+      <Suspense fallback={null}>
+        <KnowledgeItemFormDialog
+          draft={formDraft}
+          error={formError}
+          isPending={saveKnowledgeItem.isPending}
+          mode={formMode}
+          onDraftChange={setFormDraft}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) {
+              setFormError(undefined);
+            }
+          }}
+          onSubmit={() =>
+            void saveKnowledgeItem.mutateAsync({ draft: formDraft, knowledgeItemId: editingKnowledgeItemId })
           }
-        }}
-        onSubmit={() =>
-          void saveKnowledgeItem.mutateAsync({ draft: formDraft, knowledgeItemId: editingKnowledgeItemId })
-        }
-        open={isFormOpen}
-      />
+          open={isFormOpen}
+        />
 
-      <DeleteKnowledgeItemDialog
-        isPending={deleteKnowledgeItem.isPending}
-        knowledgeItem={knowledgeItemToDelete}
-        onConfirm={(knowledgeItemId) => void deleteKnowledgeItem.mutateAsync(knowledgeItemId)}
-        onOpenChange={(open) => !open && setKnowledgeItemToDelete(null)}
-      />
+        <DeleteKnowledgeItemDialog
+          isPending={deleteKnowledgeItem.isPending}
+          knowledgeItem={knowledgeItemToDelete}
+          onConfirm={(knowledgeItemId) => void deleteKnowledgeItem.mutateAsync(knowledgeItemId)}
+          onOpenChange={(open) => !open && setKnowledgeItemToDelete(null)}
+        />
+      </Suspense>
     </AdminGate>
   );
 }

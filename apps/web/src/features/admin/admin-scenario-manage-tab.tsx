@@ -1,4 +1,4 @@
-import type { KnowledgeItem, KnowledgeItemReviewStatus, KnowledgeItemSource } from "@english-coach/contract";
+import type { Scenario, ScenarioReviewStatus, ScenarioSource } from "@english-coach/contract";
 import {
   Badge,
   Button,
@@ -10,45 +10,45 @@ import {
   SelectValue,
 } from "@english-coach/ui";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import type { useKnowledgeItemsList } from "../../lib/app-data";
+import type { useAdminScenarios } from "../../lib/app-data";
 import { ellipsize, formatTimestamp, humanizeLabel } from "../../lib/app-data";
 import { Card, PageState } from "../../lib/app-shell";
-import type { AdminKnowledgeQueryState } from "./admin-knowledge-query-state";
-import { getReviewBadgeClassName, getSourceBadgeClassName } from "./admin-knowledge-types";
+import type { AdminScenarioQueryState } from "./admin-scenario-query-state";
+import { getReviewBadgeClassName, getSourceBadgeClassName } from "./admin-scenario-types";
 
-export function AdminKnowledgeManageTab({
+export function AdminScenarioManageTab({
   isDeletePending,
   isReviewStatusPending,
   isSavePending,
-  items,
   onDelete,
   onOpenCreate,
   onOpenEdit,
+  onPreview,
   onReviewStatusChange,
   queryState,
+  scenarios,
 }: {
   isDeletePending: boolean;
   isReviewStatusPending: boolean;
   isSavePending: boolean;
-  items: ReturnType<typeof useKnowledgeItemsList>;
-  onDelete: (item: KnowledgeItem) => void;
+  onDelete: (scenario: Scenario) => void;
   onOpenCreate: () => void;
-  onOpenEdit: (item: KnowledgeItem) => void;
-  onReviewStatusChange: (knowledgeItemId: string, reviewStatus: KnowledgeItemReviewStatus) => void;
-  queryState: AdminKnowledgeQueryState;
+  onOpenEdit: (scenario: Scenario) => void;
+  onPreview: (scenario: Scenario) => void;
+  onReviewStatusChange: (scenarioId: string, reviewStatus: ScenarioReviewStatus) => void;
+  queryState: AdminScenarioQueryState;
+  scenarios: ReturnType<typeof useAdminScenarios>;
 }) {
-  const columns: ColumnDef<KnowledgeItem>[] = [
+  const columns: ColumnDef<Scenario>[] = [
     {
-      accessorKey: "pattern",
+      accessorKey: "title",
       cell: ({ row }) => (
         <div className="grid gap-1">
-          <span className="font-medium text-slate-50">{row.original.pattern}</span>
-          <span className="text-xs leading-6 text-slate-400">
-            {ellipsize(row.original.example ?? "No example", 120)}
-          </span>
+          <span className="font-medium text-slate-50">{row.original.title}</span>
+          <span className="text-xs leading-6 text-slate-400">{ellipsize(row.original.setting, 120)}</span>
         </div>
       ),
-      header: "Pattern",
+      header: "Title",
     },
     {
       accessorKey: "source",
@@ -57,6 +57,7 @@ export function AdminKnowledgeManageTab({
           {humanizeLabel(row.original.source)}
         </Badge>
       ),
+      enableSorting: false,
       header: "Source",
     },
     {
@@ -66,17 +67,14 @@ export function AdminKnowledgeManageTab({
           {humanizeLabel(row.original.reviewStatus)}
         </Badge>
       ),
+      enableSorting: false,
       header: "Status",
     },
     {
-      accessorFn: (row) =>
-        [row.syntaxRole, row.fixednessLevel, row.communicativeFunction]
-          .filter(Boolean)
-          .map((value) => humanizeLabel(value))
-          .join(" · "),
+      accessorFn: (row) => row.goals.goals.length,
       enableSorting: false,
-      header: "Classification",
-      id: "classification",
+      header: "Goals",
+      id: "goalCount",
     },
     {
       accessorKey: "updatedAt",
@@ -86,6 +84,9 @@ export function AdminKnowledgeManageTab({
     {
       cell: ({ row }) => (
         <div className="flex flex-wrap justify-end gap-2">
+          <Button onClick={() => onPreview(row.original)} size="sm" variant="outline">
+            Preview
+          </Button>
           <Button onClick={() => onOpenEdit(row.original)} size="sm" variant="outline">
             Edit
           </Button>
@@ -130,18 +131,18 @@ export function AdminKnowledgeManageTab({
     },
   ];
   const sorting: SortingState = [{ desc: queryState.sortDirection === "desc", id: queryState.sortBy }];
-  const totalPages = Math.max(items.data?.totalPages ?? 0, 1);
+  const totalPages = Math.max(scenarios.data?.totalPages ?? 0, 1);
 
   return (
     <Card className="grid gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-2">
-          <h2 className="text-2xl text-white">Knowledge catalog</h2>
+          <h2 className="text-2xl text-white">Scenario catalog</h2>
           <p className="text-sm leading-7 text-slate-300">
-            Search, filter, review, and edit approved or pending knowledge items from the same table workflow.
+            Search, filter, review, and edit scenarios without leaving the table workflow.
           </p>
         </div>
-        <Button onClick={onOpenCreate}>Add knowledge item</Button>
+        <Button onClick={onOpenCreate}>Add scenario</Button>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
@@ -149,7 +150,7 @@ export function AdminKnowledgeManageTab({
           <span>Source</span>
           <Select
             onValueChange={(value: string) =>
-              queryState.setSource(value === "all" ? undefined : (value as KnowledgeItemSource))
+              queryState.setSource(value === "all" ? undefined : (value as ScenarioSource))
             }
             value={queryState.source ?? "all"}
           >
@@ -167,7 +168,7 @@ export function AdminKnowledgeManageTab({
           <span>Review status</span>
           <Select
             onValueChange={(value: string) =>
-              queryState.setReviewStatus(value === "all" ? undefined : (value as KnowledgeItemReviewStatus))
+              queryState.setReviewStatus(value === "all" ? undefined : (value as ScenarioReviewStatus))
             }
             value={queryState.reviewStatus ?? "all"}
           >
@@ -185,18 +186,18 @@ export function AdminKnowledgeManageTab({
         <div className="grid gap-2 text-sm text-slate-300">
           <span>Moderation state</span>
           <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-slate-400">
-            Generated items keep their source after approval. Review status, not source, controls moderation.
+            Approved scenarios are learner-visible. Pending and rejected scenarios stay admin-only.
           </div>
         </div>
       </div>
 
-      {items.error ? <PageState description={items.error.message} title="Could not load knowledge items" /> : null}
-      {!items.error ? (
+      {scenarios.error ? <PageState description={scenarios.error.message} title="Could not load scenarios" /> : null}
+      {!scenarios.error ? (
         <DataTable
           columns={columns}
-          data={items.data?.items ?? []}
+          data={scenarios.data?.items ?? []}
           globalFilter={queryState.search ?? ""}
-          isPending={items.isPending || isSavePending || isDeletePending}
+          isPending={scenarios.isPending || isSavePending || isDeletePending}
           onGlobalFilterChange={queryState.setSearch}
           onSortingChange={(nextSorting: SortingState) => {
             const nextColumn = nextSorting[0];
@@ -205,25 +206,19 @@ export function AdminKnowledgeManageTab({
               return;
             }
 
-            if (
-              nextColumn.id === "createdAt" ||
-              nextColumn.id === "pattern" ||
-              nextColumn.id === "reviewStatus" ||
-              nextColumn.id === "source" ||
-              nextColumn.id === "updatedAt"
-            ) {
+            if (nextColumn.id === "createdAt" || nextColumn.id === "title" || nextColumn.id === "updatedAt") {
               queryState.setSort(nextColumn.id, nextColumn.desc ? "desc" : "asc");
             }
           }}
           paginationMeta={{
-            limit: items.data?.pageSize ?? queryState.pageSize,
+            limit: scenarios.data?.pageSize ?? queryState.pageSize,
             onLimitChange: queryState.setPageSize,
             onPageChange: queryState.setPage,
-            page: items.data?.page ?? queryState.page,
+            page: scenarios.data?.page ?? queryState.page,
             pages: totalPages,
-            total: items.data?.total ?? 0,
+            total: scenarios.data?.total ?? 0,
           }}
-          searchPlaceholder="Search by pattern or example"
+          searchPlaceholder="Search by title or setting"
           sorting={sorting}
         />
       ) : null}

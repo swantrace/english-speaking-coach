@@ -1,12 +1,12 @@
-import type { KnowledgeItemReviewStatus, KnowledgeItemSource } from "@english-coach/contract";
+import type { ScenarioReviewStatus, ScenarioSource } from "@english-coach/contract";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 
-export function useAdminKnowledgeQueryState() {
-  const currentSearch = useSearch({ from: "/admin/knowledge-items" });
-  const navigate = useNavigate({ from: "/admin/knowledge-items" });
+export function useAdminScenarioQueryState() {
+  const currentSearch = useSearch({ from: "/admin/scenarios" });
+  const navigate = useNavigate({ from: "/admin/scenarios" });
 
   const updateSearch = (updater: (previous: typeof currentSearch) => typeof currentSearch) => {
-    void navigate({ search: updater, to: "/admin/knowledge-items" });
+    void navigate({ search: updater, to: "/admin/scenarios" });
   };
 
   return {
@@ -23,18 +23,15 @@ export function useAdminKnowledgeQueryState() {
     },
     setPage: (page: number) => updateSearch((previous) => ({ ...previous, page })),
     setPageSize: (pageSize: number) => updateSearch((previous) => ({ ...previous, page: 1, pageSize })),
-    setReviewStatus: (reviewStatus?: KnowledgeItemReviewStatus) =>
+    setReviewStatus: (reviewStatus?: ScenarioReviewStatus) =>
       updateSearch((previous) => ({ ...previous, page: 1, reviewStatus })),
     setSearch: (search?: string) =>
       updateSearch((previous) => ({ ...previous, page: 1, search: search?.trim() || undefined })),
-    setSort: (
-      sortBy: "updatedAt" | "createdAt" | "pattern" | "reviewStatus" | "source",
-      sortDirection: "asc" | "desc",
-    ) => updateSearch((previous) => ({ ...previous, page: 1, sortBy, sortDirection })),
-    setSource: (source?: KnowledgeItemSource) =>
-      updateSearch((previous) => ({ ...previous, page: 1, source: source ?? "all" })),
+    setSort: (sortBy: "updatedAt" | "createdAt" | "title", sortDirection: "asc" | "desc") =>
+      updateSearch((previous) => ({ ...previous, page: 1, sortBy, sortDirection })),
+    setSource: (source?: ScenarioSource) => updateSearch((previous) => ({ ...previous, page: 1, source })),
     setTab: (tab: "manage" | "generate") => updateSearch((previous) => ({ ...previous, tab })),
   };
 }
 
-export type AdminKnowledgeQueryState = ReturnType<typeof useAdminKnowledgeQueryState>;
+export type AdminScenarioQueryState = ReturnType<typeof useAdminScenarioQueryState>;

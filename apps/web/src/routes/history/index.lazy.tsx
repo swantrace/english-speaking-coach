@@ -1,0 +1,6 @@
+import { createLazyFileRoute } from "@tanstack/react-router";
+import { HistoryListPage } from "../../features/history/history-pages";
+
+export const Route = createLazyFileRoute("/history/")({
+  component: HistoryListPage,
+});

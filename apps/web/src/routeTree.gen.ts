@@ -25,58 +25,72 @@ const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/login.lazy').then((d) => d.Route))
 const KnowledgePointsRoute = KnowledgePointsRouteImport.update({
   id: '/knowledge-points',
   path: '/knowledge-points',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/knowledge-points.lazy').then((d) => d.Route),
+)
 const FreeFormRoute = FreeFormRouteImport.update({
   id: '/free-form',
   path: '/free-form',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/free-form.lazy').then((d) => d.Route))
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
 const ScenariosIndexRoute = ScenariosIndexRouteImport.update({
   id: '/scenarios/',
   path: '/scenarios/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/scenarios/index.lazy').then((d) => d.Route),
+)
 const HistoryIndexRoute = HistoryIndexRouteImport.update({
   id: '/history/',
   path: '/history/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/history/index.lazy').then((d) => d.Route))
 const SessionRoomNameRoute = SessionRoomNameRouteImport.update({
   id: '/session/$roomName',
   path: '/session/$roomName',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/session/$roomName.lazy').then((d) => d.Route),
+)
 const HistorySessionIdRoute = HistorySessionIdRouteImport.update({
   id: '/history/$sessionId',
   path: '/history/$sessionId',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/history/$sessionId.lazy').then((d) => d.Route),
+)
 const AdminScenariosRoute = AdminScenariosRouteImport.update({
   id: '/admin/scenarios',
   path: '/admin/scenarios',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/admin/scenarios.lazy').then((d) => d.Route),
+)
 const AdminKnowledgeItemsRoute = AdminKnowledgeItemsRouteImport.update({
   id: '/admin/knowledge-items',
   path: '/admin/knowledge-items',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/admin/knowledge-items.lazy').then((d) => d.Route),
+)
 const ScenariosScenarioIdIndexRoute =
   ScenariosScenarioIdIndexRouteImport.update({
     id: '/scenarios/$scenarioId/',
     path: '/scenarios/$scenarioId/',
     getParentRoute: () => rootRouteImport,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/scenarios/$scenarioId/index.lazy').then((d) => d.Route),
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute

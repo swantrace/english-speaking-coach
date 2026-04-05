@@ -93,7 +93,9 @@ export function HistoryListPage() {
         </Card>
 
         {history.isPending ? <LoadingPanel label="Loading session history..." /> : null}
-        {history.error ? <PageState description={history.error.message} title="Could not load session history" /> : null}
+        {history.error ? (
+          <PageState description={history.error.message} title="Could not load session history" />
+        ) : null}
         {!history.isPending && !history.error && (history.data?.items.length ?? 0) === 0 ? (
           <PageState description="No ended sessions exist yet." title="No history yet" />
         ) : null}
@@ -117,7 +119,7 @@ export function HistoryListPage() {
                   <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
                     <span>Ended: {formatTimestamp(item.endedAt)}</span>
                     <span>
-                      Review: {" "}
+                      Review:{" "}
                       {item.review ? "Ready" : <span className="inline-block animate-pulse">Generating...</span>}
                     </span>
                   </div>

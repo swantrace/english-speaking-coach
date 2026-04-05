@@ -1,4 +1,17 @@
-import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@english-coach/ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@english-coach/ui";
 import { Link } from "@tanstack/react-router";
 import { formatTimestamp, humanizeLabel, useKnowledgePointDetail } from "../../lib/app-data";
 import { LoadingPanel, PageState } from "../../lib/app-shell";
@@ -25,7 +38,9 @@ export function KnowledgePointDetailDialog({
         </DialogHeader>
 
         {detail.isPending ? <LoadingPanel label="Loading knowledge point details..." /> : null}
-        {detail.error ? <PageState description={detail.error.message} title="Could not load knowledge point details" /> : null}
+        {detail.error ? (
+          <PageState description={detail.error.message} title="Could not load knowledge point details" />
+        ) : null}
         {detail.data ? (
           <div className="grid gap-6">
             <div className="grid gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-5 md:grid-cols-4">
@@ -88,7 +103,8 @@ export function KnowledgePointDetailDialog({
                             <div className="grid gap-1 text-sm text-slate-200">
                               <span>{occurrence.sessionTitle}</span>
                               <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                                {occurrence.sessionType} · {formatTimestamp(occurrence.sessionEndedAt ?? occurrence.sessionStartedAt)}
+                                {occurrence.sessionType} ·{" "}
+                                {formatTimestamp(occurrence.sessionEndedAt ?? occurrence.sessionStartedAt)}
                               </span>
                             </div>
                           </TableCell>
