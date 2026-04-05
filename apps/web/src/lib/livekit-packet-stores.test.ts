@@ -15,7 +15,8 @@ describe("getObservationsSnapshot", () => {
   it("returns appended observations for the room", () => {
     resetObservations("room-b");
     appendObservation("room-b", {
-      observation: "Notice the hesitation before the answer.",
+      prompt: "Notice the hesitation before the answer.",
+      promptKind: "fluency_hint",
       sessionHistoryId: "session-1",
       transcriptTurnIndex: 4,
       type: "ui-update",
@@ -25,7 +26,8 @@ describe("getObservationsSnapshot", () => {
 
     expect(snapshot.items).toHaveLength(1);
     expect(snapshot.items[0]).toMatchObject({
-      observation: "Notice the hesitation before the answer.",
+      prompt: "Notice the hesitation before the answer.",
+      promptKind: "fluency_hint",
       sessionHistoryId: "session-1",
       transcriptTurnIndex: 4,
       type: "ui-update",

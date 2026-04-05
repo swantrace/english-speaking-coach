@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { coachingPromptKindSchema } from "./session";
 
 /** Sent by the agent (role-play tool call) → web UI after each intent/slot detection. */
 export const goalProgressPacketSchema = z.object({
@@ -26,9 +27,10 @@ export const workerFeedbackPacketSchema = z.object({
 
 /** Sent by the lingAnalysis worker → web UI (free-form sessions only). */
 export const uiUpdatePacketSchema = z.object({
+  prompt: z.string().trim().min(1),
+  promptKind: coachingPromptKindSchema,
   type: z.literal("ui-update"),
   sessionHistoryId: z.string(),
-  observation: z.string(),
   transcriptTurnIndex: z.number().int().min(0).optional(),
 });
 

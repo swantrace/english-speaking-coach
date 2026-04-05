@@ -14,6 +14,23 @@ function cueToneClasses(kind: TranscriptCue["kind"]) {
   return "border-emerald-300/15 bg-emerald-300/10 text-emerald-50/90";
 }
 
+function cueLabel(cue: TranscriptCue) {
+  if (cue.kind === "goal-progress") {
+    return "Mission";
+  }
+
+  switch (cue.coachingKind) {
+    case "error_hint":
+      return "Error hint";
+    case "knowledge_hint":
+      return "Knowledge hint";
+    case "fluency_hint":
+      return "Fluency hint";
+    default:
+      return "Coach prompt";
+  }
+}
+
 export function TranscriptEntryList({
   agentState,
   className = "",
@@ -66,6 +83,7 @@ export function TranscriptEntryList({
                     className={`rounded-[14px] border px-3 py-2 text-xs leading-6 ${cueToneClasses(cue.kind)}`}
                     key={`${entry.id}:${cue.kind}:${cue.text}`}
                   >
+                    <span className="mr-2 uppercase tracking-[0.14em] text-[10px] opacity-70">{cueLabel(cue)}</span>
                     {cue.text}
                   </div>
                 ))}

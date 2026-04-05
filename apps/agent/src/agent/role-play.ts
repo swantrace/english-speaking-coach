@@ -181,6 +181,7 @@ export function goalProgressPacketToTranscriptAnnotations(packet: GoalProgressPa
       transcriptAnnotationSchema.parse({
         id: `goal-progress:completed:${latestCompletedGoal.id}:${packet.transcriptTurnIndex}`,
         kind: "goal-progress",
+        source: "role-play-live",
         text: `Completed goal: ${latestCompletedGoal.description}`,
         transcriptTurnIndex: packet.transcriptTurnIndex,
       }),
@@ -192,6 +193,7 @@ export function goalProgressPacketToTranscriptAnnotations(packet: GoalProgressPa
       transcriptAnnotationSchema.parse({
         id: `goal-progress:current:${currentGoal.id}:${packet.transcriptTurnIndex}:${slotSummary || "none"}`,
         kind: "goal-progress",
+        source: "role-play-live",
         text: slotSummary
           ? `Current goal: ${currentGoal.description}. Captured ${slotSummary}.`
           : `Current goal: ${currentGoal.description}. Keep steering the conversation there.`,

@@ -8,6 +8,8 @@ import {
   lingAnalysisQueueName,
   lingAnalysisResultSchema,
   syntaxRoles,
+  type TranscriptAnnotation,
+  transcriptAnnotationSchema,
 } from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import {
@@ -22,12 +24,93 @@ import { generateObject } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { producerRedis, workerRedis } from "../redis";
-import { persistRewrittenTranscriptTurnsForSession } from "./in-conversation.analysis";
+import {
+  persistRewrittenTranscriptTurnsForSession,
+  persistTranscriptAnnotationsForSession,
+} from "./in-conversation.analysis";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
 
 function normalizeTextForMatching(value: string) {
   return value.trim().toLowerCase();
+}
+
+function humanizeToken(value: string) {
+  return value.replaceAll("_", " ");
+}
+
+function buildErrorFollowUpPrompt(suggestion: string) {
+  const normalizedSuggestion = suggestion.trim().replace(/[.?!]+$/u, "");
+  return `Ask the agent why ${normalizedSuggestion} fits better here.`;
+}
+
+function buildKnowledgeFollowUpPrompt(item: LingAnalysisResult["knowledgeItemsUsed"][number]) {
+  const example = item.example.trim().replace(/[.?!]+$/u, "");
+  return `Ask the agent how "${example}" helps ${humanizeToken(item.communicativeFunction)}.`;
+}
+
+function findMatchedTranscriptTurnIndex(turns: TranscriptTurns, utterance: string) {
+  return turns.findIndex(
+    (turn) => turn.speaker === "user" && (turn.text.includes(utterance) || utterance.includes(turn.text)),
+  );
+}
+
+function buildPostSessionTranscriptAnnotations({
+  analysis,
+  occurrencePromptCandidates,
+  sessionHistoryId,
+  turns,
+}: {
+  analysis: LingAnalysisResult;
+  occurrencePromptCandidates: Array<{
+    item: LingAnalysisResult["knowledgeItemsUsed"][number];
+    occurrences: ReturnType<typeof deriveKnowledgePointOccurrences>;
+  }>;
+  sessionHistoryId: string;
+  turns: TranscriptTurns;
+}) {
+  const annotations: TranscriptAnnotation[] = [];
+
+  for (const error of analysis.errors) {
+    const transcriptTurnIndex = findMatchedTranscriptTurnIndex(turns, error.utterance);
+
+    if (transcriptTurnIndex < 0) {
+      continue;
+    }
+
+    annotations.push(
+      transcriptAnnotationSchema.parse({
+        coachingKind: "error_hint",
+        id: `post-session:error:${sessionHistoryId}:${transcriptTurnIndex}:${normalizeTextForMatching(error.utterance)}`,
+        kind: "coaching",
+        source: "post-session-review",
+        text: buildErrorFollowUpPrompt(error.suggestion),
+        transcriptTurnIndex,
+      }),
+    );
+  }
+
+  for (const candidate of occurrencePromptCandidates) {
+    const primaryOccurrence =
+      candidate.occurrences.find((occurrence) => occurrence.speaker === "user") ?? candidate.occurrences[0];
+
+    if (!primaryOccurrence) {
+      continue;
+    }
+
+    annotations.push(
+      transcriptAnnotationSchema.parse({
+        coachingKind: "knowledge_hint",
+        id: `post-session:knowledge:${sessionHistoryId}:${candidate.item.pattern}:${primaryOccurrence.transcriptTurnIndex}`,
+        kind: "coaching",
+        source: "post-session-review",
+        text: buildKnowledgeFollowUpPrompt(candidate.item),
+        transcriptTurnIndex: primaryOccurrence.transcriptTurnIndex,
+      }),
+    );
+  }
+
+  return annotations;
 }
 
 function deriveKnowledgePointOccurrences({
@@ -224,6 +307,10 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   }
 
   const analysis = await generateLingAnalysis(transcriptRecord.turns);
+  const occurrencePromptCandidates: Array<{
+    item: LingAnalysisResult["knowledgeItemsUsed"][number];
+    occurrences: ReturnType<typeof deriveKnowledgePointOccurrences>;
+  }> = [];
 
   await db.transaction(async (transaction) => {
     await transaction.delete(sessionKnowledgeItems).where(eq(sessionKnowledgeItems.sessionHistoryId, sessionHistoryId));
@@ -250,6 +337,8 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
         sessionHistoryId,
         turns: transcriptRecord.turns,
       });
+
+      occurrencePromptCandidates.push({ item, occurrences });
 
       if (occurrences.length > 0) {
         await transaction.insert(sessionKnowledgePointOccurrences).values(occurrences);
@@ -278,6 +367,15 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   });
 
   await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
+  await persistTranscriptAnnotationsForSession(
+    sessionHistoryId,
+    buildPostSessionTranscriptAnnotations({
+      analysis,
+      occurrencePromptCandidates,
+      sessionHistoryId,
+      turns: transcriptRecord.turns,
+    }),
+  );
 
   return analysis;
 }

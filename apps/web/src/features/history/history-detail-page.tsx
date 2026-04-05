@@ -2,7 +2,6 @@ import { Button } from "@english-coach/ui";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { TranscriptEntryList } from "../../components/agents-ui/agent-chat-transcript";
 import {
   createHistoryTranscriptCueMap,
   createTranscriptCueMapFromAnnotations,
@@ -18,6 +17,7 @@ import {
 } from "../../lib/app-data";
 import { AuthGate, Card, LoadingPanel, PageIntro, PageState } from "../../lib/app-shell";
 import { historyDetailTabs } from "./history-query-state";
+import { HistoryTranscriptTab } from "./history-transcript-tab";
 
 export function HistoryDetailPage() {
   const { sessionId } = useParams({ from: "/history/$sessionId" });
@@ -349,59 +349,32 @@ export function HistoryDetailPage() {
           ) : null}
 
           {activeTab === "transcript" || activeTab === "rewritten" ? (
-            <Card className="grid gap-4">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl text-white">
-                  {activeTab === "rewritten" ? "Rewritten transcript" : "Transcript"}
-                </h2>
-                <div className="flex flex-wrap items-center gap-3">
-                  {historySearch.turn !== undefined ? (
-                    <Button
-                      onClick={() => {
-                        void navigate({
-                          search: (previous) => ({ ...previous, turn: undefined }),
-                          to: "/history/$sessionId",
-                        });
-                      }}
-                      variant="ghost"
-                    >
-                      Clear turn focus
-                    </Button>
-                  ) : null}
-                  <Button onClick={() => setShowAllTranscript((current) => !current)} variant="outline">
-                    {showAllTranscript ? "Show latest turns" : "Expand full transcript"}
-                  </Button>
-                </div>
-              </div>
-              <p className="text-sm leading-7 text-slate-300">
-                {activeTab === "rewritten"
-                  ? "Learner turns are rewritten from the stored post-session corrections while agent turns remain unchanged."
-                  : "Stored transcript annotations replay against their original turn anchors when available."}
-              </p>
-              {selectedAnchor ? (
-                <div className="rounded-[18px] border border-orange-300/20 bg-orange-300/10 px-4 py-3 text-sm text-orange-50">
-                  Focused on {selectedAnchor.turnLabel}.
-                </div>
-              ) : null}
-              {activeTab === "rewritten" && detail.data.rewrittenTranscript.length === 0 ? (
-                <PageState
-                  description="The post-session analysis has not produced a rewritten learner transcript yet."
-                  title="No rewritten transcript yet"
-                />
-              ) : (
-                <TranscriptEntryList
-                  cuesById={transcriptCueMap}
-                  entries={visibleEntries}
-                  onSelectEntry={(entry) => {
-                    void navigate({
-                      search: (previous) => ({ ...previous, tab: activeTab, turn: entry.turnIndex }),
-                      to: "/history/$sessionId",
-                    });
-                  }}
-                  selectedEntryId={selectedEntry?.id}
-                />
-              )}
-            </Card>
+            <HistoryTranscriptTab
+              activeTab={activeTab}
+              cuesById={transcriptCueMap}
+              hasRewrittenTranscript={detail.data.rewrittenTranscript.length > 0}
+              onClearFocus={
+                historySearch.turn !== undefined
+                  ? () => {
+                      void navigate({
+                        search: (previous) => ({ ...previous, turn: undefined }),
+                        to: "/history/$sessionId",
+                      });
+                    }
+                  : undefined
+              }
+              onSelectEntry={(entry) => {
+                void navigate({
+                  search: (previous) => ({ ...previous, tab: activeTab, turn: entry.turnIndex }),
+                  to: "/history/$sessionId",
+                });
+              }}
+              onToggleExpanded={() => setShowAllTranscript((current) => !current)}
+              selectedAnchorLabel={selectedAnchor?.turnLabel}
+              selectedEntryId={selectedEntry?.id}
+              showAllTranscript={showAllTranscript}
+              visibleEntries={visibleEntries}
+            />
           ) : null}
         </div>
       ) : null}

@@ -24,6 +24,7 @@ export interface TranscriptEntry {
 }
 
 export interface TranscriptCue {
+  coachingKind?: "error_hint" | "knowledge_hint" | "fluency_hint";
   kind: "coaching" | "goal-progress";
   text: string;
 }
@@ -164,8 +165,9 @@ export function createTranscriptCueMap({
       cuesById[anchor.id] = [
         ...(cuesById[anchor.id] ?? []),
         {
+          coachingKind: observation.promptKind,
           kind: "coaching",
-          text: observation.observation,
+          text: observation.prompt,
         },
       ];
     });
@@ -193,6 +195,7 @@ export function createTranscriptCueMapFromAnnotations({
     cuesById[anchor.id] = [
       ...(cuesById[anchor.id] ?? []),
       {
+        coachingKind: annotation.coachingKind,
         kind: annotation.kind,
         text: annotation.text,
       },
@@ -250,6 +253,7 @@ export function createHistoryTranscriptCueMap({
     cuesById[matchingEntry.id] = [
       ...(cuesById[matchingEntry.id] ?? []),
       {
+        coachingKind: "error_hint",
         kind: "coaching",
         text: `${error.errorDescription} Ask about: ${error.suggestion}`,
       },

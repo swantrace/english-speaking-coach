@@ -78,10 +78,25 @@ describe("lingAnalysis knowledge point occurrence persistence", () => {
       .select()
       .from(sessionKnowledgeItems)
       .where(eq(sessionKnowledgeItems.sessionHistoryId, sessionId));
+    const [transcriptRecord] = await db
+      .select()
+      .from(sessionTranscripts)
+      .where(eq(sessionTranscripts.sessionHistoryId, sessionId))
+      .limit(1);
 
     expect(aggregateRows).toHaveLength(1);
     expect(aggregateRows[0]?.count).toBe(2);
     expect(occurrenceRows.map((row) => row.transcriptTurnIndex).sort((left, right) => left - right)).toEqual([0, 2]);
     expect(occurrenceRows.map((row) => row.excerpt)).toEqual(["I'd like a coffee.", "I'd like a coffee."]);
+    expect(transcriptRecord?.annotations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          coachingKind: "knowledge_hint",
+          kind: "coaching",
+          source: "post-session-review",
+          transcriptTurnIndex: 0,
+        }),
+      ]),
+    );
   });
 });

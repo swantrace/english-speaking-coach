@@ -125,14 +125,15 @@ export function ObservationsSidebar({ roomName, contextDocument }: { roomName: s
           observations.items.map((item) => (
             <div
               className="rounded-[20px] border border-emerald-300/15 bg-emerald-300/10 p-4"
-              key={`${item.sessionHistoryId}:${item.observation}`}
+              key={`${item.sessionHistoryId}:${item.promptKind}:${item.prompt}`}
             >
-              <p className="text-sm leading-7 text-emerald-50">{item.observation}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-emerald-100/70">{item.promptKind}</p>
+              <p className="mt-2 text-sm leading-7 text-emerald-50">{item.prompt}</p>
             </div>
           ))
         ) : (
           <div className="rounded-[20px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-slate-400">
-            No live observations yet.
+            No live prompts yet.
           </div>
         )}
       </div>

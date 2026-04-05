@@ -98,13 +98,15 @@ describe("createTranscriptCueMap", () => {
       entries,
       observations: [
         {
-          observation: "Try asking why the past tense changes here.",
+          prompt: "Try asking why the past tense changes here.",
+          promptKind: "error_hint",
           sessionHistoryId: "s-1",
           transcriptTurnIndex: 0,
           type: "ui-update",
         },
         {
-          observation: "There is another irregular verb worth noticing in your second sentence.",
+          prompt: "There is another irregular verb worth noticing in your second sentence.",
+          promptKind: "knowledge_hint",
           sessionHistoryId: "s-1",
           transcriptTurnIndex: 2,
           type: "ui-update",
@@ -114,6 +116,7 @@ describe("createTranscriptCueMap", () => {
 
     expect(cueMap["user-1"]?.[0]?.text).toBe("Try asking why the past tense changes here.");
     expect(cueMap["user-2"]?.[0]?.text).toBe("There is another irregular verb worth noticing in your second sentence.");
+    expect(cueMap["user-1"]?.[0]?.coachingKind).toBe("error_hint");
   });
 
   it("creates read-only history cues from completed goals and matched errors", () => {
@@ -150,14 +153,17 @@ describe("createTranscriptCueMap", () => {
     const cueMap = createTranscriptCueMapFromAnnotations({
       annotations: [
         {
+          coachingKind: "error_hint",
           id: "annotation-1",
           kind: "coaching",
+          source: "post-session-review",
           text: "Ask why the irregular past tense changes here.",
           transcriptTurnIndex: 0,
         },
         {
           id: "annotation-2",
           kind: "goal-progress",
+          source: "role-play-live",
           text: "Completed goal: Describe what happened.",
           transcriptTurnIndex: 2,
         },
@@ -167,6 +173,7 @@ describe("createTranscriptCueMap", () => {
 
     expect(cueMap["turn-0"]?.[0]?.text).toBe("Ask why the irregular past tense changes here.");
     expect(cueMap["turn-2"]?.[0]?.text).toBe("Completed goal: Describe what happened.");
+    expect(cueMap["turn-0"]?.[0]?.coachingKind).toBe("error_hint");
   });
 
   it("replaces learner turns with rewritten transcript content when present", () => {

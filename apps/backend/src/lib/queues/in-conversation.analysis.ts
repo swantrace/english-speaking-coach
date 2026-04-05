@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import {
   type InConversationAnalysisJob,
+  type InConversationUiPrompt,
   inConversationAnalysisJobName,
   inConversationAnalysisJobSchema,
   inConversationAnalysisQueueName,
@@ -37,7 +38,9 @@ function getLatestUserTurnIndex(job: InConversationAnalysisJob) {
 }
 
 let inConversationAnalysisGeneratorOverride:
-  | ((job: InConversationAnalysisJob) => Promise<{ observation: string; workerFeedbackMessage: string }>)
+  | ((
+      job: InConversationAnalysisJob,
+    ) => Promise<{ uiPrompts: InConversationUiPrompt[]; workerFeedbackMessage: string }>)
   | null = null;
 
 type TranscriptAnnotations = NonNullable<typeof sessionTranscripts.$inferSelect.annotations>;
@@ -173,19 +176,33 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
 
   if (process.env.LING_ANALYSIS_USE_TEST_GENERATOR === "1") {
     return inConversationAnalysisResultSchema.parse({
-      observation: `Observed ${job.turns.length} recent turns in ${job.roomName}.`,
+      uiPrompts: [
+        {
+          prompt: "Ask the agent why the last tense choice sounds more natural here.",
+          promptKind: "error_hint",
+          transcriptTurnIndex: getLatestUserTurnIndex(job),
+        },
+      ],
       workerFeedbackMessage: "Keep pushing the learner to answer with a little more detail.",
     });
   }
+
+  const indexedTurns = job.turns.map((turn, index) => ({
+    ...turn,
+    transcriptTurnIndex: job.transcriptStartIndex + index,
+  }));
 
   const { object } = await generateObject({
     model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
     prompt: [
       "You analyze recent turns from an English-speaking coaching conversation.",
-      "Return one UI observation and one short worker feedback message for the voice agent.",
-      "The UI observation should be brief and student-facing.",
+      "Return up to 3 transcript-aligned UI prompts and one short worker feedback message for the voice agent.",
+      "Each UI prompt must be a brief learner-facing follow-up cue, not a full explanation.",
+      "Phrase prompts like something the learner could ask next, for example 'Ask the agent why...' or 'Ask how...'.",
+      "Use promptKind='error_hint' for learner mistakes, 'knowledge_hint' for useful language patterns worth noticing, and 'fluency_hint' for pacing or clarity cues.",
+      "Anchor prompts to transcriptTurnIndex values from the transcript below whenever possible.",
       "The worker feedback message should be a compact coaching hint for the agent to append into chat context.",
-      JSON.stringify(job.turns),
+      JSON.stringify(indexedTurns),
     ].join("\n\n"),
     schema: inConversationAnalysisResultSchema,
   });
@@ -208,22 +225,34 @@ export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob
       sessionHistoryId: parsedJob.sessionHistoryId,
       type: "worker-feedback",
     });
-    const uiUpdatePacket = uiUpdatePacketSchema.parse({
-      observation: result.observation,
-      sessionHistoryId: parsedJob.sessionHistoryId,
-      transcriptTurnIndex: getLatestUserTurnIndex(parsedJob),
-      type: "ui-update",
+    const uiUpdatePackets = result.uiPrompts.map((prompt) =>
+      uiUpdatePacketSchema.parse({
+        prompt: prompt.prompt,
+        promptKind: prompt.promptKind,
+        sessionHistoryId: parsedJob.sessionHistoryId,
+        transcriptTurnIndex: prompt.transcriptTurnIndex ?? getLatestUserTurnIndex(parsedJob),
+        type: "ui-update",
+      }),
+    );
+    const transcriptAnnotations = uiUpdatePackets.flatMap((packet, index) => {
+      if (packet.transcriptTurnIndex === undefined) {
+        return [];
+      }
+
+      return [
+        transcriptAnnotationSchema.parse({
+          coachingKind: packet.promptKind,
+          id: `ui-update:${parsedJob.sessionHistoryId}:${packet.transcriptTurnIndex}:${index}:${packet.prompt}`,
+          kind: "coaching",
+          source: "free-form-live",
+          text: packet.prompt,
+          transcriptTurnIndex: packet.transcriptTurnIndex,
+        }),
+      ];
     });
 
-    if (uiUpdatePacket.transcriptTurnIndex !== undefined) {
-      await persistTranscriptAnnotationsForSession(parsedJob.sessionHistoryId, [
-        transcriptAnnotationSchema.parse({
-          id: `ui-update:${parsedJob.sessionHistoryId}:${uiUpdatePacket.transcriptTurnIndex}:${uiUpdatePacket.observation}`,
-          kind: "coaching",
-          text: uiUpdatePacket.observation,
-          transcriptTurnIndex: uiUpdatePacket.transcriptTurnIndex,
-        }),
-      ]);
+    if (transcriptAnnotations.length > 0) {
+      await persistTranscriptAnnotationsForSession(parsedJob.sessionHistoryId, transcriptAnnotations);
     }
 
     await Promise.all([
@@ -233,11 +262,13 @@ export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob
         DataPacket_Kind.RELIABLE,
         { topic: workerFeedbackPacket.type },
       ),
-      roomServiceClient.sendData(
-        parsedJob.roomName,
-        new TextEncoder().encode(JSON.stringify(uiUpdatePacket)),
-        DataPacket_Kind.RELIABLE,
-        { topic: uiUpdatePacket.type },
+      ...uiUpdatePackets.map((packet) =>
+        roomServiceClient.sendData(
+          parsedJob.roomName,
+          new TextEncoder().encode(JSON.stringify(packet)),
+          DataPacket_Kind.RELIABLE,
+          { topic: packet.type },
+        ),
       ),
     ]);
 
@@ -258,7 +289,9 @@ inConversationAnalysisWorker.on("failed", (job, error) => {
 
 export function setInConversationAnalysisGeneratorForTests(
   generator:
-    | ((job: InConversationAnalysisJob) => Promise<{ observation: string; workerFeedbackMessage: string }>)
+    | ((
+        job: InConversationAnalysisJob,
+      ) => Promise<{ uiPrompts: InConversationUiPrompt[]; workerFeedbackMessage: string }>)
     | null,
 ) {
   inConversationAnalysisGeneratorOverride = generator;

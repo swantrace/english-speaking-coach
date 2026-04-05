@@ -1111,7 +1111,9 @@ describe("backend phase 2 integration", () => {
     expect(historyDetailBody.transcriptAnnotations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          coachingKind: "error_hint",
           kind: "coaching",
+          source: "post-session-review",
           text: "Ask why the verb changes in the past tense.",
           transcriptTurnIndex: 1,
         }),
@@ -1136,6 +1138,7 @@ describe("backend phase 2 integration", () => {
               {
                 id: `role-play-annotation-${agentMetadata.sessionHistoryId}`,
                 kind: "goal-progress",
+                source: "role-play-live",
                 text: "Completed goal: Order a drink",
                 transcriptTurnIndex: 0,
               },
@@ -1171,6 +1174,7 @@ describe("backend phase 2 integration", () => {
       transcriptAnnotations: [
         expect.objectContaining({
           kind: "goal-progress",
+          source: "role-play-live",
           text: "Completed goal: Order a drink",
           transcriptTurnIndex: 0,
         }),

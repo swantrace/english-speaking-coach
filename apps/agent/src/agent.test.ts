@@ -112,12 +112,14 @@ describe("SessionTracker", () => {
       {
         id: "goal-progress:completed:order-dish:4",
         kind: "goal-progress",
+        source: "role-play-live",
         text: "Completed goal: Order a dish",
         transcriptTurnIndex: 4,
       },
       {
         id: "goal-progress:current:ask-for-bill:4:none",
         kind: "goal-progress",
+        source: "role-play-live",
         text: "Current goal: Ask for the bill. Keep steering the conversation there.",
         transcriptTurnIndex: 4,
       },

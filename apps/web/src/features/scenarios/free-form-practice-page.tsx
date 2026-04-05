@@ -71,7 +71,7 @@ function FreeFormPracticePageContent({
               <div className="grid gap-2">
                 <h2 className="text-2xl text-white">Context document</h2>
                 <p className="text-sm leading-7 text-slate-300">
-                  The worker will turn this into live observations during the call.
+                  The worker will turn this into live transcript prompts during the call.
                 </p>
               </div>
               {scenario ? (

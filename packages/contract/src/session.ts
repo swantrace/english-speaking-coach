@@ -11,10 +11,14 @@ export const sessionTurnSchema = z.object({
 });
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 
+export const coachingPromptKindSchema = z.enum(["error_hint", "knowledge_hint", "fluency_hint"]);
+export const transcriptAnnotationSourceSchema = z.enum(["role-play-live", "free-form-live", "post-session-review"]);
 export const transcriptAnnotationKindSchema = z.enum(["goal-progress", "coaching"]);
 export const transcriptAnnotationSchema = z.object({
+  coachingKind: coachingPromptKindSchema.optional(),
   id: z.string(),
   kind: transcriptAnnotationKindSchema,
+  source: transcriptAnnotationSourceSchema.optional(),
   text: z.string().trim().min(1),
   transcriptTurnIndex: z.number().int().min(0),
 });
@@ -22,8 +26,14 @@ export const rewrittenTranscriptTurnSchema = z.object({
   text: z.string().trim().min(1),
   transcriptTurnIndex: z.number().int().min(0),
 });
+export const inConversationUiPromptSchema = z.object({
+  prompt: z.string().trim().min(1),
+  promptKind: coachingPromptKindSchema,
+  transcriptTurnIndex: z.number().int().min(0).optional(),
+});
 export type TranscriptAnnotation = z.infer<typeof transcriptAnnotationSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
+export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;
 
 // ── Scenario sub-schemas ──────────────────────────────────────────────────────
 
@@ -168,7 +178,7 @@ export const lingAnalysisResultSchema = z.object({
 });
 
 export const inConversationAnalysisResultSchema = z.object({
-  observation: z.string().trim().min(1),
+  uiPrompts: z.array(inConversationUiPromptSchema).max(3).default([]),
   workerFeedbackMessage: z.string().trim().min(1),
 });
 
@@ -192,5 +202,7 @@ export type SessionAgentBootstrap = z.infer<typeof sessionAgentBootstrapSchema>;
 export type SessionCompletionRequest = z.infer<typeof sessionCompletionRequestSchema>;
 export type SessionCompletionJob = SessionCompletionRequest;
 export type TranscriptAnnotationUpsertRequest = z.infer<typeof transcriptAnnotationUpsertRequestSchema>;
+export type CoachingPromptKind = z.infer<typeof coachingPromptKindSchema>;
+export type TranscriptAnnotationSource = z.infer<typeof transcriptAnnotationSourceSchema>;
 export type LingAnalysisResult = z.infer<typeof lingAnalysisResultSchema>;
 export type InConversationAnalysisResult = z.infer<typeof inConversationAnalysisResultSchema>;
