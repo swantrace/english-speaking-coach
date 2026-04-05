@@ -959,8 +959,8 @@ describe("backend phase 2 integration", () => {
       errorDescription: "Incorrect word choice for a menu item.",
       id: crypto.randomUUID(),
       sessionHistoryId: freeFormSessionId,
-      suggestion: "Use 'dish' instead of 'plate' in this context.",
-      utterance: "I want this plate.",
+      suggestion: "Ask whether 'I'd like a coffee' sounds more natural here.",
+      utterance: "I'd like a coffee.",
     });
 
     await db.insert(sessionKnowledgeItems).values({
@@ -1055,6 +1055,16 @@ describe("backend phase 2 integration", () => {
       expect.arrayContaining([expect.objectContaining({ id: freeFormSessionId, sessionType: "free-form" })]),
     );
 
+    await db.insert(sessionKnowledgePointOccurrences).values({
+      excerpt: "I went to the cafe yesterday.",
+      id: crypto.randomUUID(),
+      knowledgeItemId: createdKnowledgeItem.id,
+      occurrenceCount: 1,
+      sessionHistoryId: freeFormSessionId,
+      speaker: "user",
+      transcriptTurnIndex: 1,
+    });
+
     const historyDetailResponse = await app.request(`http://localhost/api/history/${freeFormSessionId}`, {
       headers: {
         Cookie: student.cookie,
@@ -1062,24 +1072,60 @@ describe("backend phase 2 integration", () => {
     });
 
     expect(historyDetailResponse.status).toBe(200);
-    expect(historyDetailResponse.json()).resolves.toMatchObject({
-      errors: [expect.objectContaining({ dimension: "lexical" })],
-      knowledgeItems: [expect.objectContaining({ knowledgeItemId: createdKnowledgeItem.id, speaker: "user" })],
-      rewrittenTranscript: [expect.objectContaining({ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 })],
-      session: {
-        canReopen: true,
-        id: freeFormSessionId,
-        title: "Free-form",
-      },
-      transcriptAnnotations: [
+    const historyDetailBody = (await historyDetailResponse.json()) as {
+      errors: Array<{ dimension: string; matchedTranscriptTurnIndex: number | null }>;
+      knowledgeItems: Array<{
+        knowledgeItemId: string;
+        occurrences: Array<{ transcriptTurnIndex: number }>;
+        speaker: string;
+      }>;
+      rewrittenTranscript: Array<{ text: string; transcriptTurnIndex: number }>;
+      session: { canReopen: boolean; id: string; title: string };
+      transcript: Array<{ speaker: string }>;
+      transcriptAnnotations: Array<{ kind: string; text: string; transcriptTurnIndex: number }>;
+      transcriptTurnAnchors: Array<{ id: string; turnLabel: string }>;
+    };
+
+    expect(historyDetailBody.session).toMatchObject({
+      canReopen: true,
+      id: freeFormSessionId,
+      title: "Free-form",
+    });
+    expect(historyDetailBody.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ dimension: "lexical", matchedTranscriptTurnIndex: 1 })]),
+    );
+    expect(historyDetailBody.knowledgeItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          knowledgeItemId: createdKnowledgeItem.id,
+          occurrences: expect.arrayContaining([expect.objectContaining({ transcriptTurnIndex: 1 })]),
+          speaker: "user",
+        }),
+      ]),
+    );
+    expect(historyDetailBody.rewrittenTranscript).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 }),
+      ]),
+    );
+    expect(historyDetailBody.transcriptAnnotations).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           kind: "coaching",
           text: "Ask why the verb changes in the past tense.",
           transcriptTurnIndex: 1,
         }),
-      ],
-      transcript: [expect.objectContaining({ speaker: "agent" }), expect.objectContaining({ speaker: "user" })],
-    });
+      ]),
+    );
+    expect(historyDetailBody.transcriptTurnAnchors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "turn-0", turnLabel: "Turn 1" })]),
+    );
+    expect(historyDetailBody.transcript).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ speaker: "agent" }),
+        expect.objectContaining({ speaker: "user" }),
+      ]),
+    );
 
     const rolePlayAnnotationResponse = await app.request(
       `http://localhost/api/internal/agent/sessions/${agentMetadata.sessionHistoryId}/transcript-annotations`,

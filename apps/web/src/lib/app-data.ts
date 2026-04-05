@@ -1,8 +1,8 @@
 import {
   adminScenarioListResponseSchema,
-  communicativeFunctions,
   defaultScenarioCursorPageSize,
-  fixednessLevels,
+  historyDetailResponseSchema,
+  historyDetailTabSchema,
   historyListResponseSchema,
   historyListSortBySchema,
   knowledgeGenerateSubmissionHistoryResponseSchema,
@@ -13,21 +13,14 @@ import {
   knowledgePointDetailSchema,
   knowledgePointListResponseSchema,
   knowledgePointListSortBySchema,
-  rewrittenTranscriptTurnSchema,
   type Scenario,
-  scenarioCharacterSchema,
   scenarioCursorResponseSchema,
-  scenarioDialogueTurnSchema,
-  scenarioGoalsSchema,
   scenarioListSortBySchema,
   scenarioPageResponseSchema,
   scenarioReviewStatusSchema,
   scenarioSchema,
   scenarioSourceSchema,
-  sessionTurnSchema,
   sessionTypeSchema,
-  syntaxRoles,
-  transcriptAnnotationSchema,
   userRoles,
 } from "@english-coach/contract";
 import { MutationCache, QueryClient, useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
@@ -102,7 +95,7 @@ export const historyListSearchSchema = z.object({
 });
 
 export const historyDetailSearchSchema = z.object({
-  tab: z.enum(["review", "transcript", "rewritten"]).default("review"),
+  tab: historyDetailTabSchema.default("review"),
   turn: z.coerce.number().int().min(0).optional(),
 });
 
@@ -138,63 +131,6 @@ export const knowledgePointsSearchSchema = z.object({
 
 export const freeFormSearchSchema = z.object({
   scenarioId: z.string().min(1).optional(),
-});
-
-const sessionScenarioSchema = z.object({
-  characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
-  exampleDialogue: z.array(scenarioDialogueTurnSchema),
-  goals: scenarioGoalsSchema,
-  id: z.string(),
-  setting: z.string(),
-  title: z.string(),
-});
-
-const sessionKnowledgeItemSchema = z.object({
-  communicativeFunction: z.enum(communicativeFunctions).nullable(),
-  count: z.number().int(),
-  example: z.string().nullable(),
-  examples: z.array(z.string()),
-  fixednessLevel: z.enum(fixednessLevels).nullable(),
-  id: z.string(),
-  knowledgeItemId: z.string(),
-  pattern: z.string(),
-  source: z.enum(["admin", "auto_generated"]),
-  speaker: z.enum(["user", "agent"]),
-  syntaxRole: z.enum(syntaxRoles).nullable(),
-});
-
-const sessionErrorSchema = z.object({
-  dimension: z.enum(["lexical", "syntactic", "pragmatic", "discourse", "phonological"]),
-  errorDescription: z.string(),
-  id: z.string(),
-  sessionHistoryId: z.string(),
-  suggestion: z.string(),
-  utterance: z.string(),
-});
-
-const historyDetailSchema = z.object({
-  contextDocument: z.string().optional(),
-  errors: z.array(sessionErrorSchema),
-  knowledgeItems: z.array(sessionKnowledgeItemSchema),
-  rewrittenTranscript: z.array(rewrittenTranscriptTurnSchema),
-  session: z.object({
-    canReopen: z.boolean(),
-    completedGoals: z.array(z.string()).nullable().optional(),
-    endedAt: z.string().nullable(),
-    freeFormContextId: z.string().nullable().optional(),
-    id: z.string(),
-    review: z.string().nullable(),
-    scenario: sessionScenarioSchema.nullable(),
-    scenarioId: z.string().nullable(),
-    selectedCharacterIndex: z.number().nullable(),
-    sessionType: sessionTypeSchema,
-    startedAt: z.string(),
-    title: z.string(),
-    userId: z.string(),
-  }),
-  transcriptAnnotations: z.array(transcriptAnnotationSchema),
-  transcript: z.array(sessionTurnSchema),
-  transcriptCreatedAt: z.string().nullable(),
 });
 
 export type ViewerResponse = z.infer<typeof viewerResponseSchema>;
@@ -483,7 +419,7 @@ export function useHistoryList(query: z.infer<typeof historyListSearchSchema>) {
 export function useSessionDetail(sessionId: string) {
   return useQuery({
     queryKey: [...historyQueryKey, sessionId],
-    queryFn: () => apiJson(`/api/history/${sessionId}`, historyDetailSchema),
+    queryFn: () => apiJson(`/api/history/${sessionId}`, historyDetailResponseSchema),
   });
 }
 

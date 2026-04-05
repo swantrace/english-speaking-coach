@@ -1,4 +1,4 @@
-import { historyListQuerySchema, sessionTypeSchema } from "@english-coach/contract";
+import { historyDetailResponseSchema, historyListQuerySchema, sessionTypeSchema } from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import {
   freeFormContexts,
@@ -7,6 +7,7 @@ import {
   sessionErrors,
   sessionHistory,
   sessionKnowledgeItems,
+  sessionKnowledgePointOccurrences,
   sessionTranscripts,
 } from "@english-coach/database/schema";
 import { and, asc, count, desc, eq, isNotNull, like, or } from "drizzle-orm";
@@ -31,6 +32,12 @@ function createHistorySearchCondition(search?: string) {
     like(scenarios.title, pattern),
     like(sessionHistory.review, pattern),
     like(sessionHistory.sessionType, pattern),
+  );
+}
+
+function findMatchedTranscriptTurnIndex(turns: Array<{ speaker: "user" | "agent"; text: string }>, utterance: string) {
+  return turns.findIndex(
+    (turn) => turn.speaker === "user" && (turn.text.includes(utterance) || utterance.includes(turn.text)),
   );
 }
 
@@ -146,7 +153,7 @@ export function registerHistoryRoutes(app: BackendApp) {
       return context.json({ error: "Session not found" }, 404);
     }
 
-    const [knowledgeItemRows, errorRows, transcriptRow] = await Promise.all([
+    const [knowledgeItemRows, errorRows, transcriptRow, occurrenceRows] = await Promise.all([
       db
         .select({
           communicativeFunction: knowledgeItems.communicativeFunction,
@@ -166,46 +173,90 @@ export function registerHistoryRoutes(app: BackendApp) {
         .where(eq(sessionKnowledgeItems.sessionHistoryId, sessionId)),
       db.select().from(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionId)),
       db.select().from(sessionTranscripts).where(eq(sessionTranscripts.sessionHistoryId, sessionId)).limit(1),
+      db
+        .select({
+          excerpt: sessionKnowledgePointOccurrences.excerpt,
+          id: sessionKnowledgePointOccurrences.id,
+          knowledgeItemId: sessionKnowledgePointOccurrences.knowledgeItemId,
+          occurrenceCount: sessionKnowledgePointOccurrences.occurrenceCount,
+          speaker: sessionKnowledgePointOccurrences.speaker,
+          transcriptTurnIndex: sessionKnowledgePointOccurrences.transcriptTurnIndex,
+        })
+        .from(sessionKnowledgePointOccurrences)
+        .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionId))
+        .orderBy(asc(sessionKnowledgePointOccurrences.transcriptTurnIndex), asc(sessionKnowledgePointOccurrences.id)),
     ]);
 
-    return context.json({
-      errors: errorRows,
-      knowledgeItems: knowledgeItemRows,
-      session: {
-        canReopen: record.sessionType === "free-form" && record.endedAt !== null,
-        completedGoals: record.completedGoals,
-        endedAt: record.endedAt,
-        freeFormContextId: record.freeFormContextId,
-        id: record.id,
-        review: record.review,
-        scenario:
-          record.scenarioId &&
-          record.scenarioTitle &&
-          record.scenarioSetting &&
-          record.scenarioCharacters &&
-          record.scenarioGoals &&
-          record.scenarioExampleDialogue
-            ? {
-                characters: record.scenarioCharacters,
-                exampleDialogue: record.scenarioExampleDialogue,
-                goals: record.scenarioGoals,
-                id: record.scenarioId,
-                setting: record.scenarioSetting,
-                title: record.scenarioTitle,
-              }
-            : null,
-        scenarioId: record.scenarioId,
-        selectedCharacterIndex: record.selectedCharacterIndex,
-        sessionType: record.sessionType,
-        startedAt: record.startedAt,
-        title: record.scenarioTitle ?? "Free-form",
-        userId: record.userId,
-      },
-      transcriptAnnotations: transcriptRow[0]?.annotations ?? [],
-      transcript: transcriptRow[0]?.turns ?? [],
-      transcriptCreatedAt: transcriptRow[0]?.createdAt ?? null,
-      rewrittenTranscript: transcriptRow[0]?.rewrittenTurns ?? [],
-      ...(record.contextDocument ? { contextDocument: record.contextDocument } : {}),
-    });
+    const transcriptTurns = transcriptRow[0]?.turns ?? [];
+    const occurrencesByKnowledgeItemId = occurrenceRows.reduce((groups, occurrence) => {
+      const bucket = groups.get(occurrence.knowledgeItemId) ?? [];
+      bucket.push(occurrence);
+      groups.set(occurrence.knowledgeItemId, bucket);
+      return groups;
+    }, new Map<string, typeof occurrenceRows>());
+
+    return context.json(
+      historyDetailResponseSchema.parse({
+        errors: errorRows.map((error) => {
+          const matchedIndex = findMatchedTranscriptTurnIndex(transcriptTurns, error.utterance);
+
+          return {
+            ...error,
+            matchedTranscriptTurnIndex: matchedIndex >= 0 ? matchedIndex : null,
+          };
+        }),
+        knowledgeItems: knowledgeItemRows.map((item) => ({
+          ...item,
+          occurrences: (occurrencesByKnowledgeItemId.get(item.knowledgeItemId) ?? []).map((occurrence) => ({
+            excerpt: occurrence.excerpt,
+            id: occurrence.id,
+            occurrenceCount: occurrence.occurrenceCount,
+            speaker: occurrence.speaker,
+            transcriptTurnIndex: occurrence.transcriptTurnIndex,
+          })),
+        })),
+        rewrittenTranscript: transcriptRow[0]?.rewrittenTurns ?? [],
+        session: {
+          canReopen: record.sessionType === "free-form" && record.endedAt !== null,
+          completedGoals: record.completedGoals,
+          endedAt: record.endedAt,
+          freeFormContextId: record.freeFormContextId,
+          id: record.id,
+          review: record.review,
+          scenario:
+            record.scenarioId &&
+            record.scenarioTitle &&
+            record.scenarioSetting &&
+            record.scenarioCharacters &&
+            record.scenarioGoals &&
+            record.scenarioExampleDialogue
+              ? {
+                  characters: record.scenarioCharacters,
+                  exampleDialogue: record.scenarioExampleDialogue,
+                  goals: record.scenarioGoals,
+                  id: record.scenarioId,
+                  setting: record.scenarioSetting,
+                  title: record.scenarioTitle,
+                }
+              : null,
+          scenarioId: record.scenarioId,
+          selectedCharacterIndex: record.selectedCharacterIndex,
+          sessionType: record.sessionType,
+          startedAt: record.startedAt,
+          title: record.scenarioTitle ?? "Free-form",
+          userId: record.userId,
+        },
+        transcript: transcriptTurns,
+        transcriptAnnotations: transcriptRow[0]?.annotations ?? [],
+        transcriptCreatedAt: transcriptRow[0]?.createdAt ?? null,
+        transcriptTurnAnchors: transcriptTurns.map((turn, index) => ({
+          id: `turn-${index}`,
+          speaker: turn.speaker === "agent" ? "assistant" : "user",
+          transcriptTurnIndex: index,
+          turnLabel: `Turn ${index + 1}`,
+        })),
+        ...(record.contextDocument ? { contextDocument: record.contextDocument } : {}),
+      }),
+    );
   });
 }

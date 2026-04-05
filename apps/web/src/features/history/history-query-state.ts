@@ -2,8 +2,8 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 export const historyDetailTabs = [
-  { key: "review", label: "Post-session review" },
   { key: "transcript", label: "Original transcript" },
+  { key: "review", label: "Post-session review" },
   { key: "rewritten", label: "Rewritten transcript" },
 ] as const;
 

@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { communicativeFunctions, fixednessLevels, syntaxRoles } from "./linguistics";
-import { scenarioReviewStatusSchema, scenarioSchema, scenarioSourceSchema, sessionTypeSchema } from "./session";
+import {
+  rewrittenTranscriptTurnSchema,
+  scenarioCharacterSchema,
+  scenarioDialogueTurnSchema,
+  scenarioGoalsSchema,
+  scenarioReviewStatusSchema,
+  scenarioSchema,
+  scenarioSourceSchema,
+  sessionTurnSchema,
+  sessionTypeSchema,
+  transcriptAnnotationSchema,
+} from "./session";
 
 export const defaultListPage = 1;
 export const defaultListPageSize = 20;
@@ -103,9 +114,75 @@ export const historyListQuerySchema = pageListQuerySchema.extend({
   sortBy: historyListSortBySchema.default(historyListSortBySchema.enum.startedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
 });
-
 export const knowledgeItemSourceSchema = z.enum(["admin", "auto_generated"]);
 export const knowledgeItemReviewStatusSchema = z.enum(["pending_review", "approved", "rejected"]);
+export const historyDetailTabSchema = z.enum(["review", "transcript", "rewritten"]);
+
+export const historyDetailScenarioSchema = z.object({
+  characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
+  exampleDialogue: z.array(scenarioDialogueTurnSchema),
+  goals: scenarioGoalsSchema,
+  id: z.string(),
+  setting: z.string(),
+  title: z.string(),
+});
+
+export const historyKnowledgeItemOccurrenceSummarySchema = z.object({
+  excerpt: z.string().trim().min(1),
+  id: z.string(),
+  occurrenceCount: z.number().int().min(1),
+  speaker: z.enum(["user", "agent"]),
+  transcriptTurnIndex: z.number().int().min(0),
+});
+
+export const historyKnowledgeItemSchema = z.object({
+  communicativeFunction: z.enum(communicativeFunctions).nullable(),
+  count: z.number().int(),
+  example: z.string().nullable(),
+  examples: z.array(z.string()),
+  fixednessLevel: z.enum(fixednessLevels).nullable(),
+  id: z.string(),
+  knowledgeItemId: z.string(),
+  occurrences: z.array(historyKnowledgeItemOccurrenceSummarySchema),
+  pattern: z.string(),
+  source: knowledgeItemSourceSchema,
+  speaker: z.enum(["user", "agent"]),
+  syntaxRole: z.enum(syntaxRoles).nullable(),
+});
+
+export const historySessionErrorSchema = z.object({
+  dimension: z.enum(["lexical", "syntactic", "pragmatic", "discourse", "phonological"]),
+  errorDescription: z.string(),
+  id: z.string(),
+  matchedTranscriptTurnIndex: z.number().int().min(0).nullable(),
+  sessionHistoryId: z.string(),
+  suggestion: z.string(),
+  utterance: z.string(),
+});
+
+export const historyTranscriptTurnAnchorSchema = z.object({
+  id: z.string(),
+  speaker: z.enum(["user", "assistant"]),
+  transcriptTurnIndex: z.number().int().min(0),
+  turnLabel: z.string(),
+});
+
+export const historyDetailSessionSchema = historySummarySchema.extend({
+  scenario: historyDetailScenarioSchema.nullable(),
+});
+
+export const historyDetailResponseSchema = z.object({
+  contextDocument: z.string().optional(),
+  errors: z.array(historySessionErrorSchema),
+  knowledgeItems: z.array(historyKnowledgeItemSchema),
+  rewrittenTranscript: z.array(rewrittenTranscriptTurnSchema),
+  session: historyDetailSessionSchema,
+  transcriptAnnotations: z.array(transcriptAnnotationSchema),
+  transcript: z.array(sessionTurnSchema),
+  transcriptCreatedAt: z.string().nullable(),
+  transcriptTurnAnchors: z.array(historyTranscriptTurnAnchorSchema),
+});
+
 export const knowledgeItemSchema = z.object({
   communicativeFunction: z.enum(communicativeFunctions).nullable(),
   createdAt: z.string(),
@@ -170,6 +247,7 @@ export const scenarioPageResponseSchema = createPageListResponseSchema(scenarioS
 export const scenarioCursorResponseSchema = createCursorListResponseSchema(scenarioSchema);
 export const adminScenarioListResponseSchema = createPageListResponseSchema(scenarioSchema);
 export const historyListResponseSchema = createPageListResponseSchema(historySummarySchema);
+export const historyDetailResponseListSchema = historyDetailResponseSchema;
 export const knowledgeItemListResponseSchema = createPageListResponseSchema(knowledgeItemSchema);
 export const knowledgePointListResponseSchema = createPageListResponseSchema(knowledgePointSummarySchema);
 
@@ -180,6 +258,14 @@ export type AdminScenarioListQuery = z.infer<typeof adminScenarioListQuerySchema
 export type ScenarioListQuery = LearnerScenarioListQuery;
 export type HistorySummary = z.infer<typeof historySummarySchema>;
 export type HistoryListQuery = z.infer<typeof historyListQuerySchema>;
+export type HistoryDetailTab = z.infer<typeof historyDetailTabSchema>;
+export type HistoryDetailScenario = z.infer<typeof historyDetailScenarioSchema>;
+export type HistoryKnowledgeItemOccurrenceSummary = z.infer<typeof historyKnowledgeItemOccurrenceSummarySchema>;
+export type HistoryKnowledgeItem = z.infer<typeof historyKnowledgeItemSchema>;
+export type HistorySessionError = z.infer<typeof historySessionErrorSchema>;
+export type HistoryTranscriptTurnAnchor = z.infer<typeof historyTranscriptTurnAnchorSchema>;
+export type HistoryDetailSession = z.infer<typeof historyDetailSessionSchema>;
+export type HistoryDetailResponse = z.infer<typeof historyDetailResponseSchema>;
 export type KnowledgeItemSource = z.infer<typeof knowledgeItemSourceSchema>;
 export type KnowledgeItemReviewStatus = z.infer<typeof knowledgeItemReviewStatusSchema>;
 export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;

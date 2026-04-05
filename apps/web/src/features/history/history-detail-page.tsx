@@ -58,6 +58,17 @@ export function HistoryDetailPage() {
     historySearch.turn === undefined
       ? undefined
       : displayedTranscriptEntries.find((entry) => entry.turnIndex === historySearch.turn);
+  const selectedAnchor =
+    historySearch.turn === undefined
+      ? undefined
+      : detail.data?.transcriptTurnAnchors.find((anchor) => anchor.transcriptTurnIndex === historySearch.turn);
+
+  const focusTurn = (turnIndex: number, tab: "review" | "transcript" | "rewritten" = "transcript") => {
+    void navigate({
+      search: (previous) => ({ ...previous, tab, turn: turnIndex }),
+      to: "/history/$sessionId",
+    });
+  };
 
   useEffect(() => {
     if (historySearch.turn === undefined || historySearch.tab !== "review") {
@@ -260,6 +271,25 @@ export function HistoryDetailPage() {
                                     {item.examples.length ? (
                                       <p className="mt-3 text-sm leading-7 text-slate-200">“{item.examples[0]}”</p>
                                     ) : null}
+                                    {item.occurrences.length ? (
+                                      <div className="mt-3 flex flex-wrap gap-2">
+                                        {item.occurrences.slice(0, 3).map((occurrence) => (
+                                          <Button
+                                            key={occurrence.id}
+                                            onClick={() => focusTurn(occurrence.transcriptTurnIndex)}
+                                            size="sm"
+                                            variant="outline"
+                                          >
+                                            Turn {occurrence.transcriptTurnIndex + 1}
+                                          </Button>
+                                        ))}
+                                        {item.occurrences.length > 3 ? (
+                                          <span className="self-center text-xs uppercase tracking-[0.18em] text-slate-500">
+                                            +{item.occurrences.length - 3} more links
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    ) : null}
                                   </div>
                                 ))
                               ) : (
@@ -295,6 +325,17 @@ export function HistoryDetailPage() {
                             <p className="text-sm font-medium text-rose-50">{error.errorDescription}</p>
                             <p className="mt-2 text-sm leading-7 text-slate-200">Utterance: “{error.utterance}”</p>
                             <p className="mt-2 text-sm leading-7 text-rose-100">Suggestion: {error.suggestion}</p>
+                            {error.matchedTranscriptTurnIndex !== null ? (
+                              <div className="mt-3">
+                                <Button
+                                  onClick={() => focusTurn(error.matchedTranscriptTurnIndex as number)}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  Open turn {error.matchedTranscriptTurnIndex + 1}
+                                </Button>
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -337,6 +378,11 @@ export function HistoryDetailPage() {
                   ? "Learner turns are rewritten from the stored post-session corrections while agent turns remain unchanged."
                   : "Stored transcript annotations replay against their original turn anchors when available."}
               </p>
+              {selectedAnchor ? (
+                <div className="rounded-[18px] border border-orange-300/20 bg-orange-300/10 px-4 py-3 text-sm text-orange-50">
+                  Focused on {selectedAnchor.turnLabel}.
+                </div>
+              ) : null}
               {activeTab === "rewritten" && detail.data.rewrittenTranscript.length === 0 ? (
                 <PageState
                   description="The post-session analysis has not produced a rewritten learner transcript yet."
