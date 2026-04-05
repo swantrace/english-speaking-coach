@@ -43,8 +43,8 @@ export function createStartedProgressMessage(
 
 export function createCompletedProgressMessage(
   jobId: string,
-  message: string,
   processedAt: string,
+  message: string,
 ): JobProgressMessage {
   return jobProgressMessageSchema.parse({
     jobId,

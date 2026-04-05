@@ -32,7 +32,7 @@ export const scenarios = sqliteTable(
     /** Pre-written model dialogue shown on the scenario detail page before practice. */
     exampleDialogue: text("example_dialogue", { mode: "json" })
       .notNull()
-      .$type<Array<{ speaker: "user" | "agent"; text: string }>>(),
+      .$type<Array<{ characterIndex: 0 | 1; text: string }>>(),
     source: text("source", { enum: scenarioSourceValues }).notNull().default("admin"),
     reviewStatus: text("review_status", { enum: scenarioReviewStatusValues }).notNull().default("approved"),
     reviewedAt: text("reviewed_at"),

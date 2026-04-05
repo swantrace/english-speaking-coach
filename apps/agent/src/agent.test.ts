@@ -31,8 +31,8 @@ const scenario: Scenario = {
   ],
   createdAt: new Date().toISOString(),
   exampleDialogue: [
-    { speaker: "agent" as const, text: "Good evening. Are you ready to order?" },
-    { speaker: "user" as const, text: "Yes, I'd like the pasta." },
+    { characterIndex: 1 as const, text: "Good evening. Are you ready to order?" },
+    { characterIndex: 0 as const, text: "Yes, I'd like the pasta." },
   ],
   goals: {
     goals: [

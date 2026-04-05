@@ -1,6 +1,8 @@
 import { openai } from "@ai-sdk/openai";
 import {
   scenarioCharacterSchema,
+  scenarioDialogueTurnSchema,
+  scenarioGoalsSchema,
   scenarioReviewStatusSchema,
   scenarioSchema,
   scenarioSourceSchema,
@@ -21,8 +23,9 @@ export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario-g
 
 import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
 import { scenarios } from "@english-coach/database/schema";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
+import { z } from "zod";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import {
   createCompletedProgressMessage,
@@ -68,7 +71,19 @@ const generatedScenarioSchema = scenarioSchema
     characters: scenarioCharacterSchema.array().length(2),
   });
 
-type GeneratedScenario = typeof generatedScenarioSchema._output;
+const scenarioStorySchema = z.object({
+  characters: scenarioCharacterSchema.array().length(2),
+  setting: z.string().trim().min(1),
+  story: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+});
+
+const scenarioDialogueExampleSchema = z.object({
+  exampleDialogue: z.array(scenarioDialogueTurnSchema).min(1),
+});
+
+type GeneratedScenario = z.output<typeof generatedScenarioSchema>;
+type ScenarioStory = z.infer<typeof scenarioStorySchema>;
 
 let scenarioGeneratorOverride: ((prompt: string) => Promise<GeneratedScenario>) | null = null;
 
@@ -105,19 +120,15 @@ function createCompletedScenarioGenerateProgressMessage(
   jobId: string,
   jobData: ScenarioGenerateJobData,
   processedAt: string,
-  scenarioTitle: string,
 ) {
   return createScenarioGenerateProgressMessage(
-    createCompletedProgressMessage(jobId, `Scenario ready for review: ${scenarioTitle}`, processedAt),
+    createCompletedProgressMessage(jobId, processedAt, "completed"),
     jobData,
   );
 }
 
 function createFailedScenarioGenerateProgressMessage(jobId: string, jobData: ScenarioGenerateJobData, error: string) {
-  return createScenarioGenerateProgressMessage(
-    createFailedProgressMessage(jobId, error, "Scenario generation failed"),
-    jobData,
-  );
+  return createScenarioGenerateProgressMessage(createFailedProgressMessage(jobId, error, "failed"), jobData);
 }
 
 export async function createScenarioGenerateSubmission(
@@ -233,49 +244,82 @@ async function generateScenario(prompt: string): Promise<GeneratedScenario> {
     return scenarioGeneratorOverride(prompt);
   }
 
-  if (process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR === "1") {
-    return generatedScenarioSchema.parse({
-      characters: [
-        { description: "Practising customer language in a deterministic test scenario.", name: "Learner" },
-        { description: "Responds naturally and keeps the test queue deterministic.", name: "Coach" },
-      ],
-      exampleDialogue: [
-        { speaker: "agent", text: "Hello. What would you like to practise today?" },
-        { speaker: "user", text: `I want to practise: ${prompt}` },
-      ],
-      goals: {
-        goals: [
-          {
-            description: "State the main request clearly",
-            id: "state-main-request",
-            logic: { required_intents: ["state_request"], required_slots: ["request_detail"] },
-          },
-        ],
-        intents: ["state_request"],
-        slots: ["request_detail"],
-      },
-      setting: `Deterministic test scenario for ${prompt}`,
-      title: `Generated from ${prompt}`,
-    });
-  }
+  const scenarioStory = await generateScenarioStory(prompt);
+  const goals = await generateScenarioGoals(scenarioStory);
+  const exampleDialogue = await generateScenarioDialogue(scenarioStory, goals);
 
-  const { object } = await generateObject({
+  return generatedScenarioSchema.parse({
+    characters: scenarioStory.characters,
+    exampleDialogue,
+    goals,
+    setting: scenarioStory.setting,
+    title: scenarioStory.title,
+  });
+}
+
+async function generateScenarioObject<TSchema extends z.ZodTypeAny>(
+  schema: TSchema,
+  promptSections: string[],
+): Promise<z.output<TSchema>> {
+  const { output } = await generateText({
     model: openai(process.env.SCENARIO_GENERATE_MODEL ?? "gpt-4.1-mini"),
-    prompt: [
-      "You generate structured role-play scenarios for an English-speaking coach platform.",
-      "Return one scenario with exactly two characters, realistic goals, and a short example dialogue.",
-      "The scenario should be practical for spoken English practice and should reflect this brief:",
-      prompt,
-    ].join("\n\n"),
+    output: Output.object({
+      schema,
+    }),
+    prompt: promptSections.join("\n\n"),
     providerOptions: {
       openai: {
         strictJsonSchema: false,
       },
     },
-    schema: generatedScenarioSchema,
   });
 
-  return object;
+  return schema.parse(output);
+}
+
+async function generateScenarioStory(prompt: string): Promise<ScenarioStory> {
+  return generateScenarioObject(scenarioStorySchema, [
+    "You expand a short role-play brief into a concrete two-person spoken English scenario.",
+    "The brief can describe any kind of interaction. Do not assume customer service, complaints, or business context unless the brief implies it.",
+    "Return a concise title, a scene-setting summary, exactly two characters, and a detailed story.",
+    "The two characters are the two roles in the scenario. Do not assign one in advance as the learner or the agent.",
+    "The title should work as the main scenario card headline and as a quick label in lists and history.",
+    "The setting should be a compact summary that works as a browser card subtitle and as prompt input for the agent.",
+    "The story should be detailed enough for later steps to extract goals and write an example dialogue. It must clearly explain the background, what each person wants, the main obstacle or misunderstanding, any pressure or constraints on either side, the information that must be clarified during the conversation, and the most plausible path toward resolution.",
+    "Role-play brief:",
+    prompt,
+  ]);
+}
+
+async function generateScenarioGoals(story: ScenarioStory) {
+  return generateScenarioObject(scenarioGoalsSchema, [
+    "You convert a two-person scenario story into structured role-play goals.",
+    "Use only details that are supported by the scenario story package.",
+    "Top-level intents should be reusable conversational actions, not full sentences.",
+    "Top-level slots should be concrete pieces of information that matter for resolving the interaction.",
+    "Goals should describe what the learner must accomplish, follow a natural conversational order, and stay minimal while still covering the full interaction.",
+    "Every required_intents and required_slots entry must reference names declared in the top-level intents and slots arrays.",
+    "Do not include runtime progress or status.",
+    "Scenario story package:",
+    JSON.stringify(story, null, 2),
+  ]);
+}
+
+async function generateScenarioDialogue(story: ScenarioStory, goals: z.infer<typeof scenarioGoalsSchema>) {
+  const result = await generateScenarioObject(scenarioDialogueExampleSchema, [
+    "You write a short example dialogue for a two-person spoken English role-play.",
+    "Use characterIndex 0 or 1 on each turn so every line is tied to one of the two generated characters.",
+    "characterIndex 0 refers to characters[0]. characterIndex 1 refers to characters[1].",
+    "The dialogue should sound natural, reflect the characters and conflict, and show a credible path through the interaction.",
+    "Make the dialogue concise but complete enough to demonstrate how the scenario can succeed.",
+    "The dialogue must visibly cover the key goals, intents, and slot collection implied by the goals object.",
+    "Scenario story package:",
+    JSON.stringify(story, null, 2),
+    "Goals object:",
+    JSON.stringify(goals, null, 2),
+  ]);
+
+  return result.exampleDialogue;
 }
 
 async function persistScenario(
@@ -337,7 +381,6 @@ export const scenarioGenerateWorker = new Worker<ScenarioGenerateJobData>(
       String(job.id),
       job.data,
       persistedScenario.processedAt,
-      persistedScenario.title,
     );
 
     await saveScenarioGenerateSnapshot(completedMessage);

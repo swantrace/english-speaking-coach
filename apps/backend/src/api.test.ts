@@ -23,7 +23,7 @@ import {
   submissions,
   user,
 } from "@english-coach/database/schema";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { TokenVerifier } from "livekit-server-sdk";
 import { createSubscriberRedisConnection } from "./lib/redis";
 
@@ -189,8 +189,8 @@ async function createScenarioRecord(titlePrefix: string) {
     ],
     createdAt: now,
     exampleDialogue: [
-      { speaker: "agent", text: "Hi there, what can I get for you today?" },
-      { speaker: "user", text: "I'd like a cappuccino, please." },
+      { characterIndex: 1, text: "Hi there, what can I get for you today?" },
+      { characterIndex: 0, text: "I'd like a cappuccino, please." },
     ],
     goals: {
       goals: [
@@ -252,8 +252,8 @@ describe("backend phase 2 integration", () => {
         { description: "Responds naturally to the learner.", name: "Coach" },
       ],
       exampleDialogue: [
-        { speaker: "agent", text: "Welcome in. How can I help?" },
-        { speaker: "user", text: "I need help with this situation." },
+        { characterIndex: 1, text: "Welcome in. How can I help?" },
+        { characterIndex: 0, text: "I need help with this situation." },
       ],
       goals: {
         goals: [
@@ -410,8 +410,8 @@ describe("backend phase 2 integration", () => {
           { description: "A hiring manager asking follow-up questions.", name: "Hiring Manager" },
         ],
         exampleDialogue: [
-          { speaker: "agent", text: "Tell me about your background." },
-          { speaker: "user", text: "I have five years of product experience." },
+          { characterIndex: 1, text: "Tell me about your background." },
+          { characterIndex: 0, text: "I have five years of product experience." },
         ],
         goals: {
           goals: [

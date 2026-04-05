@@ -42,10 +42,23 @@ export const scenarioCharacterSchema = z.object({
   description: z.string(),
 });
 
-export const scenarioDialogueTurnSchema = z.object({
-  speaker: z.enum(["user", "agent"]),
-  text: z.string(),
-});
+const scenarioDialogueTurnTextSchema = z.string().trim().min(1);
+
+export const scenarioDialogueTurnSchema = z.union([
+  z.object({
+    characterIndex: z.union([z.literal(0), z.literal(1)]),
+    text: scenarioDialogueTurnTextSchema,
+  }),
+  z
+    .object({
+      speaker: z.enum(["user", "agent"]),
+      text: scenarioDialogueTurnTextSchema,
+    })
+    .transform(({ speaker, text }) => ({
+      characterIndex: speaker === "user" ? (0 as const) : (1 as const),
+      text,
+    })),
+]);
 
 export const scenarioGoalSchema = z.object({
   id: z.string(),
@@ -73,10 +86,10 @@ export const scenarioSchema = z.object({
   title: z.string(),
   /** Scene-setting text: used as the card subtitle and fed into the agent prompt. */
   setting: z.string(),
-  /** Always exactly two characters: index 0 is the user's default, index 1 is the agent's character. */
+  /** Always exactly two scenario roles. The learner's role is chosen later via `selectedCharacterIndex`. */
   characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
   goals: scenarioGoalsSchema,
-  /** Pre-written model dialogue shown on the scenario detail page before practice. */
+  /** Pre-written model dialogue shown on the scenario detail page before practice, keyed to `characters` by index. */
   exampleDialogue: z.array(scenarioDialogueTurnSchema),
   reviewStatus: scenarioReviewStatusSchema,
   reviewedAt: z.string().nullable(),

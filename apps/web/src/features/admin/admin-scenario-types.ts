@@ -21,8 +21,8 @@ export function createEmptyScenarioDraft(): ScenarioFormDraft {
       { description: "The scene partner the agent will play.", name: "Partner" },
     ]),
     exampleDialogueJson: toPrettyJson([
-      { speaker: "agent", text: "Hello. How can I help you today?" },
-      { speaker: "user", text: "I need help with this situation." },
+      { characterIndex: 1, text: "Hello. How can I help you today?" },
+      { characterIndex: 0, text: "I need help with this situation." },
     ]),
     goalsJson: toPrettyJson({
       goals: [

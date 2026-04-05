@@ -52,11 +52,13 @@ export function ScenarioDetailPage() {
                 {scenario.data.exampleDialogue.map((turn) => (
                   <div
                     className={`grid gap-2 rounded-[22px] border px-4 py-4 ${
-                      turn.speaker === "user" ? "border-cyan-300 bg-cyan-100" : "border-slate-200 bg-slate-50"
+                      turn.characterIndex === 0 ? "border-cyan-300 bg-cyan-100" : "border-slate-200 bg-slate-50"
                     }`}
-                    key={`${turn.speaker}:${turn.text}`}
+                    key={`${turn.characterIndex}:${turn.text}`}
                   >
-                    <span className="text-xs uppercase tracking-[0.22em] text-slate-400">{turn.speaker}</span>
+                    <span className="text-xs uppercase tracking-[0.22em] text-slate-400">
+                      {scenario.data.characters[turn.characterIndex]?.name ?? `Character ${turn.characterIndex + 1}`}
+                    </span>
                     <p className="text-sm leading-7 text-slate-800">{turn.text}</p>
                   </div>
                 ))}
