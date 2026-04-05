@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminScenarioPage } from "../../features/admin/admin-pages";
+import { AdminScenarioPage } from "../../features/admin/admin-scenario-page";
 import { adminScenariosSearchSchema } from "../../lib/app-data";
 
 export const Route = createFileRoute("/admin/scenarios")({

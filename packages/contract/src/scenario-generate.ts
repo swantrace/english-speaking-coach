@@ -4,6 +4,12 @@ import {
   jobProgressMessageSchema,
   jobProgressStatusSchema,
 } from "./job-events";
+import {
+  scenarioCharacterSchema,
+  scenarioDialogueTurnSchema,
+  scenarioGoalsSchema,
+  scenarioReviewStatusSchema,
+} from "./session";
 
 export const scenarioGenerateSubmissionKind = "scenario.generate";
 export const scenarioGenerateQueueName = scenarioGenerateSubmissionKind;
@@ -37,6 +43,25 @@ export const scenarioGenerateSubmissionItemSchema = z.object({
 export const scenarioGenerateSubmissionBodySchema = z.object({
   items: z.array(scenarioGenerateSubmissionItemSchema).min(1),
 });
+
+const adminScenarioWriteBaseSchema = z.object({
+  characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
+  exampleDialogue: z.array(scenarioDialogueTurnSchema).min(1),
+  goals: scenarioGoalsSchema,
+  setting: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+});
+
+export const adminScenarioCreateSchema = adminScenarioWriteBaseSchema.extend({
+  reviewStatus: scenarioReviewStatusSchema.optional().default(scenarioReviewStatusSchema.enum.approved),
+});
+
+export const adminScenarioUpdateSchema = adminScenarioWriteBaseSchema
+  .extend({
+    reviewStatus: scenarioReviewStatusSchema.optional(),
+  })
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 
 export const scenarioGenerateSubmissionTransportBodySchema = z.object({
   items: z.array(z.unknown()).min(1),
@@ -100,6 +125,8 @@ export type ScenarioGenerateSubmissionTransportBody = z.infer<typeof scenarioGen
 export type ScenarioGenerateSubmissionTransportRequest = z.infer<
   typeof scenarioGenerateSubmissionTransportRequestSchema
 >;
+export type AdminScenarioCreate = z.infer<typeof adminScenarioCreateSchema>;
+export type AdminScenarioUpdate = z.infer<typeof adminScenarioUpdateSchema>;
 export type ScenarioGenerateEventsQuery = z.infer<typeof scenarioGenerateEventsQuerySchema>;
 export type ScenarioGenerateSubmissionResult = z.infer<typeof scenarioGenerateSubmissionResultSchema>;
 export type ScenarioGenerateJobUpdate = z.infer<typeof scenarioGenerateJobUpdateSchema>;

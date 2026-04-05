@@ -43,6 +43,13 @@
       "when": 1775344086967,
       "tag": "0005_minor_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1775352000000,
+      "tag": "0006_scenario_review_pipeline",
+      "breakpoints": true
     }
   ]
 }

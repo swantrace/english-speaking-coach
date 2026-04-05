@@ -1,4 +1,5 @@
-export { AdminKnowledgeItemsPage, AdminScenarioPage } from "../features/admin/admin-pages";
+export { AdminKnowledgeItemsPage } from "../features/admin/admin-pages";
+export { AdminScenarioPage } from "../features/admin/admin-scenario-page";
 export {
   FreeFormPage,
   ScenarioBrowserPage,

@@ -16,7 +16,9 @@ import {
   scenarioGoalsSchema,
   scenarioListSortBySchema,
   scenarioPageResponseSchema,
+  scenarioReviewStatusSchema,
   scenarioSchema,
+  scenarioSourceSchema,
   sessionTurnSchema,
   sessionTypeSchema,
   syntaxRoles,
@@ -102,10 +104,13 @@ export const historyDetailSearchSchema = z.object({
 
 export const adminScenariosSearchSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(9),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  reviewStatus: scenarioReviewStatusSchema.optional(),
   search: optionalRouteSearchSchema,
   sortBy: scenarioListSortBySchema.default("updatedAt"),
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
+  source: scenarioSourceSchema.optional(),
+  tab: z.enum(["manage", "generate"]).default("manage"),
 });
 
 export const adminKnowledgeItemsSearchSchema = z.object({
@@ -418,9 +423,11 @@ export function useAdminScenarios(query: z.infer<typeof adminScenariosSearchSche
   const searchParams = createSearchParams({
     page: query.page,
     pageSize: query.pageSize,
+    reviewStatus: query.reviewStatus,
     search: query.search,
     sortBy: query.sortBy,
     sortDirection: query.sortDirection,
+    source: query.source,
   });
 
   return useQuery({

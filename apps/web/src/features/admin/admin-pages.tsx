@@ -57,9 +57,12 @@ function useAdminScenarioQueryState() {
     query: {
       page: currentSearch.page,
       pageSize: currentSearch.pageSize,
+      reviewStatus: currentSearch.reviewStatus,
       search: currentSearch.search,
       sortBy: currentSearch.sortBy,
       sortDirection: currentSearch.sortDirection,
+      source: currentSearch.source,
+      tab: currentSearch.tab,
     },
     searchInput,
     setPage: (page: number) => void navigate({ search: (previous) => ({ ...previous, page }), to: "/admin/scenarios" }),

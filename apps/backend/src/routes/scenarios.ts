@@ -4,12 +4,15 @@ import {
   learnerScenarioListQuerySchema,
   scenarioCursorResponseSchema,
   scenarioPageResponseSchema,
+  scenarioReviewStatusSchema,
   scenarioSchema,
 } from "@english-coach/contract";
+import { adminScenarioCreateSchema, adminScenarioUpdateSchema } from "@english-coach/contract/scenario-generate";
 import { db } from "@english-coach/database";
 import { scenarios } from "@english-coach/database/schema";
 import { and, asc, count, desc, eq, like, lt, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
+import { getAuthenticatedUser, parseJsonBody } from "../http/context";
 import { requireAdmin } from "../http/guards";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
 
@@ -44,6 +47,44 @@ function createScenarioSearchCondition(search?: string) {
   return or(like(scenarios.title, pattern), like(scenarios.setting, pattern), like(scenarios.characters, pattern));
 }
 
+function createScenarioFilterCondition(options: {
+  approvedOnly?: boolean;
+  reviewStatus?: (typeof scenarioReviewStatusSchema)["_output"];
+  search?: string;
+  source?: (typeof scenarios.$inferSelect)["source"];
+}) {
+  const conditions = [
+    options.approvedOnly ? eq(scenarios.reviewStatus, scenarioReviewStatusSchema.enum.approved) : null,
+    options.reviewStatus ? eq(scenarios.reviewStatus, options.reviewStatus) : null,
+    options.source ? eq(scenarios.source, options.source) : null,
+    createScenarioSearchCondition(options.search),
+  ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+
+  if (conditions.length === 0) {
+    return undefined;
+  }
+
+  return and(...conditions);
+}
+
+async function getScenarioRecordById(scenarioId: string) {
+  const [record] = await db.select().from(scenarios).where(eq(scenarios.id, scenarioId)).limit(1);
+
+  return record ?? null;
+}
+
+async function deleteScenarioRecord(scenarioId: string) {
+  const existingScenario = await getScenarioRecordById(scenarioId);
+
+  if (!existingScenario) {
+    return null;
+  }
+
+  await db.delete(scenarios).where(eq(scenarios.id, scenarioId));
+
+  return existingScenario;
+}
+
 export function registerScenarioRoutes(app: BackendApp) {
   app.get("/api/learner/scenarios", async (context) => {
     const parsedQuery = learnerScenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
@@ -53,7 +94,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     }
 
     const { cursor, page, pageSize, pagination, search, sortBy, sortDirection } = parsedQuery.data;
-    const searchCondition = createScenarioSearchCondition(search);
+    const approvedCondition = createScenarioFilterCondition({ approvedOnly: true, search });
 
     if (pagination === "cursor") {
       const decodedCursor = cursor ? decodeScenarioCursor(cursor) : null;
@@ -68,22 +109,19 @@ export function registerScenarioRoutes(app: BackendApp) {
             and(eq(scenarios.updatedAt, decodedCursor.updatedAt), lt(scenarios.id, decodedCursor.id)),
           )
         : null;
-      const whereCondition = searchCondition
+      const whereCondition = approvedCondition
         ? cursorCondition
-          ? and(searchCondition, cursorCondition)
-          : searchCondition
-        : cursorCondition;
+          ? and(approvedCondition, cursorCondition)
+          : approvedCondition
+        : (cursorCondition ?? undefined);
       const [records, totalResult] = await Promise.all([
         db
           .select()
           .from(scenarios)
-          .where(whereCondition ?? undefined)
+          .where(whereCondition)
           .orderBy(desc(scenarios.updatedAt), desc(scenarios.id))
           .limit(pageSize + 1),
-        db
-          .select({ total: count() })
-          .from(scenarios)
-          .where(searchCondition ?? undefined),
+        db.select({ total: count() }).from(scenarios).where(approvedCondition),
       ]);
       const hasMore = records.length > pageSize;
       const pageRecords = hasMore ? records.slice(0, pageSize) : records;
@@ -108,14 +146,11 @@ export function registerScenarioRoutes(app: BackendApp) {
       db
         .select()
         .from(scenarios)
-        .where(searchCondition ?? undefined)
+        .where(approvedCondition)
         .orderBy(orderExpression, desc(scenarios.id))
         .limit(pageSize)
         .offset(offset),
-      db
-        .select({ total: count() })
-        .from(scenarios)
-        .where(searchCondition ?? undefined),
+      db.select({ total: count() }).from(scenarios).where(approvedCondition),
     ]);
 
     return context.json(
@@ -137,23 +172,20 @@ export function registerScenarioRoutes(app: BackendApp) {
       return context.json({ error: "Invalid scenario query parameters" }, 400);
     }
 
-    const { page, pageSize, search, sortBy, sortDirection } = parsedQuery.data;
+    const { page, pageSize, reviewStatus, search, sortBy, sortDirection, source } = parsedQuery.data;
     const offset = getPageOffset(page, pageSize);
-    const searchCondition = createScenarioSearchCondition(search);
+    const filterCondition = createScenarioFilterCondition({ reviewStatus, search, source });
     const orderColumn = scenarioSortColumnMap[sortBy];
     const orderExpression = sortDirection === "asc" ? asc(orderColumn) : desc(orderColumn);
     const [records, totalResult] = await Promise.all([
       db
         .select()
         .from(scenarios)
-        .where(searchCondition ?? undefined)
+        .where(filterCondition)
         .orderBy(orderExpression, desc(scenarios.id))
         .limit(pageSize)
         .offset(offset),
-      db
-        .select({ total: count() })
-        .from(scenarios)
-        .where(searchCondition ?? undefined),
+      db.select({ total: count() }).from(scenarios).where(filterCondition),
     ]);
 
     return context.json(
@@ -168,14 +200,109 @@ export function registerScenarioRoutes(app: BackendApp) {
     );
   });
 
+  app.post("/api/admin/scenarios", async (context) => {
+    const parsedBody = await parseJsonBody(context, adminScenarioCreateSchema);
+
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
+    const now = new Date().toISOString();
+    const scenarioId = crypto.randomUUID();
+    const currentUser = getAuthenticatedUser(context);
+    const reviewStatus = parsedBody.data.reviewStatus;
+    const isReviewed = reviewStatus !== scenarioReviewStatusSchema.enum.pending_review;
+
+    await db.insert(scenarios).values({
+      characters: parsedBody.data.characters,
+      createdAt: now,
+      exampleDialogue: parsedBody.data.exampleDialogue,
+      goals: parsedBody.data.goals,
+      id: scenarioId,
+      reviewStatus,
+      reviewedAt: isReviewed ? now : null,
+      reviewedByUserId: isReviewed ? (currentUser?.id ?? null) : null,
+      setting: parsedBody.data.setting,
+      source: "admin",
+      submissionId: null,
+      title: parsedBody.data.title,
+      updatedAt: now,
+    });
+
+    const createdScenario = await getScenarioRecordById(scenarioId);
+
+    return context.json(scenarioSchema.parse(createdScenario), 201);
+  });
+
+  app.patch("/api/admin/scenarios/:id", async (context) => {
+    const parsedBody = await parseJsonBody(context, adminScenarioUpdateSchema);
+
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
+    const scenarioId = context.req.param("id");
+    const existingScenario = await getScenarioRecordById(scenarioId);
+
+    if (!existingScenario) {
+      return context.json({ error: "Scenario not found" }, 404);
+    }
+
+    const now = new Date().toISOString();
+    const currentUser = getAuthenticatedUser(context);
+    const nextReviewStatus = parsedBody.data.reviewStatus ?? existingScenario.reviewStatus;
+    const reviewStatusChanged =
+      parsedBody.data.reviewStatus !== undefined && parsedBody.data.reviewStatus !== existingScenario.reviewStatus;
+
+    await db
+      .update(scenarios)
+      .set({
+        characters: parsedBody.data.characters ?? existingScenario.characters,
+        exampleDialogue: parsedBody.data.exampleDialogue ?? existingScenario.exampleDialogue,
+        goals: parsedBody.data.goals ?? existingScenario.goals,
+        reviewStatus: nextReviewStatus,
+        reviewedAt: reviewStatusChanged
+          ? nextReviewStatus === scenarioReviewStatusSchema.enum.pending_review
+            ? null
+            : now
+          : existingScenario.reviewedAt,
+        reviewedByUserId: reviewStatusChanged
+          ? nextReviewStatus === scenarioReviewStatusSchema.enum.pending_review
+            ? null
+            : (currentUser?.id ?? null)
+          : existingScenario.reviewedByUserId,
+        setting: parsedBody.data.setting ?? existingScenario.setting,
+        title: parsedBody.data.title ?? existingScenario.title,
+        updatedAt: now,
+      })
+      .where(eq(scenarios.id, scenarioId));
+
+    const updatedScenario = await getScenarioRecordById(scenarioId);
+
+    return context.json(scenarioSchema.parse(updatedScenario));
+  });
+
+  app.delete("/api/admin/scenarios/:id", async (context) => {
+    const deletedScenario = await deleteScenarioRecord(context.req.param("id"));
+
+    if (!deletedScenario) {
+      return context.json({ error: "Scenario not found" }, 404);
+    }
+
+    return new Response(null, { status: 204 });
+  });
+
   app.get("/api/scenarios/:id", async (context) => {
-    const [record] = await db
-      .select()
-      .from(scenarios)
-      .where(eq(scenarios.id, context.req.param("id")))
-      .limit(1);
+    const record = await getScenarioRecordById(context.req.param("id"));
 
     if (!record) {
+      return context.json({ error: "Scenario not found" }, 404);
+    }
+
+    if (
+      getAuthenticatedUser(context)?.role !== "admin" &&
+      record.reviewStatus !== scenarioReviewStatusSchema.enum.approved
+    ) {
       return context.json({ error: "Scenario not found" }, 404);
     }
 
@@ -190,13 +317,11 @@ export function registerScenarioRoutes(app: BackendApp) {
     }
 
     const scenarioId = context.req.param("id");
-    const [existingScenario] = await db.select().from(scenarios).where(eq(scenarios.id, scenarioId)).limit(1);
+    const existingScenario = await deleteScenarioRecord(scenarioId);
 
     if (!existingScenario) {
       return context.json({ error: "Scenario not found" }, 404);
     }
-
-    await db.delete(scenarios).where(eq(scenarios.id, scenarioId));
 
     return new Response(null, { status: 204 });
   });

@@ -54,6 +54,9 @@ export const scenarioGoalsSchema = z.object({
   goals: z.array(scenarioGoalSchema),
 });
 
+export const scenarioSourceSchema = z.enum(["admin", "auto_generated"]);
+export const scenarioReviewStatusSchema = z.enum(["pending_review", "approved", "rejected"]);
+
 /** Step 3: domain object produced by a completed scenario generation job. */
 export const scenarioSchema = z.object({
   id: z.string(),
@@ -65,6 +68,11 @@ export const scenarioSchema = z.object({
   goals: scenarioGoalsSchema,
   /** Pre-written model dialogue shown on the scenario detail page before practice. */
   exampleDialogue: z.array(scenarioDialogueTurnSchema),
+  reviewStatus: scenarioReviewStatusSchema,
+  reviewedAt: z.string().nullable(),
+  reviewedByUserId: z.string().nullable(),
+  source: scenarioSourceSchema,
+  submissionId: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -175,6 +183,8 @@ export type ScenarioCharacter = z.infer<typeof scenarioCharacterSchema>;
 export type ScenarioDialogueTurn = z.infer<typeof scenarioDialogueTurnSchema>;
 export type ScenarioGoal = z.infer<typeof scenarioGoalSchema>;
 export type ScenarioGoals = z.infer<typeof scenarioGoalsSchema>;
+export type ScenarioSource = z.infer<typeof scenarioSourceSchema>;
+export type ScenarioReviewStatus = z.infer<typeof scenarioReviewStatusSchema>;
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type InConversationAnalysisJob = z.infer<typeof inConversationAnalysisJobSchema>;
 export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSchema>;

@@ -333,20 +333,142 @@ describe("backend phase 2 integration", () => {
       .limit(1);
 
     expect(submissionRecord?.userId).toBe(admin.userId);
-
-    const persistedScenarios = await db.select().from(scenarios).orderBy(desc(scenarios.updatedAt)).limit(1);
-
-    expect(persistedScenarios).toEqual([
-      expect.objectContaining({
-        characters: expect.any(Array),
-        exampleDialogue: expect.any(Array),
-        goals: expect.any(Object),
-        id: expect.any(String),
-        setting: expect.any(String),
-        title: expect.any(String),
-      }),
-    ]);
   }, 60000);
+
+  test("supports admin scenario CRUD, filtering, and approval-gated scenario reads", async () => {
+    const student = await signUpAndCreateSession("student-admin-scenarios");
+    const admin = await signUpAndCreateSession("admin-admin-scenarios");
+
+    await promoteUserToAdmin(admin.email);
+
+    const createScenarioResponse = await app.request("http://localhost/api/admin/scenarios", {
+      body: JSON.stringify({
+        characters: [
+          { description: "A job candidate preparing for an interview.", name: "Candidate" },
+          { description: "A hiring manager asking follow-up questions.", name: "Hiring Manager" },
+        ],
+        exampleDialogue: [
+          { speaker: "agent", text: "Tell me about your background." },
+          { speaker: "user", text: "I have five years of product experience." },
+        ],
+        goals: {
+          goals: [
+            {
+              description: "Summarize your background clearly",
+              id: "summarize-background",
+              logic: { required_intents: ["summarize_background"], required_slots: ["experience"] },
+            },
+          ],
+          intents: ["summarize_background"],
+          slots: ["experience"],
+        },
+        reviewStatus: "approved",
+        setting: "A first-round interview for a product manager role.",
+        title: `Interview Flow ${Date.now()}`,
+      }),
+      headers: {
+        Cookie: admin.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+
+    expect(createScenarioResponse.status).toBe(201);
+
+    const createdScenario = (await createScenarioResponse.json()) as {
+      id: string;
+      reviewStatus: string;
+      source: string;
+      title: string;
+    };
+
+    expect(createdScenario.reviewStatus).toBe("approved");
+    expect(createdScenario.source).toBe("admin");
+
+    const moveToPendingResponse = await app.request(`http://localhost/api/admin/scenarios/${createdScenario.id}`, {
+      body: JSON.stringify({ reviewStatus: "pending_review", title: `${createdScenario.title} Draft` }),
+      headers: {
+        Cookie: admin.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    });
+
+    expect(moveToPendingResponse.status).toBe(200);
+    expect(await moveToPendingResponse.json()).toMatchObject({
+      id: createdScenario.id,
+      reviewStatus: "pending_review",
+      title: `${createdScenario.title} Draft`,
+    });
+
+    const learnerScenarioDetailWhilePendingResponse = await app.request(
+      `http://localhost/api/scenarios/${createdScenario.id}`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(learnerScenarioDetailWhilePendingResponse.status).toBe(404);
+
+    const adminScenarioListResponse = await app.request(
+      "http://localhost/api/admin/scenarios?reviewStatus=pending_review&source=admin&search=Interview%20Flow",
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+      },
+    );
+
+    expect(adminScenarioListResponse.status).toBe(200);
+    expect(await adminScenarioListResponse.json()).toMatchObject({
+      items: [expect.objectContaining({ id: createdScenario.id, reviewStatus: "pending_review", source: "admin" })],
+    });
+
+    const approveScenarioResponse = await app.request(`http://localhost/api/admin/scenarios/${createdScenario.id}`, {
+      body: JSON.stringify({ reviewStatus: "approved" }),
+      headers: {
+        Cookie: admin.cookie,
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    });
+
+    expect(approveScenarioResponse.status).toBe(200);
+
+    const learnerScenarioDetailAfterApprovalResponse = await app.request(
+      `http://localhost/api/scenarios/${createdScenario.id}`,
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(learnerScenarioDetailAfterApprovalResponse.status).toBe(200);
+    expect(await learnerScenarioDetailAfterApprovalResponse.json()).toMatchObject({
+      id: createdScenario.id,
+      reviewStatus: "approved",
+    });
+
+    const deleteScenarioResponse = await app.request(`http://localhost/api/admin/scenarios/${createdScenario.id}`, {
+      headers: {
+        Cookie: admin.cookie,
+      },
+      method: "DELETE",
+    });
+
+    expect(deleteScenarioResponse.status).toBe(204);
+
+    const deletedScenarioResponse = await app.request(`http://localhost/api/scenarios/${createdScenario.id}`, {
+      headers: {
+        Cookie: admin.cookie,
+      },
+    });
+
+    expect(deletedScenarioResponse.status).toBe(404);
+  });
 
   test("supports admin knowledge item CRUD, history detail reads, session token minting, and SSE timeout", async () => {
     const student = await signUpAndCreateSession("student-history");

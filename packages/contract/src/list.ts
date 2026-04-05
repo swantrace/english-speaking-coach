@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { communicativeFunctions, fixednessLevels, syntaxRoles } from "./linguistics";
-import { scenarioSchema, sessionTypeSchema } from "./session";
+import { scenarioReviewStatusSchema, scenarioSchema, scenarioSourceSchema, sessionTypeSchema } from "./session";
 
 export const defaultListPage = 1;
 export const defaultListPageSize = 20;
@@ -74,9 +74,11 @@ export const learnerScenarioListQuerySchema = pageListQuerySchema
     },
   );
 export const adminScenarioListQuerySchema = pageListQuerySchema.extend({
+  reviewStatus: scenarioReviewStatusSchema.optional(),
   search: optionalSearchTextSchema,
   sortBy: scenarioListSortBySchema.default(scenarioListSortBySchema.enum.updatedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
+  source: scenarioSourceSchema.optional(),
 });
 
 export const historySummarySchema = z.object({

@@ -1,5 +1,10 @@
 import { openai } from "@ai-sdk/openai";
-import { scenarioCharacterSchema, scenarioSchema } from "@english-coach/contract";
+import {
+  scenarioCharacterSchema,
+  scenarioReviewStatusSchema,
+  scenarioSchema,
+  scenarioSourceSchema,
+} from "@english-coach/contract";
 import type {
   ScenarioGenerateJobUpdate,
   ScenarioGenerateSubmissionItem,
@@ -50,6 +55,11 @@ const generatedScenarioSchema = scenarioSchema
   .omit({
     createdAt: true,
     id: true,
+    reviewStatus: true,
+    reviewedAt: true,
+    reviewedByUserId: true,
+    source: true,
+    submissionId: true,
     updatedAt: true,
   })
   .extend({
@@ -98,7 +108,7 @@ function createCompletedScenarioGenerateProgressMessage(
   scenarioTitle: string,
 ) {
   return createScenarioGenerateProgressMessage(
-    createCompletedProgressMessage(jobId, `Scenario ready: ${scenarioTitle}`, processedAt),
+    createCompletedProgressMessage(jobId, `Scenario ready for review: ${scenarioTitle}`, processedAt),
     jobData,
   );
 }
@@ -268,7 +278,10 @@ async function generateScenario(prompt: string): Promise<GeneratedScenario> {
   return object;
 }
 
-async function persistScenario(generatedScenario: GeneratedScenario) {
+async function persistScenario(
+  generatedScenario: GeneratedScenario,
+  jobData: Pick<ScenarioGenerateJobData, "submissionId">,
+) {
   const now = new Date().toISOString();
   const scenarioId = crypto.randomUUID();
 
@@ -282,7 +295,12 @@ async function persistScenario(generatedScenario: GeneratedScenario) {
     exampleDialogue: generatedScenario.exampleDialogue,
     goals: generatedScenario.goals,
     id: scenarioId,
+    reviewStatus: scenarioReviewStatusSchema.enum.pending_review,
+    reviewedAt: null,
+    reviewedByUserId: null,
     setting: generatedScenario.setting,
+    source: scenarioSourceSchema.enum.auto_generated,
+    submissionId: jobData.submissionId,
     title: generatedScenario.title,
     updatedAt: now,
   });
@@ -313,7 +331,7 @@ export const scenarioGenerateWorker = new Worker<ScenarioGenerateJobData>(
     }
 
     const generatedScenario = await generateScenario(job.data.message);
-    const persistedScenario = await persistScenario(generatedScenario);
+    const persistedScenario = await persistScenario(generatedScenario, job.data);
 
     const completedMessage = createCompletedScenarioGenerateProgressMessage(
       String(job.id),
