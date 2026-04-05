@@ -134,11 +134,44 @@ export const knowledgeItemListQuerySchema = pageListQuerySchema.extend({
   syntaxRole: z.enum(syntaxRoles).optional(),
 });
 
+export const knowledgePointListSortBySchema = z.enum(["lastSeenAt", "pattern", "sessionCount", "totalOccurrences"]);
+export const knowledgePointListQuerySchema = pageListQuerySchema.extend({
+  search: optionalSearchTextSchema,
+  sortBy: knowledgePointListSortBySchema.default(knowledgePointListSortBySchema.enum.lastSeenAt),
+  sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
+});
+
+export const knowledgePointSummarySchema = knowledgeItemSchema.extend({
+  agentOccurrenceCount: z.number().int().min(0),
+  lastSeenAt: z.string(),
+  sessionCount: z.number().int().min(1),
+  totalOccurrences: z.number().int().min(1),
+  userOccurrenceCount: z.number().int().min(0),
+});
+
+export const knowledgePointOccurrenceSchema = z.object({
+  excerpt: z.string().trim().min(1),
+  id: z.string(),
+  occurrenceCount: z.number().int().min(1),
+  sessionEndedAt: z.string().nullable(),
+  sessionHistoryId: z.string(),
+  sessionStartedAt: z.string(),
+  sessionTitle: z.string(),
+  sessionType: sessionTypeSchema,
+  speaker: z.enum(["user", "agent"]),
+  transcriptTurnIndex: z.number().int().min(0),
+});
+
+export const knowledgePointDetailSchema = knowledgePointSummarySchema.extend({
+  occurrences: z.array(knowledgePointOccurrenceSchema),
+});
+
 export const scenarioPageResponseSchema = createPageListResponseSchema(scenarioSchema);
 export const scenarioCursorResponseSchema = createCursorListResponseSchema(scenarioSchema);
 export const adminScenarioListResponseSchema = createPageListResponseSchema(scenarioSchema);
 export const historyListResponseSchema = createPageListResponseSchema(historySummarySchema);
 export const knowledgeItemListResponseSchema = createPageListResponseSchema(knowledgeItemSchema);
+export const knowledgePointListResponseSchema = createPageListResponseSchema(knowledgePointSummarySchema);
 
 export type SortDirection = z.infer<typeof sortDirectionSchema>;
 export const scenarioListQuerySchema = learnerScenarioListQuerySchema;
@@ -151,8 +184,13 @@ export type KnowledgeItemSource = z.infer<typeof knowledgeItemSourceSchema>;
 export type KnowledgeItemReviewStatus = z.infer<typeof knowledgeItemReviewStatusSchema>;
 export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
+export type KnowledgePointListQuery = z.infer<typeof knowledgePointListQuerySchema>;
+export type KnowledgePointSummary = z.infer<typeof knowledgePointSummarySchema>;
+export type KnowledgePointOccurrence = z.infer<typeof knowledgePointOccurrenceSchema>;
+export type KnowledgePointDetail = z.infer<typeof knowledgePointDetailSchema>;
 export type ScenarioPageResponse = z.infer<typeof scenarioPageResponseSchema>;
 export type ScenarioCursorResponse = z.infer<typeof scenarioCursorResponseSchema>;
 export type AdminScenarioListResponse = z.infer<typeof adminScenarioListResponseSchema>;
 export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 export type KnowledgeItemListResponse = z.infer<typeof knowledgeItemListResponseSchema>;
+export type KnowledgePointListResponse = z.infer<typeof knowledgePointListResponseSchema>;

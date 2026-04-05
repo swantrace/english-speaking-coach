@@ -10,6 +10,9 @@ import {
   knowledgeItemListSortBySchema,
   knowledgeItemReviewStatusSchema,
   knowledgeItemSchema,
+  knowledgePointDetailSchema,
+  knowledgePointListResponseSchema,
+  knowledgePointListSortBySchema,
   rewrittenTranscriptTurnSchema,
   type Scenario,
   scenarioCharacterSchema,
@@ -125,6 +128,14 @@ export const adminKnowledgeItemsSearchSchema = z.object({
   tab: z.enum(["manage", "generate"]).default("manage"),
 });
 
+export const knowledgePointsSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  search: optionalRouteSearchSchema,
+  sortBy: knowledgePointListSortBySchema.default("lastSeenAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc"),
+});
+
 export const freeFormSearchSchema = z.object({
   scenarioId: z.string().min(1).optional(),
 });
@@ -195,6 +206,7 @@ export const scenariosQueryKey = ["scenarios"] as const;
 export const adminScenariosQueryKey = ["admin-scenarios"] as const;
 export const historyQueryKey = ["history"] as const;
 export const knowledgeItemsQueryKey = ["knowledge-items"] as const;
+export const knowledgePointsQueryKey = ["knowledge-points"] as const;
 export const knowledgeGenerateHistoryQueryKey = ["knowledge-generate-history"] as const;
 export { knowledgeItemSchema };
 
@@ -484,6 +496,29 @@ export function useKnowledgeItems(source?: "admin" | "auto_generated") {
     sortDirection: "desc",
     source: source ?? "all",
     tab: "manage",
+  });
+}
+
+export function useKnowledgePoints(query: z.infer<typeof knowledgePointsSearchSchema>) {
+  const searchParams = createSearchParams({
+    page: query.page,
+    pageSize: query.pageSize,
+    search: query.search,
+    sortBy: query.sortBy,
+    sortDirection: query.sortDirection,
+  });
+
+  return useQuery({
+    queryKey: [...knowledgePointsQueryKey, query],
+    queryFn: () => apiJson(`/api/knowledge-points?${searchParams.toString()}`, knowledgePointListResponseSchema),
+  });
+}
+
+export function useKnowledgePointDetail(knowledgeItemId?: string) {
+  return useQuery({
+    queryKey: [...knowledgePointsQueryKey, knowledgeItemId],
+    queryFn: () => apiJson(`/api/knowledge-points/${knowledgeItemId}`, knowledgePointDetailSchema),
+    enabled: Boolean(knowledgeItemId),
   });
 }
 

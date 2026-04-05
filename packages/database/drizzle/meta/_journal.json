@@ -57,6 +57,13 @@
       "when": 1775355600000,
       "tag": "0007_knowledge_review_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1775362800000,
+      "tag": "0008_knowledge_point_occurrences",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as KnowledgePointsRouteImport } from './routes/knowledge-points'
 import { Route as FreeFormRouteImport } from './routes/free-form'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ScenariosIndexRouteImport } from './routes/scenarios/index'
@@ -23,6 +24,11 @@ import { Route as ScenariosScenarioIdIndexRouteImport } from './routes/scenarios
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgePointsRoute = KnowledgePointsRouteImport.update({
+  id: '/knowledge-points',
+  path: '/knowledge-points',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FreeFormRoute = FreeFormRouteImport.update({
@@ -75,6 +81,7 @@ const ScenariosScenarioIdIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/free-form': typeof FreeFormRoute
+  '/knowledge-points': typeof KnowledgePointsRoute
   '/login': typeof LoginRoute
   '/admin/knowledge-items': typeof AdminKnowledgeItemsRoute
   '/admin/scenarios': typeof AdminScenariosRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/free-form': typeof FreeFormRoute
+  '/knowledge-points': typeof KnowledgePointsRoute
   '/login': typeof LoginRoute
   '/admin/knowledge-items': typeof AdminKnowledgeItemsRoute
   '/admin/scenarios': typeof AdminScenariosRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/free-form': typeof FreeFormRoute
+  '/knowledge-points': typeof KnowledgePointsRoute
   '/login': typeof LoginRoute
   '/admin/knowledge-items': typeof AdminKnowledgeItemsRoute
   '/admin/scenarios': typeof AdminScenariosRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/free-form'
+    | '/knowledge-points'
     | '/login'
     | '/admin/knowledge-items'
     | '/admin/scenarios'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/free-form'
+    | '/knowledge-points'
     | '/login'
     | '/admin/knowledge-items'
     | '/admin/scenarios'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/free-form'
+    | '/knowledge-points'
     | '/login'
     | '/admin/knowledge-items'
     | '/admin/scenarios'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FreeFormRoute: typeof FreeFormRoute
+  KnowledgePointsRoute: typeof KnowledgePointsRoute
   LoginRoute: typeof LoginRoute
   AdminKnowledgeItemsRoute: typeof AdminKnowledgeItemsRoute
   AdminScenariosRoute: typeof AdminScenariosRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge-points': {
+      id: '/knowledge-points'
+      path: '/knowledge-points'
+      fullPath: '/knowledge-points'
+      preLoaderRoute: typeof KnowledgePointsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/free-form': {
@@ -239,6 +259,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FreeFormRoute: FreeFormRoute,
+  KnowledgePointsRoute: KnowledgePointsRoute,
   LoginRoute: LoginRoute,
   AdminKnowledgeItemsRoute: AdminKnowledgeItemsRoute,
   AdminScenariosRoute: AdminScenariosRoute,

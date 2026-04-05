@@ -13,7 +13,16 @@ const routerMockState = vi.hoisted(() => ({
     sortBy: "updatedAt" as const,
     sortDirection: "desc" as const,
     source: "all" as const,
-    tab: "manage" as const,
+    tab: "manage" as "manage" | "generate",
+  } as {
+    page: number;
+    pageSize: number;
+    reviewStatus: string | undefined;
+    search: string | undefined;
+    sortBy: "updatedAt";
+    sortDirection: "desc";
+    source: "all";
+    tab: "manage" | "generate";
   },
   listeners: new Set<() => void>(),
   navigate: vi.fn(),

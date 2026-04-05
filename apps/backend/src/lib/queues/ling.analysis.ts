@@ -15,6 +15,7 @@ import {
   sessionErrors,
   sessionHistory,
   sessionKnowledgeItems,
+  sessionKnowledgePointOccurrences,
   sessionTranscripts,
 } from "@english-coach/database/schema";
 import { generateObject } from "ai";
@@ -24,6 +25,84 @@ import { producerRedis, workerRedis } from "../redis";
 import { persistRewrittenTranscriptTurnsForSession } from "./in-conversation.analysis";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
+
+function normalizeTextForMatching(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function deriveKnowledgePointOccurrences({
+  item,
+  knowledgeItemId,
+  sessionHistoryId,
+  turns,
+}: {
+  item: LingAnalysisResult["knowledgeItemsUsed"][number];
+  knowledgeItemId: string;
+  sessionHistoryId: string;
+  turns: TranscriptTurns;
+}) {
+  const speakerTurns = turns
+    .map((turn, transcriptTurnIndex) => ({ ...turn, transcriptTurnIndex }))
+    .filter((turn) => turn.speaker === item.speaker);
+  const assignmentCountsByTurn = new Map<number, number>();
+  const groupedOccurrences = new Map<string, typeof sessionKnowledgePointOccurrences.$inferInsert>();
+
+  for (const excerpt of item.usageExcerpts) {
+    const normalizedExcerpt = normalizeTextForMatching(excerpt);
+
+    if (!normalizedExcerpt) {
+      continue;
+    }
+
+    const candidates = speakerTurns.filter((turn) => {
+      const normalizedTurn = normalizeTextForMatching(turn.text);
+
+      return normalizedTurn.includes(normalizedExcerpt) || normalizedExcerpt.includes(normalizedTurn);
+    });
+    const matchedTurn = candidates.sort((left, right) => {
+      const leftAssignments = assignmentCountsByTurn.get(left.transcriptTurnIndex) ?? 0;
+      const rightAssignments = assignmentCountsByTurn.get(right.transcriptTurnIndex) ?? 0;
+
+      if (leftAssignments !== rightAssignments) {
+        return leftAssignments - rightAssignments;
+      }
+
+      return left.transcriptTurnIndex - right.transcriptTurnIndex;
+    })[0];
+
+    if (!matchedTurn) {
+      continue;
+    }
+
+    assignmentCountsByTurn.set(
+      matchedTurn.transcriptTurnIndex,
+      (assignmentCountsByTurn.get(matchedTurn.transcriptTurnIndex) ?? 0) + 1,
+    );
+
+    const occurrenceKey = [matchedTurn.transcriptTurnIndex, item.speaker, excerpt].join(":");
+    const existingOccurrence = groupedOccurrences.get(occurrenceKey);
+
+    if (existingOccurrence) {
+      groupedOccurrences.set(occurrenceKey, {
+        ...existingOccurrence,
+        occurrenceCount: (existingOccurrence.occurrenceCount ?? 1) + 1,
+      });
+      continue;
+    }
+
+    groupedOccurrences.set(occurrenceKey, {
+      excerpt,
+      id: crypto.randomUUID(),
+      knowledgeItemId,
+      occurrenceCount: 1,
+      sessionHistoryId,
+      speaker: item.speaker,
+      transcriptTurnIndex: matchedTurn.transcriptTurnIndex,
+    });
+  }
+
+  return [...groupedOccurrences.values()];
+}
 
 export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAnalysisQueueName, {
   connection: producerRedis,
@@ -127,68 +206,81 @@ async function resolveKnowledgeItemId(result: LingAnalysisResult["knowledgeItems
 
 export const lingAnalysisWorker = new Worker<{ sessionHistoryId: string }>(
   lingAnalysisQueueName,
-  async (job) => {
-    const sessionHistoryId = job.data.sessionHistoryId;
-    const [transcriptRecord] = await db
-      .select()
-      .from(sessionTranscripts)
-      .where(eq(sessionTranscripts.sessionHistoryId, sessionHistoryId))
-      .limit(1);
-
-    if (!transcriptRecord) {
-      throw new Error(`Transcript not found for session ${sessionHistoryId}`);
-    }
-
-    const analysis = await generateLingAnalysis(transcriptRecord.turns);
-
-    await db.transaction(async (transaction) => {
-      await transaction
-        .delete(sessionKnowledgeItems)
-        .where(eq(sessionKnowledgeItems.sessionHistoryId, sessionHistoryId));
-      await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));
-
-      for (const item of analysis.knowledgeItemsUsed) {
-        const knowledgeItemId = await resolveKnowledgeItemId(item);
-
-        await transaction.insert(sessionKnowledgeItems).values({
-          count: item.count,
-          examples: item.usageExcerpts,
-          id: crypto.randomUUID(),
-          knowledgeItemId,
-          sessionHistoryId,
-          speaker: item.speaker,
-        });
-      }
-
-      if (analysis.errors.length > 0) {
-        await transaction.insert(sessionErrors).values(
-          analysis.errors.map((error) => ({
-            dimension: error.dimension,
-            errorDescription: error.errorDescription,
-            id: crypto.randomUUID(),
-            sessionHistoryId,
-            suggestion: error.suggestion,
-            utterance: error.utterance,
-          })),
-        );
-      }
-
-      await transaction
-        .update(sessionHistory)
-        .set({
-          review: analysis.review,
-        })
-        .where(eq(sessionHistory.id, sessionHistoryId));
-    });
-
-    await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
-
-    return analysis;
-  },
+  async (job) => processLingAnalysisSession(job.data.sessionHistoryId),
   {
     connection: workerRedis,
   },
 );
+
+export async function processLingAnalysisSession(sessionHistoryId: string) {
+  const [transcriptRecord] = await db
+    .select()
+    .from(sessionTranscripts)
+    .where(eq(sessionTranscripts.sessionHistoryId, sessionHistoryId))
+    .limit(1);
+
+  if (!transcriptRecord) {
+    throw new Error(`Transcript not found for session ${sessionHistoryId}`);
+  }
+
+  const analysis = await generateLingAnalysis(transcriptRecord.turns);
+
+  await db.transaction(async (transaction) => {
+    await transaction.delete(sessionKnowledgeItems).where(eq(sessionKnowledgeItems.sessionHistoryId, sessionHistoryId));
+    await transaction
+      .delete(sessionKnowledgePointOccurrences)
+      .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId));
+    await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));
+
+    for (const item of analysis.knowledgeItemsUsed) {
+      const knowledgeItemId = await resolveKnowledgeItemId(item);
+
+      await transaction.insert(sessionKnowledgeItems).values({
+        count: item.count,
+        examples: item.usageExcerpts,
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        sessionHistoryId,
+        speaker: item.speaker,
+      });
+
+      const occurrences = deriveKnowledgePointOccurrences({
+        item,
+        knowledgeItemId,
+        sessionHistoryId,
+        turns: transcriptRecord.turns,
+      });
+
+      if (occurrences.length > 0) {
+        await transaction.insert(sessionKnowledgePointOccurrences).values(occurrences);
+      }
+    }
+
+    if (analysis.errors.length > 0) {
+      await transaction.insert(sessionErrors).values(
+        analysis.errors.map((error) => ({
+          dimension: error.dimension,
+          errorDescription: error.errorDescription,
+          id: crypto.randomUUID(),
+          sessionHistoryId,
+          suggestion: error.suggestion,
+          utterance: error.utterance,
+        })),
+      );
+    }
+
+    await transaction
+      .update(sessionHistory)
+      .set({
+        review: analysis.review,
+      })
+      .where(eq(sessionHistory.id, sessionHistoryId));
+  });
+
+  await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
+
+  return analysis;
+}
 
 lingAnalysisWorker.on("completed", (job) => {
   console.log(`${lingAnalysisJobName} job ${job.id} completed`);

@@ -7,6 +7,7 @@ import {
   getAuthenticatedHomePath,
   historyQueryKey,
   isAdmin,
+  knowledgePointsQueryKey,
   roleToneMap,
   scenariosQueryKey,
   useViewer,
@@ -25,12 +26,16 @@ export function RootLayout() {
 
   const navItems: Array<{
     label: string;
-    to: "/scenarios" | "/free-form" | "/history" | "/admin/scenarios" | "/admin/knowledge-items";
+    to: "/scenarios" | "/free-form" | "/history" | "/knowledge-points" | "/admin/scenarios" | "/admin/knowledge-items";
   }> = [
     { label: "Scenarios", to: "/scenarios" as const },
     { label: "Free-form", to: "/free-form" as const },
     { label: "History", to: "/history" as const },
   ];
+
+  if (!isAdmin(currentUser)) {
+    navItems.push({ label: "Knowledge Points", to: "/knowledge-points" });
+  }
 
   if (isAdmin(currentUser)) {
     navItems.push({ label: "Admin Scenarios", to: "/admin/scenarios" });
@@ -112,6 +117,7 @@ export function RootLayout() {
                         .then(async () => {
                           await queryClient.invalidateQueries({ queryKey: viewerQueryKey });
                           await queryClient.invalidateQueries({ queryKey: historyQueryKey });
+                          await queryClient.invalidateQueries({ queryKey: knowledgePointsQueryKey });
                           await queryClient.invalidateQueries({ queryKey: scenariosQueryKey });
                           await queryClient.invalidateQueries({ queryKey: adminScenariosQueryKey });
                         })

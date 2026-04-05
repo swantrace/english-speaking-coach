@@ -13,10 +13,12 @@ import {
 import { db } from "@english-coach/database";
 import {
   freeFormContexts,
+  knowledgeItems,
   scenarios,
   sessionErrors,
   sessionHistory,
   sessionKnowledgeItems,
+  sessionKnowledgePointOccurrences,
   sessionTranscripts,
   submissions,
   user,
@@ -1170,4 +1172,198 @@ describe("backend phase 2 integration", () => {
 
     expect(deleteScenarioResponse.status).toBe(204);
   }, 60000);
+
+  test("lists learner knowledge points and returns transcript-linked occurrences for the current user only", async () => {
+    const student = await signUpAndCreateSession("student-knowledge-points");
+    const otherStudent = await signUpAndCreateSession("student-knowledge-points-other");
+    const now = new Date().toISOString();
+    const knowledgeItemId = crypto.randomUUID();
+    const firstContextId = crypto.randomUUID();
+    const secondContextId = crypto.randomUUID();
+    const otherContextId = crypto.randomUUID();
+    const firstSessionId = crypto.randomUUID();
+    const secondSessionId = crypto.randomUUID();
+    const otherSessionId = crypto.randomUUID();
+
+    await db.insert(knowledgeItems).values({
+      communicativeFunction: "make_request_or_offer",
+      createdAt: now,
+      example: "I'd like a coffee, please.",
+      fixednessLevel: "fixed_expression",
+      id: knowledgeItemId,
+      pattern: `I'd like <np> phase7 ${Date.now()}`,
+      reviewStatus: "approved",
+      reviewedAt: now,
+      reviewedByUserId: student.userId,
+      source: "admin",
+      submissionId: null,
+      syntaxRole: "clause_pattern",
+      updatedAt: now,
+    });
+
+    await db.insert(freeFormContexts).values([
+      { content: "Order food politely.", createdAt: now, id: firstContextId },
+      { content: "Ask for help politely.", createdAt: now, id: secondContextId },
+      { content: "Other learner context.", createdAt: now, id: otherContextId },
+    ]);
+
+    await db.insert(sessionHistory).values([
+      {
+        endedAt: now,
+        freeFormContextId: firstContextId,
+        id: firstSessionId,
+        review: "## Review\nPolite request forms are improving.",
+        sessionType: "free-form",
+        startedAt: now,
+        userId: student.userId,
+      },
+      {
+        endedAt: now,
+        freeFormContextId: secondContextId,
+        id: secondSessionId,
+        review: "## Review\nKeep softening requests.",
+        sessionType: "free-form",
+        startedAt: now,
+        userId: student.userId,
+      },
+      {
+        endedAt: now,
+        freeFormContextId: otherContextId,
+        id: otherSessionId,
+        review: "## Review\nOther learner review.",
+        sessionType: "free-form",
+        startedAt: now,
+        userId: otherStudent.userId,
+      },
+    ]);
+
+    await db.insert(sessionKnowledgeItems).values([
+      {
+        count: 2,
+        examples: ["I'd like a coffee.", "I'd like some water."],
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        sessionHistoryId: firstSessionId,
+        speaker: "user",
+      },
+      {
+        count: 1,
+        examples: ["I'd like to help."],
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        sessionHistoryId: secondSessionId,
+        speaker: "agent",
+      },
+      {
+        count: 4,
+        examples: ["I'd like a discount."],
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        sessionHistoryId: otherSessionId,
+        speaker: "user",
+      },
+    ]);
+
+    await db.insert(sessionKnowledgePointOccurrences).values([
+      {
+        excerpt: "I'd like a coffee.",
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        occurrenceCount: 1,
+        sessionHistoryId: firstSessionId,
+        speaker: "user",
+        transcriptTurnIndex: 1,
+      },
+      {
+        excerpt: "I'd like some water.",
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        occurrenceCount: 1,
+        sessionHistoryId: firstSessionId,
+        speaker: "user",
+        transcriptTurnIndex: 3,
+      },
+      {
+        excerpt: "I'd like to help.",
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        occurrenceCount: 1,
+        sessionHistoryId: secondSessionId,
+        speaker: "agent",
+        transcriptTurnIndex: 0,
+      },
+      {
+        excerpt: "I'd like a discount.",
+        id: crypto.randomUUID(),
+        knowledgeItemId,
+        occurrenceCount: 4,
+        sessionHistoryId: otherSessionId,
+        speaker: "user",
+        transcriptTurnIndex: 2,
+      },
+    ]);
+
+    const listResponse = await app.request(
+      "http://localhost/api/knowledge-points?page=1&pageSize=10&sortBy=totalOccurrences&sortDirection=desc",
+      {
+        headers: {
+          Cookie: student.cookie,
+        },
+      },
+    );
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.json()).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          agentOccurrenceCount: 1,
+          id: knowledgeItemId,
+          sessionCount: 2,
+          totalOccurrences: 3,
+          userOccurrenceCount: 2,
+        }),
+      ],
+      page: 1,
+      pageSize: 10,
+      total: 1,
+    });
+
+    const detailResponse = await app.request(`http://localhost/api/knowledge-points/${knowledgeItemId}`, {
+      headers: {
+        Cookie: student.cookie,
+      },
+    });
+
+    expect(detailResponse.status).toBe(200);
+    expect(detailResponse.json()).resolves.toEqual(
+      expect.objectContaining({
+        id: knowledgeItemId,
+        occurrences: expect.arrayContaining([
+          expect.objectContaining({
+            excerpt: "I'd like a coffee.",
+            sessionHistoryId: firstSessionId,
+            sessionTitle: "Free-form",
+            speaker: "user",
+            transcriptTurnIndex: 1,
+          }),
+          expect.objectContaining({
+            excerpt: "I'd like some water.",
+            sessionHistoryId: firstSessionId,
+            sessionTitle: "Free-form",
+            speaker: "user",
+            transcriptTurnIndex: 3,
+          }),
+          expect.objectContaining({
+            excerpt: "I'd like to help.",
+            sessionHistoryId: secondSessionId,
+            sessionTitle: "Free-form",
+            speaker: "agent",
+            transcriptTurnIndex: 0,
+          }),
+        ]),
+        sessionCount: 2,
+        totalOccurrences: 3,
+      }),
+    );
+  });
 });
