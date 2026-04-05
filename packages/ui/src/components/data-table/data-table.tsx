@@ -47,6 +47,9 @@ function DataTable<TData, TValue>({
   onSortingChange,
   columnFilters: controlledColumnFilters,
   onColumnFiltersChange,
+  onRowClick,
+  getRowClassName,
+  getRowAriaLabel,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility ?? {});
@@ -198,7 +201,25 @@ function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow data-state={row.getIsSelected() && "selected"} key={row.id}>
+                <TableRow
+                  aria-label={getRowAriaLabel?.(row.original)}
+                  className={getRowClassName?.(row.original)}
+                  data-state={row.getIsSelected() && "selected"}
+                  key={row.id}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onRowClick(row.original);
+                          }
+                        }
+                      : undefined
+                  }
+                  role={onRowClick ? "button" : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}

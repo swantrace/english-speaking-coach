@@ -216,7 +216,7 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
     return knowledgeGeneratorOverride(prompt);
   }
 
-  if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1") {
+  if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1" || process.env.NODE_ENV === "test") {
     return generatedKnowledgeItemSchema.parse({
       communicativeFunction: "give_or_seek_information",
       example: `Could you walk me through ${prompt}?`,
@@ -309,33 +309,35 @@ export function setKnowledgeGeneratorForTests(generator: ((prompt: string) => Pr
 
 migrateDatabase();
 
+export async function processKnowledgeGenerateJob(jobData: KnowledgeGenerateJobData, jobId: string) {
+  const startedMessage = createStartedKnowledgeGenerateProgressMessage(jobId, jobData);
+
+  await saveKnowledgeGenerateSnapshot(startedMessage);
+  await publishKnowledgeGenerateProgress(startedMessage);
+
+  if (process.env.NODE_ENV !== "production" && jobData.shouldFail) {
+    throw new Error("Knowledge item generation failed");
+  }
+
+  const generatedKnowledgeItem = await generateKnowledgeItem(jobData.message);
+  const persistedKnowledgeItem = await persistKnowledgeItem(generatedKnowledgeItem, jobData);
+
+  const completedMessage = createCompletedKnowledgeGenerateProgressMessage(
+    jobId,
+    jobData,
+    persistedKnowledgeItem.processedAt,
+    persistedKnowledgeItem.pattern,
+  );
+
+  await saveKnowledgeGenerateSnapshot(completedMessage);
+  await publishKnowledgeGenerateProgress(completedMessage);
+
+  return persistedKnowledgeItem;
+}
+
 export const knowledgeGenerateWorker = new Worker<KnowledgeGenerateJobData>(
   knowledgeGenerateQueueName,
-  async (job) => {
-    const startedMessage = createStartedKnowledgeGenerateProgressMessage(String(job.id), job.data);
-
-    await saveKnowledgeGenerateSnapshot(startedMessage);
-    await publishKnowledgeGenerateProgress(startedMessage);
-
-    if (process.env.NODE_ENV !== "production" && job.data.shouldFail) {
-      throw new Error("Knowledge item generation failed");
-    }
-
-    const generatedKnowledgeItem = await generateKnowledgeItem(job.data.message);
-    const persistedKnowledgeItem = await persistKnowledgeItem(generatedKnowledgeItem, job.data);
-
-    const completedMessage = createCompletedKnowledgeGenerateProgressMessage(
-      String(job.id),
-      job.data,
-      persistedKnowledgeItem.processedAt,
-      persistedKnowledgeItem.pattern,
-    );
-
-    await saveKnowledgeGenerateSnapshot(completedMessage);
-    await publishKnowledgeGenerateProgress(completedMessage);
-
-    return persistedKnowledgeItem;
-  },
+  async (job) => processKnowledgeGenerateJob(job.data, String(job.id)),
   {
     connection: workerRedis,
   },

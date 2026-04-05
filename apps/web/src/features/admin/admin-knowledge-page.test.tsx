@@ -255,7 +255,7 @@ describe("AdminKnowledgeItemsPage", () => {
     appDataMockState.refetchPending.mockClear();
   });
 
-  it("renders the bulk generation tab state and reconnects a persisted submission stream", () => {
+  it("renders the bulk generation tab state and reconnects a persisted submission stream", async () => {
     routerMockState.currentSearch = {
       ...routerMockState.currentSearch,
       tab: "generate",
@@ -263,8 +263,8 @@ describe("AdminKnowledgeItemsPage", () => {
 
     renderPage();
 
-    expect(screen.getByRole("heading", { name: /recent submissions/i })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /pending review queue/i })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: /recent submissions/i })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: /pending review queue/i })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /reconnect stream/i }));
 
@@ -273,18 +273,18 @@ describe("AdminKnowledgeItemsPage", () => {
     );
   });
 
-  it("opens create and edit dialogs from the management tab", () => {
+  it("opens create and edit dialogs from the management tab", async () => {
     renderPage();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /add knowledge item/i })[0]!);
-    expect(screen.getByRole("heading", { name: /create knowledge item/i })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /add knowledge item/i }));
+    expect(await screen.findByRole("heading", { name: /create knowledge item/i })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
-    fireEvent.click(screen.getAllByRole("button", { name: /^edit$/i })[0]!);
+    fireEvent.click(await screen.findByRole("button", { name: /^edit$/i }));
 
-    expect(screen.getByRole("heading", { name: /edit knowledge item/i })).toBeTruthy();
-    expect(screen.getByDisplayValue("I'd like <np>")).toBeTruthy();
-    expect(screen.getByDisplayValue("I'd like a receipt, please.")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: /edit knowledge item/i })).toBeTruthy();
+    expect(await screen.findByDisplayValue("I'd like <np>")).toBeTruthy();
+    expect(await screen.findByDisplayValue("I'd like a receipt, please.")).toBeTruthy();
   });
 });

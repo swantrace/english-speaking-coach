@@ -58,4 +58,7 @@ export type DataTableProps<TData, TValue> = {
   onSortingChange?: (state: SortingState) => void;
   columnFilters?: ColumnFiltersState;
   onColumnFiltersChange?: (state: ColumnFiltersState) => void;
+  onRowClick?: (row: TData) => void;
+  getRowClassName?: (row: TData) => string | undefined;
+  getRowAriaLabel?: (row: TData) => string | undefined;
 };

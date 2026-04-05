@@ -1,5 +1,7 @@
-import { Button, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@english-coach/ui";
+import type { HistorySummary } from "@english-coach/contract";
+import { Button, DataTable, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@english-coach/ui";
 import { useNavigate } from "@tanstack/react-router";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { formatTimestamp, sessionToneMap, useHistoryList } from "../../lib/app-data";
 import { AuthGate, Card, LoadingPanel, PageIntro, PageState } from "../../lib/app-shell";
 import { useHistoryListQueryState } from "./history-query-state";
@@ -8,9 +10,67 @@ export function HistoryListPage() {
   const queryState = useHistoryListQueryState();
   const navigate = useNavigate();
   const history = useHistoryList(queryState.query);
-  const canGoBack = queryState.page > 1;
-  const totalPages = history.data?.totalPages ?? 0;
-  const canGoForward = totalPages === 0 ? false : queryState.page < totalPages;
+  const sorting: SortingState = [{ desc: queryState.sortDirection === "desc", id: queryState.sortBy }];
+  const totalPages = Math.max(history.data?.totalPages ?? 0, 1);
+
+  const columns: ColumnDef<HistorySummary>[] = [
+    {
+      accessorKey: "title",
+      cell: ({ row }) => (
+        <div className="grid gap-1">
+          <span className="text-base font-medium text-white">{row.original.title}</span>
+          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{row.original.id}</span>
+        </div>
+      ),
+      header: "Session",
+    },
+    {
+      accessorKey: "sessionType",
+      cell: ({ row }) => (
+        <span
+          className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em] ${sessionToneMap[row.original.sessionType]}`}
+        >
+          {row.original.sessionType}
+        </span>
+      ),
+      enableSorting: false,
+      header: "Mode",
+    },
+    {
+      accessorKey: "startedAt",
+      cell: ({ row }) => <span className="text-slate-300">{formatTimestamp(row.original.startedAt)}</span>,
+      header: "Started",
+    },
+    {
+      accessorKey: "endedAt",
+      cell: ({ row }) => <span className="text-slate-300">{formatTimestamp(row.original.endedAt)}</span>,
+      header: "Ended",
+    },
+    {
+      accessorKey: "review",
+      cell: ({ row }) =>
+        row.original.review ? (
+          <span className="text-slate-300">Ready</span>
+        ) : (
+          <span className="inline-block animate-pulse text-slate-300">Generating...</span>
+        ),
+      enableSorting: false,
+      header: "Review",
+    },
+    {
+      accessorKey: "canReopen",
+      cell: ({ row }) =>
+        row.original.canReopen ? (
+          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-emerald-100">
+            Reopenable
+          </span>
+        ) : (
+          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Review only</span>
+        ),
+      enableSorting: false,
+      header: () => <div className="text-right">Status</div>,
+    },
+  ];
 
   const openSessionDetail = (sessionId: string) => {
     void navigate({ params: { sessionId }, search: { tab: "review" }, to: "/history/$sessionId" });
@@ -26,73 +86,31 @@ export function HistoryListPage() {
         />
 
         <Card className="grid gap-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_10rem]">
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Search history</span>
-              <Input
-                aria-label="Search session history"
-                className="border-white/10 bg-slate-950/60 text-slate-50"
-                onChange={(event) => queryState.setSearchInput(event.target.value)}
-                placeholder="Search title or review"
-                value={queryState.searchInput}
-              />
-            </div>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
             <div className="grid gap-2 text-sm text-slate-300">
               <span>Mode</span>
-              <select
-                aria-label="Filter history by mode"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) =>
-                  queryState.setSessionType(
-                    event.target.value ? (event.target.value as typeof queryState.sessionType) : undefined,
-                  )
+              <Select
+                onValueChange={(value: string) =>
+                  queryState.setSessionType(value === "all" ? undefined : (value as typeof queryState.sessionType))
                 }
-                value={queryState.sessionType ?? ""}
+                value={queryState.sessionType ?? "all"}
               >
-                <option value="">All modes</option>
-                <option value="role-play">Role-play</option>
-                <option value="free-form">Free-form</option>
-              </select>
+                <SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-50">
+                  <SelectValue placeholder="All modes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All modes</SelectItem>
+                  <SelectItem value="role-play">Role-play</SelectItem>
+                  <SelectItem value="free-form">Free-form</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2 text-sm text-slate-300">
-              <span>Sort by</span>
-              <select
-                aria-label="Sort history by"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) => queryState.setSortBy(event.target.value as typeof queryState.sortBy)}
-                value={queryState.sortBy}
-              >
-                <option value="startedAt">Started at</option>
-                <option value="endedAt">Ended at</option>
-                <option value="title">Title</option>
-              </select>
-            </div>
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Direction</span>
-              <select
-                aria-label="History sort direction"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) => queryState.setSortDirection(event.target.value as typeof queryState.sortDirection)}
-                value={queryState.sortDirection}
-              >
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
-              </select>
-            </div>
-            <div className="grid gap-2 text-sm text-slate-300">
-              <span>Page size</span>
-              <select
-                aria-label="History page size"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
-                onChange={(event) => queryState.setPageSize(Number(event.target.value))}
-                value={String(queryState.pageSize)}
-              >
-                {[10, 20, 50].map((size) => (
-                  <option key={size} value={size}>
-                    {size} per page
-                  </option>
-                ))}
-              </select>
+              <span>History behavior</span>
+              <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-slate-400">
+                Use the search bar and sortable headers in the DataTable below. Selecting a row opens the session detail
+                view.
+              </div>
             </div>
           </div>
         </Card>
@@ -106,82 +124,40 @@ export function HistoryListPage() {
         ) : null}
 
         {history.data?.items.length ? (
-          <Card className="overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-transparent">
-                    <TableHead className="text-slate-300">Session</TableHead>
-                    <TableHead className="text-slate-300">Mode</TableHead>
-                    <TableHead className="text-slate-300">Started</TableHead>
-                    <TableHead className="text-slate-300">Ended</TableHead>
-                    <TableHead className="text-slate-300">Review</TableHead>
-                    <TableHead className="text-right text-slate-300">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {history.data.items.map((item) => (
-                    <TableRow
-                      className="cursor-pointer border-white/10 transition hover:bg-white/[0.04]"
-                      key={item.id}
-                      onClick={() => openSessionDetail(item.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          openSessionDetail(item.id);
-                        }
-                      }}
-                      tabIndex={0}
-                    >
-                      <TableCell>
-                        <div className="grid gap-1">
-                          <span className="text-base font-medium text-white">{item.title}</span>
-                          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.id}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em] ${sessionToneMap[item.sessionType]}`}
-                        >
-                          {item.sessionType}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-slate-300">{formatTimestamp(item.startedAt)}</TableCell>
-                      <TableCell className="text-slate-300">{formatTimestamp(item.endedAt)}</TableCell>
-                      <TableCell className="text-slate-300">
-                        {item.review ? "Ready" : <span className="inline-block animate-pulse">Generating...</span>}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.canReopen ? (
-                          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-emerald-100">
-                            Reopenable
-                          </span>
-                        ) : (
-                          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Review only</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-        ) : null}
+          <Card className="grid gap-5 overflow-hidden">
+            <DataTable
+              columns={columns}
+              data={history.data.items}
+              getRowAriaLabel={(row) => `Open session ${row.title}`}
+              getRowClassName={() => "cursor-pointer border-white/10 hover:bg-white/[0.04] focus-visible:outline-none"}
+              globalFilter={queryState.searchInput}
+              isPending={history.isPending}
+              onGlobalFilterChange={queryState.setSearchInput}
+              onRowClick={(row) => openSessionDetail(row.id)}
+              onSortingChange={(nextSorting: SortingState) => {
+                const nextColumn = nextSorting[0];
 
-        {history.data?.items.length ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
-            <span>
-              Page {queryState.page} of {Math.max(totalPages, 1)} · {history.data.total} sessions
-            </span>
-            <div className="flex items-center gap-3">
-              <Button disabled={!canGoBack} onClick={() => queryState.setPage(queryState.page - 1)} variant="outline">
-                Previous
-              </Button>
-              <Button disabled={!canGoForward} onClick={() => queryState.setPage(queryState.page + 1)}>
-                Next
-              </Button>
-            </div>
-          </div>
+                if (!nextColumn) {
+                  return;
+                }
+
+                if (nextColumn.id === "startedAt" || nextColumn.id === "endedAt" || nextColumn.id === "title") {
+                  queryState.setSortBy(nextColumn.id);
+                  queryState.setSortDirection(nextColumn.desc ? "desc" : "asc");
+                }
+              }}
+              paginationMeta={{
+                limit: history.data.pageSize,
+                onLimitChange: queryState.setPageSize,
+                onPageChange: queryState.setPage,
+                page: history.data.page,
+                pages: totalPages,
+                total: history.data.total,
+              }}
+              searchPlaceholder="Search title or review"
+              sorting={sorting}
+            />
+          </Card>
         ) : null}
       </div>
     </AuthGate>

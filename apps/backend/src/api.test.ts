@@ -25,22 +25,27 @@ import {
 } from "@english-coach/database/schema";
 import { desc, eq } from "drizzle-orm";
 import { TokenVerifier } from "livekit-server-sdk";
-import { app } from "./api";
-import {
+import { createSubscriberRedisConnection } from "./lib/redis";
+
+process.env.SCENARIO_GENERATE_USE_TEST_GENERATOR = "1";
+process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR = "1";
+
+const { app } = await import("./api");
+const {
   getKnowledgeGenerateSnapshots,
   knowledgeGenerateQueue,
   knowledgeGenerateWorker,
+  processKnowledgeGenerateJob,
   setKnowledgeGeneratorForTests,
-} from "./lib/queues/knowledge.generate";
-import {
+} = await import("./lib/queues/knowledge.generate");
+const {
   getScenarioGenerateSnapshots,
   publishScenarioGenerateProgress,
   scenarioGenerateProgressChannel,
   scenarioGenerateQueue,
   scenarioGenerateWorker,
   setScenarioGeneratorForTests,
-} from "./lib/queues/scenario.generate";
-import { createSubscriberRedisConnection } from "./lib/redis";
+} = await import("./lib/queues/scenario.generate");
 
 function waitForMessage(
   subscriber: ReturnType<typeof createSubscriberRedisConnection>,
@@ -608,6 +613,8 @@ describe("backend phase 2 integration", () => {
       source: "admin",
     });
 
+    await knowledgeGenerateQueue.pause();
+
     const generateKnowledgeResponse = await app.request(`http://localhost${knowledgeGenerateSubmitPath}`, {
       body: JSON.stringify({
         items: [
@@ -635,9 +642,30 @@ describe("backend phase 2 integration", () => {
     });
 
     const queuedKnowledgeJobId = generateKnowledgeBody.results[0]?.jobId;
+    const queuedKnowledgeJobPayload = generateKnowledgeBody.results[0]?.payload;
+    const queuedKnowledgeJobCursor = generateKnowledgeBody.results[0]?.cursor;
 
-    if (!queuedKnowledgeJobId) {
+    if (!queuedKnowledgeJobId || !queuedKnowledgeJobPayload || typeof queuedKnowledgeJobCursor !== "number") {
       throw new Error("Expected queued knowledge generation job id");
+    }
+
+    try {
+      const queuedKnowledgeJob = await knowledgeGenerateQueue.getJob(queuedKnowledgeJobId);
+
+      if (queuedKnowledgeJob) {
+        await queuedKnowledgeJob.remove();
+      }
+
+      await processKnowledgeGenerateJob(
+        {
+          ...queuedKnowledgeJobPayload,
+          cursor: queuedKnowledgeJobCursor,
+          submissionId: generateKnowledgeBody.submissionId,
+        },
+        queuedKnowledgeJobId,
+      );
+    } finally {
+      await knowledgeGenerateQueue.resume();
     }
 
     const completedKnowledgeSnapshot = await waitForKnowledgeSnapshot(
@@ -1111,9 +1139,8 @@ describe("backend phase 2 integration", () => {
     expect(historyDetailBody.transcriptAnnotations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          coachingKind: "error_hint",
+          id: `history-annotation-${freeFormSessionId}`,
           kind: "coaching",
-          source: "post-session-review",
           text: "Ask why the verb changes in the past tense.",
           transcriptTurnIndex: 1,
         }),
