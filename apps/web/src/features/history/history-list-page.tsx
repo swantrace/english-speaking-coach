@@ -18,7 +18,7 @@ export function HistoryListPage() {
       accessorKey: "title",
       cell: ({ row }) => (
         <div className="grid gap-1">
-          <span className="text-base font-medium text-white">{row.original.title}</span>
+          <span className="text-base font-medium text-slate-900">{row.original.title}</span>
           <span className="text-xs uppercase tracking-[0.18em] text-slate-500">{row.original.id}</span>
         </div>
       ),
@@ -38,21 +38,21 @@ export function HistoryListPage() {
     },
     {
       accessorKey: "startedAt",
-      cell: ({ row }) => <span className="text-slate-300">{formatTimestamp(row.original.startedAt)}</span>,
+      cell: ({ row }) => <span className="text-slate-600">{formatTimestamp(row.original.startedAt)}</span>,
       header: "Started",
     },
     {
       accessorKey: "endedAt",
-      cell: ({ row }) => <span className="text-slate-300">{formatTimestamp(row.original.endedAt)}</span>,
+      cell: ({ row }) => <span className="text-slate-600">{formatTimestamp(row.original.endedAt)}</span>,
       header: "Ended",
     },
     {
       accessorKey: "review",
       cell: ({ row }) =>
         row.original.review ? (
-          <span className="text-slate-300">Ready</span>
+          <span className="text-slate-700">Ready</span>
         ) : (
-          <span className="inline-block animate-pulse text-slate-300">Generating...</span>
+          <span className="inline-block animate-pulse text-slate-600">Generating...</span>
         ),
       enableSorting: false,
       header: "Review",
@@ -61,7 +61,7 @@ export function HistoryListPage() {
       accessorKey: "canReopen",
       cell: ({ row }) =>
         row.original.canReopen ? (
-          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-emerald-100">
+          <span className="rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-xs uppercase tracking-[0.18em] text-emerald-900">
             Reopenable
           </span>
         ) : (
@@ -87,7 +87,7 @@ export function HistoryListPage() {
 
         <Card className="grid gap-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
-            <div className="grid gap-2 text-sm text-slate-300">
+            <div className="grid gap-2 text-sm text-slate-700">
               <span>Mode</span>
               <Select
                 onValueChange={(value: string) =>
@@ -95,7 +95,7 @@ export function HistoryListPage() {
                 }
                 value={queryState.sessionType ?? "all"}
               >
-                <SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-50">
+                <SelectTrigger className="border-slate-200 bg-white text-slate-900">
                   <SelectValue placeholder="All modes" />
                 </SelectTrigger>
                 <SelectContent>
@@ -105,9 +105,9 @@ export function HistoryListPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2 text-sm text-slate-300">
+            <div className="grid gap-2 text-sm text-slate-700">
               <span>History behavior</span>
-              <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-slate-400">
+              <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
                 Use the search bar and sortable headers in the DataTable below. Selecting a row opens the session detail
                 view.
               </div>
@@ -129,7 +129,7 @@ export function HistoryListPage() {
               columns={columns}
               data={history.data.items}
               getRowAriaLabel={(row) => `Open session ${row.title}`}
-              getRowClassName={() => "cursor-pointer border-white/10 hover:bg-white/[0.04] focus-visible:outline-none"}
+              getRowClassName={() => "cursor-pointer border-slate-200 hover:bg-slate-50 focus-visible:outline-none"}
               globalFilter={queryState.searchInput}
               isPending={history.isPending}
               onGlobalFilterChange={queryState.setSearchInput}

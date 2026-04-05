@@ -1,18 +1,18 @@
 @import "@english-coach/ui/styles.css";
 
 :root {
-  color: #f8fafc;
+  color: #0f172a;
   font-family: "Avenir Next", "Segoe UI Variable", "Segoe UI", sans-serif;
 }
 
 html {
-  background: #08111f;
+  background: #f6f1e8;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  color: #e2e8f0;
+  color: #0f172a;
   font-family: "Avenir Next", "Segoe UI Variable", "Segoe UI", sans-serif;
 }
 
@@ -42,6 +42,18 @@ textarea {
   min-height: 100vh;
 }
 
+.coach-light-theme {
+  --primary: oklch(0.92 0.03 82);
+  --primary-foreground: oklch(0.22 0.02 255);
+  --secondary: oklch(0.96 0.01 80);
+  --secondary-foreground: oklch(0.22 0.02 255);
+  --accent: oklch(0.95 0.02 85);
+  --accent-foreground: oklch(0.22 0.02 255);
+  --border: oklch(0.88 0.01 255);
+  --input: oklch(0.88 0.01 255);
+  --ring: oklch(0.68 0.03 230);
+}
+
 .lk-coach-toast {
   margin-inline: auto;
   width: fit-content;
@@ -53,7 +65,7 @@ textarea {
 }
 
 .coach-prose {
-  color: #dbe7f5;
+  color: #334155;
   line-height: 1.8;
 }
 
@@ -61,7 +73,7 @@ textarea {
 .coach-prose h2,
 .coach-prose h3,
 .coach-prose h4 {
-  color: #fff;
+  color: #0f172a;
   margin: 0 0 0.75rem;
 }
 
@@ -83,12 +95,12 @@ textarea {
 }
 
 .coach-prose strong {
-  color: #fff;
+  color: #0f172a;
 }
 
 .coach-prose code {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(248, 250, 252, 0.95);
   border-radius: 0.5rem;
   padding: 0.1rem 0.35rem;
   font-size: 0.92em;
@@ -96,8 +108,8 @@ textarea {
 
 .coach-prose pre {
   overflow-x: auto;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(2, 6, 23, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.96);
   border-radius: 1rem;
   padding: 1rem;
 }

@@ -21,13 +21,13 @@ export function KnowledgePointsPage() {
           description="This page only shows language patterns that appeared in your finished sessions. Open any row to inspect linked transcript turns and jump back into the exact moment it appeared."
           title="Track the language you actually encountered, not a generic syllabus."
           aside={
-            <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-200">
+            <div className="grid gap-3 rounded-[24px] border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-700">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-400">Tracked items</span>
+                <span className="text-slate-500">Tracked items</span>
                 <span>{knowledgePoints.data?.total ?? 0}</span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-400">Source</span>
+                <span className="text-slate-500">Source</span>
                 <span>Ended sessions only</span>
               </div>
             </div>
@@ -36,21 +36,21 @@ export function KnowledgePointsPage() {
 
         <Card className="grid gap-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_10rem]">
-            <div className="grid gap-2 text-sm text-slate-300">
+            <div className="grid gap-2 text-sm text-slate-700">
               <span>Search patterns</span>
               <Input
                 aria-label="Search knowledge points"
-                className="border-white/10 bg-slate-950/60 text-slate-50"
+                className="border-slate-200 bg-white text-slate-900"
                 onChange={(event) => queryState.setSearchInput(event.target.value)}
                 placeholder="Search pattern or example"
                 value={queryState.searchInput}
               />
             </div>
-            <div className="grid gap-2 text-sm text-slate-300">
+            <div className="grid gap-2 text-sm text-slate-700">
               <span>Sort by</span>
               <select
                 aria-label="Sort knowledge points by"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
                 onChange={(event) => queryState.setSortBy(event.target.value as typeof queryState.sortBy)}
                 value={queryState.sortBy}
               >
@@ -60,11 +60,11 @@ export function KnowledgePointsPage() {
                 <option value="totalOccurrences">Occurrences</option>
               </select>
             </div>
-            <div className="grid gap-2 text-sm text-slate-300">
+            <div className="grid gap-2 text-sm text-slate-700">
               <span>Direction</span>
               <select
                 aria-label="Knowledge point sort direction"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
                 onChange={(event) => queryState.setSortDirection(event.target.value as typeof queryState.sortDirection)}
                 value={queryState.sortDirection}
               >
@@ -72,11 +72,11 @@ export function KnowledgePointsPage() {
                 <option value="asc">Ascending</option>
               </select>
             </div>
-            <div className="grid gap-2 text-sm text-slate-300">
+            <div className="grid gap-2 text-sm text-slate-700">
               <span>Page size</span>
               <select
                 aria-label="Knowledge point page size"
-                className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-50 outline-none"
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none"
                 onChange={(event) => queryState.setPageSize(Number(event.target.value))}
                 value={String(queryState.pageSize)}
               >
@@ -105,37 +105,37 @@ export function KnowledgePointsPage() {
           <Card className="overflow-hidden p-0">
             <Table>
               <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-slate-300">Pattern</TableHead>
-                  <TableHead className="text-slate-300">Function</TableHead>
-                  <TableHead className="text-slate-300">Sessions</TableHead>
-                  <TableHead className="text-slate-300">Occurrences</TableHead>
-                  <TableHead className="text-slate-300">Last seen</TableHead>
-                  <TableHead className="text-right text-slate-300">Details</TableHead>
+                <TableRow className="border-slate-200 hover:bg-transparent">
+                  <TableHead className="text-slate-600">Pattern</TableHead>
+                  <TableHead className="text-slate-600">Function</TableHead>
+                  <TableHead className="text-slate-600">Sessions</TableHead>
+                  <TableHead className="text-slate-600">Occurrences</TableHead>
+                  <TableHead className="text-slate-600">Last seen</TableHead>
+                  <TableHead className="text-right text-slate-600">Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {knowledgePoints.data.items.map((item) => (
-                  <TableRow className="border-white/10" key={item.id}>
+                  <TableRow className="border-slate-200" key={item.id}>
                     <TableCell>
                       <div className="grid gap-1">
-                        <span className="font-medium text-white">{item.pattern}</span>
+                        <span className="font-medium text-slate-900">{item.pattern}</span>
                         <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
                           {humanizeLabel(item.syntaxRole)} · {humanizeLabel(item.fixednessLevel)}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-300">{humanizeLabel(item.communicativeFunction)}</TableCell>
-                    <TableCell className="text-slate-200">{item.sessionCount}</TableCell>
+                    <TableCell className="text-slate-600">{humanizeLabel(item.communicativeFunction)}</TableCell>
+                    <TableCell className="text-slate-700">{item.sessionCount}</TableCell>
                     <TableCell>
-                      <div className="grid gap-1 text-sm text-slate-200">
+                      <div className="grid gap-1 text-sm text-slate-700">
                         <span>{item.totalOccurrences} total</span>
                         <span className="text-xs text-slate-500">
                           You: {item.userOccurrenceCount} · Agent: {item.agentOccurrenceCount}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-300">{formatTimestamp(item.lastSeenAt)}</TableCell>
+                    <TableCell className="text-slate-600">{formatTimestamp(item.lastSeenAt)}</TableCell>
                     <TableCell className="text-right">
                       <Button onClick={() => setSelectedKnowledgePointId(item.id)} size="sm" variant="outline">
                         Inspect
@@ -149,7 +149,7 @@ export function KnowledgePointsPage() {
         ) : null}
 
         {knowledgePoints.data?.items.length ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
             <span>
               Page {queryState.page} of {Math.max(totalPages, 1)} · {knowledgePoints.data.total} tracked items
             </span>

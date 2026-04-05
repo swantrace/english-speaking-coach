@@ -33,8 +33,8 @@ export function SessionTranscriptPanel({
     <Card className="grid gap-4 p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="grid gap-1">
-          <h2 className="text-lg text-white">Live transcript</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className="text-lg text-slate-950">Live transcript</h2>
+          <p className="text-sm text-slate-600">
             Transcript turns stay primary. Role-play progress and free-form prompts appear as lighter helper text
             beneath the relevant learner turns.
           </p>

@@ -8,10 +8,10 @@ import {
 
 function cueToneClasses(kind: TranscriptCue["kind"]) {
   if (kind === "goal-progress") {
-    return "border-orange-300/20 bg-orange-300/10 text-orange-50";
+    return "border-amber-300 bg-amber-100 text-amber-900";
   }
 
-  return "border-emerald-300/15 bg-emerald-300/10 text-emerald-50/90";
+  return "border-emerald-300 bg-emerald-100 text-emerald-900";
 }
 
 function cueLabel(cue: TranscriptCue) {
@@ -54,7 +54,7 @@ export function TranscriptEntryList({
         transcriptEntries.map((entry) => (
           <div
             className={`rounded-[18px] border px-4 py-3 transition ${
-              entry.speaker === "user" ? "border-cyan-300/15 bg-cyan-300/10" : "border-white/10 bg-white/[0.04]"
+              entry.speaker === "user" ? "border-cyan-300 bg-cyan-100" : "border-slate-200 bg-slate-50"
             } ${selectedEntryId === entry.id ? "ring-2 ring-orange-300/50" : ""}`}
             id={entry.id}
             key={entry.id}
@@ -66,10 +66,10 @@ export function TranscriptEntryList({
                 {entry.timestamp ? <span>{entry.timestamp.toLocaleTimeString()}</span> : null}
               </div>
             </div>
-            <p className="mt-2 text-sm leading-7 text-slate-100">{entry.message}</p>
+            <p className="mt-2 text-sm leading-7 text-slate-800">{entry.message}</p>
             {onSelectEntry ? (
               <button
-                className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400 transition hover:text-orange-100"
+                className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500 transition hover:text-amber-700"
                 onClick={() => onSelectEntry(entry)}
                 type="button"
               >
@@ -92,13 +92,13 @@ export function TranscriptEntryList({
           </div>
         ))
       ) : (
-        <div className="rounded-[18px] border border-dashed border-white/10 px-4 py-8 text-center text-sm text-slate-400">
+        <div className="rounded-[18px] border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
           Transcript items will appear here once the session starts receiving messages.
         </div>
       )}
 
       {agentState === "thinking" ? (
-        <div className="rounded-[18px] border border-orange-300/15 bg-orange-300/10 px-4 py-3 text-sm text-orange-50">
+        <div className="rounded-[18px] border border-amber-300 bg-amber-100 px-4 py-3 text-sm text-amber-900">
           Agent is {formatAgentStateLabel(agentState)}...
         </div>
       ) : null}

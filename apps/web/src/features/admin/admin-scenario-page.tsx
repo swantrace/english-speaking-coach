@@ -159,21 +159,21 @@ export function AdminScenarioPage() {
           description="Manage approved and pending scenarios from one review surface, while bulk generation feeds a moderated review queue instead of publishing directly to learners."
           title="Run scenario operations as a review workflow, not a direct publish pipe."
           aside={
-            <dl className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-200">
+            <dl className="grid gap-3 rounded-[24px] border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-700">
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-slate-400">Operator</dt>
+                <dt className="text-slate-500">Operator</dt>
                 <dd>{viewer.data?.user?.email}</dd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-slate-400">Catalog size</dt>
+                <dt className="text-slate-500">Catalog size</dt>
                 <dd>{scenarios.data?.total ?? 0}</dd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-slate-400">Pending review</dt>
+                <dt className="text-slate-500">Pending review</dt>
                 <dd>{pendingReview.data?.total ?? 0}</dd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-slate-400">Generator connection</dt>
+                <dt className="text-slate-500">Generator connection</dt>
                 <dd>
                   <span
                     className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em] ${connectionStyles[store.connectionState]}`}
@@ -190,15 +190,15 @@ export function AdminScenarioPage() {
           onValueChange={(value: string) => queryState.setTab(value as "manage" | "generate")}
           value={queryState.tab}
         >
-          <TabsList className="h-auto w-fit rounded-[20px] border border-white/10 bg-slate-950/60 p-1 text-slate-300">
+          <TabsList className="h-auto w-fit rounded-[20px] border border-slate-200 bg-white/90 p-1 text-slate-600 shadow-sm">
             <TabsTrigger
-              className="rounded-2xl px-4 py-2 data-[state=active]:bg-cyan-300/10 data-[state=active]:text-cyan-100"
+              className="rounded-2xl px-4 py-2 data-[state=active]:border data-[state=active]:border-amber-200 data-[state=active]:bg-amber-100 data-[state=active]:text-slate-900"
               value="manage"
             >
               Scenario Management
             </TabsTrigger>
             <TabsTrigger
-              className="rounded-2xl px-4 py-2 data-[state=active]:bg-cyan-300/10 data-[state=active]:text-cyan-100"
+              className="rounded-2xl px-4 py-2 data-[state=active]:border data-[state=active]:border-amber-200 data-[state=active]:bg-amber-100 data-[state=active]:text-slate-900"
               value="generate"
             >
               Bulk Generation

@@ -7,7 +7,12 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 
 import * as schema from "./schema";
 
-const defaultDatabasePath = fileURLToPath(new URL("../../../data/coach.sqlite", import.meta.url));
+const defaultDatabasePath = fileURLToPath(
+  new URL(
+    process.env.NODE_ENV === "test" ? "../../../data/coach.test.sqlite" : "../../../data/coach.sqlite",
+    import.meta.url,
+  ),
+);
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
 export const databasePath = process.env.DATABASE_PATH ?? defaultDatabasePath;

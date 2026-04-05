@@ -49,9 +49,7 @@ services:
       - agent_network
 
   # Optional LiveKit agent service for local self-hosted development.
-  # Enable with: docker compose --profile agent up -d
   agent:
-    profiles: ["agent"]
     build:
       context: .
       dockerfile: apps/agent/Dockerfile.dev
@@ -70,6 +68,8 @@ services:
       - agent_app_node_modules:/workspace/apps/agent/node_modules
       - agent_pnpm_store:/pnpm/store
       - agent_cache:/root/.cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       livekit:
         condition: service_started

@@ -25,16 +25,16 @@ export function MissionSidebar({
       <Card className="grid gap-4 p-5">
         <div className="grid gap-2">
           <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Scene</span>
-          <h2 className="text-xl text-white">{scenario.title}</h2>
-          <p className="text-sm leading-7 text-slate-300">{scenario.setting}</p>
+          <h2 className="text-xl text-slate-950">{scenario.title}</h2>
+          <p className="text-sm leading-7 text-slate-600">{scenario.setting}</p>
         </div>
-        <div className="grid gap-3 rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-200">
+        <div className="grid gap-3 rounded-[20px] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-slate-400">You</span>
+            <span className="text-slate-500">You</span>
             <span>{selectedCharacter?.name ?? "Not selected"}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-slate-400">Agent</span>
+            <span className="text-slate-500">Agent</span>
             <span>{agentCharacter?.name ?? "Pending"}</span>
           </div>
         </div>
@@ -42,7 +42,7 @@ export function MissionSidebar({
 
       <Card className="grid gap-4 p-5">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl text-white">Mission cues</h2>
+          <h2 className="text-xl text-slate-950">Mission cues</h2>
           <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Live progress</span>
         </div>
         <div className="grid gap-3">
@@ -55,16 +55,16 @@ export function MissionSidebar({
               <div
                 className={`grid gap-3 rounded-[20px] border px-4 py-4 transition ${
                   isComplete
-                    ? "border-emerald-300/25 bg-emerald-300/10"
+                    ? "border-emerald-300 bg-emerald-100"
                     : isCurrent
-                      ? "border-orange-300/30 bg-orange-300/10"
-                      : "border-white/10 bg-white/[0.03]"
+                      ? "border-amber-300 bg-amber-100"
+                      : "border-slate-200 bg-slate-50"
                 }`}
                 key={goal.id}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="grid gap-1">
-                    <span className="text-sm font-medium text-white">{goal.description}</span>
+                    <span className="text-sm font-medium text-slate-900">{goal.description}</span>
                     {goal.optional ? (
                       <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Optional</span>
                     ) : null}
@@ -80,8 +80,8 @@ export function MissionSidebar({
                         <span
                           className={`rounded-full border px-2.5 py-1 text-xs uppercase tracking-[0.15em] ${
                             filledValue
-                              ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100"
-                              : "border-white/10 bg-white/[0.04] text-slate-400"
+                              ? "border-emerald-300 bg-emerald-100 text-emerald-900"
+                              : "border-slate-200 bg-white text-slate-500"
                           }`}
                           key={slot}
                         >
@@ -107,15 +107,15 @@ export function ObservationsSidebar({ roomName, contextDocument }: { roomName: s
     <Card className="grid content-start gap-4 p-5 xl:sticky xl:top-4">
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl text-white">Follow-up prompts</h2>
+          <h2 className="text-xl text-slate-950">Follow-up prompts</h2>
           <span className="text-xs uppercase tracking-[0.18em] text-slate-500">Worker packets</span>
         </div>
-        <p className="text-sm leading-7 text-slate-300">
+        <p className="text-sm leading-7 text-slate-600">
           The worker appends short prompts here every few turns so the learner can ask the agent about them.
         </p>
       </div>
       {contextDocument ? (
-        <div className="rounded-[20px] border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+        <div className="rounded-[20px] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Context preview</p>
           <p className="mt-2 leading-7">{ellipsize(contextDocument, 180)}</p>
         </div>
@@ -124,15 +124,15 @@ export function ObservationsSidebar({ roomName, contextDocument }: { roomName: s
         {observations.items.length ? (
           observations.items.map((item) => (
             <div
-              className="rounded-[20px] border border-emerald-300/15 bg-emerald-300/10 p-4"
+              className="rounded-[20px] border border-emerald-300 bg-emerald-100 p-4"
               key={`${item.sessionHistoryId}:${item.promptKind}:${item.prompt}`}
             >
-              <p className="text-[10px] uppercase tracking-[0.16em] text-emerald-100/70">{item.promptKind}</p>
-              <p className="mt-2 text-sm leading-7 text-emerald-50">{item.prompt}</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-emerald-700">{item.promptKind}</p>
+              <p className="mt-2 text-sm leading-7 text-emerald-900">{item.prompt}</p>
             </div>
           ))
         ) : (
-          <div className="rounded-[20px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-slate-400">
+          <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
             No live prompts yet.
           </div>
         )}

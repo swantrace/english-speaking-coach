@@ -55,20 +55,20 @@ export function parseKnowledgeItemDraft(draft: KnowledgeItemFormDraft) {
 
 export function getReviewBadgeClassName(reviewStatus: KnowledgeItemReviewStatus) {
   if (reviewStatus === "approved") {
-    return "border-emerald-400/30 bg-emerald-400/10 text-emerald-100";
+    return "border-emerald-300 bg-emerald-100 text-emerald-900";
   }
 
   if (reviewStatus === "rejected") {
-    return "border-rose-400/30 bg-rose-400/10 text-rose-100";
+    return "border-rose-300 bg-rose-100 text-rose-900";
   }
 
-  return "border-amber-400/30 bg-amber-400/10 text-amber-100";
+  return "border-amber-300 bg-amber-100 text-amber-900";
 }
 
 export function getSourceBadgeClassName(source: KnowledgeItemSource) {
   if (source === "admin") {
-    return "border-cyan-400/30 bg-cyan-400/10 text-cyan-100";
+    return "border-cyan-300 bg-cyan-100 text-cyan-900";
   }
 
-  return "border-violet-400/30 bg-violet-400/10 text-violet-100";
+  return "border-violet-300 bg-violet-100 text-violet-900";
 }

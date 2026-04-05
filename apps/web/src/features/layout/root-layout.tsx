@@ -43,14 +43,14 @@ export function RootLayout() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#08111f] text-slate-50">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,146,60,0.16),_transparent_24%),radial-gradient(circle_at_left,_rgba(14,165,233,0.18),_transparent_28%),linear-gradient(135deg,_rgba(8,17,31,0.97),_rgba(10,24,42,0.98))]" />
-      <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:48px_48px]" />
+    <div className="coach-light-theme relative min-h-screen overflow-hidden bg-[#f6f1e8] text-slate-900">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,146,60,0.18),_transparent_26%),radial-gradient(circle_at_left,_rgba(14,165,233,0.14),_transparent_28%),linear-gradient(160deg,_rgba(255,248,240,0.98),_rgba(245,239,229,0.98))]" />
+      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:48px_48px]" />
       <div className="relative mx-auto flex min-h-screen w-full max-w-[92rem] flex-col gap-8 px-6 py-8 sm:px-10 lg:px-12">
-        <header className="flex flex-col gap-4 rounded-[28px] border border-white/10 bg-white/[0.045] px-5 py-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
+        <header className="flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white/88 px-5 py-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              className="text-xl font-semibold text-white"
+              className="text-xl font-semibold text-slate-950"
               to={isAuthenticated ? getAuthenticatedHomePath(currentUser) : "/"}
             >
               English Coach
@@ -74,8 +74,8 @@ export function RootLayout() {
                     <Link
                       className={`rounded-full px-3 py-2 text-sm transition ${
                         active
-                          ? "bg-white text-slate-950"
-                          : "border border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.08]"
+                          ? "border border-amber-200 bg-amber-100 text-slate-900 shadow-sm"
+                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                       }`}
                       key={item.to}
                       to={item.to}
@@ -102,13 +102,14 @@ export function RootLayout() {
               </nav>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
               {isAuthenticated ? (
                 <>
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
                     {currentUser?.name} · {currentUser?.email}
                   </span>
                   <Button
+                    className="border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
                     disabled={signOutState === "submitting"}
                     onClick={() => {
                       setSignOutState("submitting");
@@ -131,7 +132,11 @@ export function RootLayout() {
                   </Button>
                 </>
               ) : isLandingPage ? (
-                <Button asChild variant="outline">
+                <Button
+                  asChild
+                  className="border-slate-300 bg-white text-slate-900 hover:bg-slate-100"
+                  variant="outline"
+                >
                   <Link to="/login">Sign in</Link>
                 </Button>
               ) : null}

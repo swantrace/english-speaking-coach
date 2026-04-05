@@ -15,7 +15,6 @@ export { Badge, badgeVariants } from "./src/components/badge";
 export { Checkbox } from "./src/components/checkbox";
 export {
 	Command,
-	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
 	CommandInput,

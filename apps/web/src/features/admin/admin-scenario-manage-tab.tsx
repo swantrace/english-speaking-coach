@@ -44,8 +44,8 @@ export function AdminScenarioManageTab({
       accessorKey: "title",
       cell: ({ row }) => (
         <div className="grid gap-1">
-          <span className="font-medium text-slate-50">{row.original.title}</span>
-          <span className="text-xs leading-6 text-slate-400">{ellipsize(row.original.setting, 120)}</span>
+          <span className="font-medium text-slate-900">{row.original.title}</span>
+          <span className="text-xs leading-6 text-slate-500">{ellipsize(row.original.setting, 120)}</span>
         </div>
       ),
       header: "Title",
@@ -78,7 +78,7 @@ export function AdminScenarioManageTab({
     },
     {
       accessorKey: "updatedAt",
-      cell: ({ row }) => <span className="text-sm text-slate-300">{formatTimestamp(row.original.updatedAt)}</span>,
+      cell: ({ row }) => <span className="text-sm text-slate-600">{formatTimestamp(row.original.updatedAt)}</span>,
       header: "Updated",
     },
     {
@@ -92,6 +92,7 @@ export function AdminScenarioManageTab({
           </Button>
           {row.original.reviewStatus !== "approved" ? (
             <Button
+              className="border border-amber-300 bg-amber-100 text-amber-950 hover:bg-amber-200"
               disabled={isReviewStatusPending}
               onClick={() => onReviewStatusChange(row.original.id, "approved")}
               size="sm"
@@ -137,8 +138,8 @@ export function AdminScenarioManageTab({
     <Card className="grid gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-2">
-          <h2 className="text-2xl text-white">Scenario catalog</h2>
-          <p className="text-sm leading-7 text-slate-300">
+          <h2 className="text-2xl text-slate-950">Scenario catalog</h2>
+          <p className="text-sm leading-7 text-slate-600">
             Search, filter, review, and edit scenarios without leaving the table workflow.
           </p>
         </div>
@@ -146,7 +147,7 @@ export function AdminScenarioManageTab({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
-        <div className="grid gap-2 text-sm text-slate-300">
+        <div className="grid gap-2 text-sm text-slate-700">
           <span>Source</span>
           <Select
             onValueChange={(value: string) =>
@@ -154,7 +155,7 @@ export function AdminScenarioManageTab({
             }
             value={queryState.source ?? "all"}
           >
-            <SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-50">
+            <SelectTrigger className="border-slate-200 bg-white text-slate-900">
               <SelectValue placeholder="All sources" />
             </SelectTrigger>
             <SelectContent>
@@ -164,7 +165,7 @@ export function AdminScenarioManageTab({
             </SelectContent>
           </Select>
         </div>
-        <div className="grid gap-2 text-sm text-slate-300">
+        <div className="grid gap-2 text-sm text-slate-700">
           <span>Review status</span>
           <Select
             onValueChange={(value: string) =>
@@ -172,7 +173,7 @@ export function AdminScenarioManageTab({
             }
             value={queryState.reviewStatus ?? "all"}
           >
-            <SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-50">
+            <SelectTrigger className="border-slate-200 bg-white text-slate-900">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -183,9 +184,9 @@ export function AdminScenarioManageTab({
             </SelectContent>
           </Select>
         </div>
-        <div className="grid gap-2 text-sm text-slate-300">
+        <div className="grid gap-2 text-sm text-slate-700">
           <span>Moderation state</span>
-          <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-6 text-slate-400">
+          <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
             Approved scenarios are learner-visible. Pending and rejected scenarios stay admin-only.
           </div>
         </div>

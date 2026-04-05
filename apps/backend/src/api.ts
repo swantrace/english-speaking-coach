@@ -37,4 +37,5 @@ console.log(`backend api listening on http://localhost:${port}`);
 export default {
   fetch: app.fetch,
   port,
+  hostname: "0.0.0.0",
 };

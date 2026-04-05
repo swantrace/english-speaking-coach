@@ -29,7 +29,7 @@ export function HistoryTranscriptTab({
   return (
     <Card className="grid gap-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl text-white">{activeTab === "rewritten" ? "Rewritten transcript" : "Transcript"}</h2>
+        <h2 className="text-2xl text-slate-950">{activeTab === "rewritten" ? "Rewritten transcript" : "Transcript"}</h2>
         <div className="flex flex-wrap items-center gap-3">
           {onClearFocus ? (
             <Button onClick={onClearFocus} variant="ghost">
@@ -41,13 +41,13 @@ export function HistoryTranscriptTab({
           </Button>
         </div>
       </div>
-      <p className="text-sm leading-7 text-slate-300">
+      <p className="text-sm leading-7 text-slate-600">
         {activeTab === "rewritten"
           ? "Learner turns are rewritten from the stored post-session corrections while agent turns remain unchanged."
           : "Stored transcript annotations replay against their original turn anchors when available."}
       </p>
       {selectedAnchorLabel ? (
-        <div className="rounded-[18px] border border-orange-300/20 bg-orange-300/10 px-4 py-3 text-sm text-orange-50">
+        <div className="rounded-[18px] border border-amber-300 bg-amber-100 px-4 py-3 text-sm text-amber-900">
           Focused on {selectedAnchorLabel}.
         </div>
       ) : null}

@@ -32,20 +32,20 @@ import { resetGoalProgress, resetObservations } from "./livekit-packet-stores";
 import { saveSessionLaunchSnapshot } from "./session-launch-store";
 
 export const roleToneMap = {
-  admin: "border-amber-300/25 bg-amber-300/10 text-amber-100",
-  student: "border-cyan-300/25 bg-cyan-300/10 text-cyan-100",
+  admin: "border-amber-300 bg-amber-100 text-amber-900",
+  student: "border-cyan-300 bg-cyan-100 text-cyan-900",
 } as const;
 
 export const sessionToneMap = {
-  "free-form": "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
-  "role-play": "border-orange-300/20 bg-orange-300/10 text-orange-100",
+  "free-form": "border-emerald-300 bg-emerald-100 text-emerald-900",
+  "role-play": "border-orange-300 bg-orange-100 text-orange-900",
 } as const;
 
 export const connectionStyles = {
-  closed: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-  connecting: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-  error: "border-orange-500/30 bg-orange-500/10 text-orange-100",
-  open: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  closed: "border-rose-300 bg-rose-100 text-rose-900",
+  connecting: "border-amber-300 bg-amber-100 text-amber-900",
+  error: "border-orange-300 bg-orange-100 text-orange-900",
+  open: "border-emerald-300 bg-emerald-100 text-emerald-900",
 } as const;
 
 export const liveKitUrl = (import.meta.env as ImportMetaEnv & { VITE_LIVEKIT_URL?: string }).VITE_LIVEKIT_URL;
@@ -279,18 +279,18 @@ export function createSubmission(message: string, shouldFail: boolean) {
 
 export function getJobStatusTone(status: "queued" | "started" | "completed" | "failed") {
   if (status === "completed") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-100";
+    return "border-emerald-300 bg-emerald-100 text-emerald-900";
   }
 
   if (status === "started") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-100";
+    return "border-amber-300 bg-amber-100 text-amber-900";
   }
 
   if (status === "failed") {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-100";
+    return "border-rose-300 bg-rose-100 text-rose-900";
   }
 
-  return "border-sky-500/30 bg-sky-500/10 text-sky-100";
+  return "border-sky-300 bg-sky-100 text-sky-900";
 }
 
 export function isAdmin(user: ViewerUser | null | undefined) {

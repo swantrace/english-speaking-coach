@@ -91,13 +91,13 @@ export function ScenarioBrowserPage() {
           title="Choose a scene that pushes the exact speaking behavior you want to improve."
           aside={
             <div className="grid gap-4">
-              <dl className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-200">
+              <dl className="grid gap-3 rounded-[24px] border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-700">
                 <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-400">Available scenarios</dt>
+                  <dt className="text-slate-500">Available scenarios</dt>
                   <dd>{totalScenarios}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-400">Practice modes</dt>
+                  <dt className="text-slate-500">Practice modes</dt>
                   <dd>Role-play + free-form</dd>
                 </div>
               </dl>
@@ -110,15 +110,15 @@ export function ScenarioBrowserPage() {
 
         <Card className="mx-auto grid w-full max-w-2xl gap-4 text-center">
           <div className="grid gap-2">
-            <span className="text-sm uppercase tracking-[0.18em] text-slate-400">Find a scenario fast</span>
-            <h2 className="text-2xl text-white">Search the mission library</h2>
-            <p className="text-sm leading-7 text-slate-300">
+            <span className="text-sm uppercase tracking-[0.18em] text-slate-500">Find a scenario fast</span>
+            <h2 className="text-2xl text-slate-950">Search the mission library</h2>
+            <p className="text-sm leading-7 text-slate-600">
               Search is debounced and the list keeps loading in the background as you scroll.
             </p>
           </div>
           <Input
             aria-label="Search scenarios"
-            className="mx-auto h-12 max-w-xl border-white/10 bg-slate-950/60 text-center text-base text-slate-50"
+            className="mx-auto h-12 max-w-xl border-slate-200 bg-white text-center text-base text-slate-900"
             onChange={(event) => queryState.setSearchInput(event.target.value)}
             placeholder="Search by title, setting, or character"
             value={queryState.searchInput}
@@ -136,7 +136,7 @@ export function ScenarioBrowserPage() {
 
         {scenarioItems.length ? (
           <Card className="grid gap-4 p-3 sm:p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-300">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-600">
               <span>
                 Showing {scenarioItems.length} of {totalScenarios} scenarios
               </span>
@@ -144,7 +144,7 @@ export function ScenarioBrowserPage() {
             </div>
 
             <div
-              className="h-[68vh] overflow-auto rounded-[24px] border border-white/10 bg-slate-950/35"
+              className="h-[68vh] overflow-auto rounded-[24px] border border-slate-200 bg-slate-100/80"
               ref={scrollContainerRef}
             >
               <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
@@ -152,7 +152,7 @@ export function ScenarioBrowserPage() {
                   if (virtualRow.index >= loadedRows) {
                     return (
                       <div
-                        className="absolute left-0 top-0 flex w-full items-center justify-center px-4 py-6 text-sm text-slate-400"
+                        className="absolute left-0 top-0 flex w-full items-center justify-center px-4 py-6 text-sm text-slate-500"
                         data-index={virtualRow.index}
                         key={virtualRow.key}
                         ref={rowVirtualizer.measureElement}
@@ -181,17 +181,21 @@ export function ScenarioBrowserPage() {
                         {rowItems.map((scenario) => (
                           <Card className="grid gap-5" key={scenario.id}>
                             <div className="grid gap-3">
-                              <span className="w-fit rounded-full border border-orange-300/20 bg-orange-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-orange-100">
+                              <span className="w-fit rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs uppercase tracking-[0.24em] text-amber-900">
                                 {scenario.characters[0].name} / {scenario.characters[1].name}
                               </span>
-                              <h2 className="text-2xl text-white">{scenario.title}</h2>
-                              <p className="text-sm leading-7 text-slate-300">{ellipsize(scenario.setting, 180)}</p>
+                              <h2 className="text-2xl text-slate-950">{scenario.title}</h2>
+                              <p className="text-sm leading-7 text-slate-600">{ellipsize(scenario.setting, 180)}</p>
                             </div>
                             <div className="flex items-center justify-between gap-4 text-xs uppercase tracking-[0.18em] text-slate-500">
                               <span>{scenario.goals.goals.length} goals</span>
                               <span>{scenario.exampleDialogue.length} dialogue turns</span>
                             </div>
-                            <Button asChild size="lg">
+                            <Button
+                              asChild
+                              className="border border-amber-200 bg-amber-100 text-slate-900 hover:bg-amber-200"
+                              size="lg"
+                            >
                               <Link params={{ scenarioId: scenario.id }} to="/scenarios/$scenarioId">
                                 Open Scenario
                               </Link>
@@ -207,7 +211,7 @@ export function ScenarioBrowserPage() {
           </Card>
         ) : null}
         {scenarios.isFetching && !scenarios.isFetchingNextPage && !scenarios.isPending ? (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-300">
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
             Refreshing scenario results...
           </div>
         ) : null}

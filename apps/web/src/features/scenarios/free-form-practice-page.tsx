@@ -53,12 +53,12 @@ function FreeFormPracticePageContent({
                   </div>
                 </div>
               ) : (
-                <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-200">
+                <div className="grid gap-3 rounded-[24px] border border-slate-200 bg-slate-50/90 p-5 text-sm text-slate-700">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-400">Mode</span>
+                    <span className="text-slate-500">Mode</span>
                     <span>Open coaching</span>
                   </div>
-                  <p className="leading-7 text-slate-300">
+                  <p className="leading-7 text-slate-600">
                     Start from any notes, review summary, article, transcript, or prompt you want to practise around.
                   </p>
                 </div>
@@ -69,8 +69,8 @@ function FreeFormPracticePageContent({
           <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
             <Card className="grid gap-4">
               <div className="grid gap-2">
-                <h2 className="text-2xl text-white">Context document</h2>
-                <p className="text-sm leading-7 text-slate-300">
+                <h2 className="text-2xl text-slate-950">Context document</h2>
+                <p className="text-sm leading-7 text-slate-600">
                   The worker will turn this into live transcript prompts during the call.
                 </p>
               </div>
@@ -87,7 +87,7 @@ function FreeFormPracticePageContent({
                 </div>
               ) : null}
               <textarea
-                className="min-h-[24rem] rounded-[22px] border border-white/10 bg-slate-950/65 px-4 py-4 text-sm leading-7 text-slate-50 outline-none transition focus:border-cyan-300/40"
+                className="min-h-[24rem] rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-900 outline-none transition focus:border-cyan-300/40"
                 onChange={(event) => setContextDocument(event.target.value)}
                 placeholder="Paste context markdown here..."
                 value={contextDocument}
@@ -96,12 +96,12 @@ function FreeFormPracticePageContent({
 
             <Card className="grid content-start gap-5">
               <div className="grid gap-2">
-                <h2 className="text-2xl text-white">Preview</h2>
-                <p className="text-sm leading-7 text-slate-300">
+                <h2 className="text-2xl text-slate-950">Preview</h2>
+                <p className="text-sm leading-7 text-slate-600">
                   This is the coaching context the room session will receive.
                 </p>
               </div>
-              <div className="coach-prose max-h-[28rem] overflow-auto rounded-[22px] border border-white/10 bg-white/[0.03] p-5">
+              <div className="coach-prose max-h-[28rem] overflow-auto rounded-[22px] border border-slate-200 bg-slate-50 p-5">
                 <ReactMarkdown>{contextDocument || "No context yet."}</ReactMarkdown>
               </div>
               <Button
@@ -117,7 +117,7 @@ function FreeFormPracticePageContent({
                 {freeFormLaunch.isPending ? "Starting session..." : "Start Free-form Session"}
               </Button>
               {freeFormLaunch.error ? (
-                <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                <div className="rounded-2xl border border-rose-300 bg-rose-100 px-4 py-3 text-sm text-rose-900">
                   {freeFormLaunch.error.message}
                 </div>
               ) : null}
