@@ -1,0 +1,25 @@
+{
+	"name": "@english-coach/storage",
+	"version": "0.1.0",
+	"private": true,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"fix": "biome check --write .",
+		"test:unit": "vitest -c vitest.config.ts"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.716.0",
+		"@aws-sdk/s3-request-presigner": "^3.716.0"
+	},
+	"devDependencies": {
+		"@english-coach/typescript-config": "workspace:*",
+		"@types/node": "^24.9.1",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.3"
+	}
+}
