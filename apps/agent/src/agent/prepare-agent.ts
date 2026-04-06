@@ -3,14 +3,16 @@ import { type GoalProgressPacket, sessionDispatchMetadataSchema } from "@english
 import { Agent } from "./Agent";
 import { goalProgressPacketToTranscriptAnnotations } from "./role-play";
 import { fetchSessionBootstrapFromBackend, persistTranscriptAnnotations } from "./runtime-services";
-import type { LocalParticipantRef } from "./types";
+import type { LocalParticipantGetter } from "./types";
 
-export async function prepareAgent(metadata: string, localParticipant: LocalParticipantRef): Promise<Agent> {
+export async function prepareAgent(metadata: string, getLocalParticipant: LocalParticipantGetter): Promise<Agent> {
   const { sessionHistoryId } = sessionDispatchMetadataSchema.parse(JSON.parse(metadata));
 
   const session = await fetchSessionBootstrapFromBackend(sessionHistoryId);
 
   const publishGoalProgress = async (packet: GoalProgressPacket) => {
+    const localParticipant = getLocalParticipant();
+
     if (!localParticipant) {
       throw new Error("Local participant is unavailable for room data publishing.");
     }

@@ -15,7 +15,7 @@ export { knowledgeGenerateUpdatedEvent } from "@english-coach/contract/knowledge
 
 import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
@@ -226,8 +226,11 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
     });
   }
 
-  const { object } = await generateObject({
+  const { output } = await generateText({
     model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
+    output: Output.object({
+      schema: generatedKnowledgeItemSchema,
+    }),
     prompt: [
       "You generate one structured English knowledge item for an admin review queue.",
       "Return a useful phrase pattern, optional example sentence, and linguistic classifications when confident.",
@@ -239,10 +242,9 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
         strictJsonSchema: false,
       },
     },
-    schema: generatedKnowledgeItemSchema,
   });
 
-  return object;
+  return output;
 }
 
 async function persistKnowledgeItem(

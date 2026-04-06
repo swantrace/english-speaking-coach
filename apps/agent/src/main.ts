@@ -29,7 +29,7 @@ export default defineAgent({
       throw new Error(`Agent dispatch metadata is missing for job ${ctx.job.id}.`);
     }
 
-    const agent = await prepareAgent(ctx.job.metadata, ctx.room.localParticipant);
+    const agent = await prepareAgent(ctx.job.metadata, () => ctx.room.localParticipant);
 
     let finalized = false;
     let lastAnalysisTurnIndex = 0;

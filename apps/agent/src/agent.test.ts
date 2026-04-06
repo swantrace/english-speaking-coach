@@ -6,6 +6,7 @@ const dependencyMocks = vi.hoisted(() => ({
   addInConversationAnalysisJob: vi.fn(),
   addSessionCompletionJob: vi.fn(),
   fetchSessionBootstrapFromBackend: vi.fn(),
+  persistTranscriptAnnotations: vi.fn(),
 }));
 
 vi.mock("./agent/runtime-services", () => ({
@@ -14,6 +15,7 @@ vi.mock("./agent/runtime-services", () => ({
   inConversationAnalysisQueue: {
     add: dependencyMocks.addInConversationAnalysisJob,
   },
+  persistTranscriptAnnotations: dependencyMocks.persistTranscriptAnnotations,
   sessionCompletionQueue: {
     add: dependencyMocks.addSessionCompletionJob,
   },
@@ -21,7 +23,12 @@ vi.mock("./agent/runtime-services", () => ({
 
 import { Agent } from "./agent";
 import { withLatestWorkerFeedback } from "./agent/free-form";
-import { goalProgressPacketToTranscriptAnnotations, SessionTracker } from "./agent/role-play";
+import { prepareAgent } from "./agent/prepare-agent";
+import {
+  createRolePlayInstructions,
+  goalProgressPacketToTranscriptAnnotations,
+  SessionTracker,
+} from "./agent/role-play";
 import { toSessionTurns } from "./agent/session-turns";
 
 const scenario: Scenario = {
@@ -57,7 +64,12 @@ const scenario: Scenario = {
     slots: ["dish_name"],
   },
   id: "scenario-1",
+  reviewStatus: "approved",
+  reviewedAt: null,
+  reviewedByUserId: null,
   setting: "A small neighborhood restaurant.",
+  source: "admin",
+  submissionId: null,
   title: "Restaurant practice",
   updatedAt: new Date().toISOString(),
 };
@@ -71,10 +83,20 @@ const freeFormBootstrap: Extract<SessionAgentBootstrap, { sessionType: "free-for
   userId: "user-1",
 };
 
+const rolePlayBootstrap: Extract<SessionAgentBootstrap, { sessionType: "role-play" }> = {
+  roomName: "room-2",
+  scenario,
+  selectedCharacterIndex: 0,
+  sessionHistoryId: "history-2",
+  sessionType: "role-play",
+  userId: "user-2",
+};
+
 beforeEach(() => {
   dependencyMocks.addInConversationAnalysisJob.mockReset();
   dependencyMocks.addSessionCompletionJob.mockReset();
   dependencyMocks.fetchSessionBootstrapFromBackend.mockReset();
+  dependencyMocks.persistTranscriptAnnotations.mockReset();
 });
 
 describe("SessionTracker", () => {
@@ -124,6 +146,26 @@ describe("SessionTracker", () => {
         transcriptTurnIndex: 4,
       },
     ]);
+  });
+
+  it("includes explicit slot extraction guidance in role-play instructions", () => {
+    const tracker = new SessionTracker(scenario);
+    const instructions = createRolePlayInstructions(
+      {
+        ...rolePlayBootstrap,
+        publishGoalProgress: async () => {},
+      },
+      tracker,
+    );
+
+    expect(instructions).toContain("Extract slot values from the learner's natural wording");
+    expect(instructions).toContain("[ACTIVE_GOAL_SCHEMA]");
+    expect(instructions).toContain("Goal: Order a dish");
+    expect(instructions).toContain("Required intents: order_food");
+    expect(instructions).toContain("Required slots: dish_name");
+    expect(instructions).toContain("Current goal intent names: order_food");
+    expect(instructions).toContain("Current goal slot names: dish_name");
+    expect(instructions).toContain("May I have a cup of mocha?");
   });
 });
 
@@ -232,7 +274,36 @@ describe("Agent analysis", () => {
         sessionHistoryId: "history-1",
         transcript: [{ speaker: "user", text: "Newest user turn", timestampMs: 3 }],
       },
-      { jobId: "sessionCompletion:history-1", removeOnComplete: true },
+      { jobId: "sessionCompletion-history-1", removeOnComplete: true },
     );
+  });
+});
+
+describe("prepareAgent", () => {
+  it("publishes initial role-play goal progress after the local participant becomes available", async () => {
+    dependencyMocks.fetchSessionBootstrapFromBackend.mockResolvedValue(rolePlayBootstrap);
+
+    let localParticipant:
+      | {
+          publishData: ReturnType<typeof vi.fn>;
+        }
+      | undefined;
+
+    const agent = await prepareAgent(
+      JSON.stringify({ sessionHistoryId: "history-2" }),
+      () => localParticipant as never,
+    );
+
+    localParticipant = {
+      publishData: vi.fn().mockResolvedValue(undefined),
+    };
+
+    await agent.publishInitialGoalProgress();
+
+    expect(localParticipant.publishData).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      expect.objectContaining({ reliable: true, topic: "goal-progress" }),
+    );
+    expect(dependencyMocks.persistTranscriptAnnotations).not.toHaveBeenCalled();
   });
 });

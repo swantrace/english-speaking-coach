@@ -9,7 +9,7 @@
     "dev:worker": "bun run --hot ./src/worker.ts",
     "start:api": "bun run ./src/api.ts",
     "start:worker": "bun run ./src/worker.ts",
-    "test": "bun test"
+    "test": "REDIS_DB=15 bun test"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.50",

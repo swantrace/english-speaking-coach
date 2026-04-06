@@ -26,12 +26,13 @@ export class Agent extends voice.Agent {
         ? {
             detectIntentAndSlot: llm.tool({
               description:
-                "Call this when the learner makes meaningful progress on the current role-play goal. Provide the detected intent and any extracted slots from the learner's latest utterance.",
+                "Call this when the learner makes meaningful progress on the current role-play goal. Use the exact goal intent names and slot names. Extract slot values from the learner's natural wording even when the slot name is not spoken literally. Example: if the learner says 'May I have a cup of mocha?' and the goal requires intent 'orderDrink' plus slot 'drinkType', send intent='orderDrink' and slots={ drinkType: 'mocha' }.",
               parameters: z.object({
                 intent: z.string().trim().min(1),
                 slots: z.record(z.string(), z.string()).default({}),
               }),
               execute: async ({ intent, slots }) => {
+                console.log("Detected intent and slots:", { intent, slots });
                 sessionTracker.advance(intent, slots);
                 await config.publishGoalProgress(sessionTracker.toGoalProgressPacket(this.getLatestUserTurnIndex()));
 
@@ -134,7 +135,7 @@ export class Agent extends voice.Agent {
         transcript,
       },
       {
-        jobId: `${sessionCompletionJobName}:${this.config.sessionHistoryId}`,
+        jobId: `${sessionCompletionJobName}-${this.config.sessionHistoryId}`,
         removeOnComplete: true,
       },
     );

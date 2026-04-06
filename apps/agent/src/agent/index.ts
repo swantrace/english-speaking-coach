@@ -6,6 +6,7 @@ export { toSessionTurns } from "./session-turns";
 export type {
   AgentRuntimeConfig,
   FreeFormRuntimeConfig,
+  LocalParticipantGetter,
   LocalParticipantRef,
   RolePlayRuntimeConfig,
   WorkerFeedbackChatContext,

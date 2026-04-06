@@ -20,7 +20,7 @@ import {
   sessionKnowledgePointOccurrences,
   sessionTranscripts,
 } from "@english-coach/database/schema";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { producerRedis, workerRedis } from "../redis";
@@ -226,11 +226,15 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
     });
   }
 
-  const { object } = await generateObject({
+  const { output } = await generateText({
     model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
+    output: Output.object({
+      schema: lingAnalysisResultSchema,
+    }),
     prompt: [
       "You are analyzing a completed English coaching session transcript.",
       "Return one combined structured object with knowledge items, learner errors, and a markdown review.",
+      "Always include rewrittenUserTurns. If there are no rewrites to suggest, return rewrittenUserTurns as [].",
       `Valid syntaxRole values: ${syntaxRoles.join(", ")}`,
       `Valid fixednessLevel values: ${fixednessLevels.join(", ")}`,
       `Valid communicativeFunction values: ${communicativeFunctions.join(", ")}`,
@@ -239,10 +243,9 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
       "Only report genuine learner errors for user utterances.",
       JSON.stringify(turns),
     ].join("\n\n"),
-    schema: lingAnalysisResultSchema,
   });
 
-  return object;
+  return output;
 }
 
 async function resolveKnowledgeItemId(result: LingAnalysisResult["knowledgeItemsUsed"][number]) {

@@ -44,7 +44,7 @@ export async function completeSession(job: SessionCompletionJob) {
     lingAnalysisJobName,
     { sessionHistoryId: parsedJob.sessionHistoryId },
     {
-      jobId: `${lingAnalysisJobName}:${parsedJob.sessionHistoryId}`,
+      jobId: `${lingAnalysisJobName}-${parsedJob.sessionHistoryId}`,
       removeOnComplete: true,
     },
   );

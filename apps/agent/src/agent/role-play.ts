@@ -103,6 +103,42 @@ export class SessionTracker {
     ].join(" ");
   }
 
+  renderExtractionGuidance() {
+    const currentGoal = this.getCurrentGoal();
+
+    if (!currentGoal) {
+      return [
+        "[TOOL_CALL_RULES]",
+        "All goals are complete. Do not invent new slots or intents. Wrap up naturally.",
+      ].join("\n");
+    }
+
+    return [
+      "[TOOL_CALL_RULES]",
+      "When calling detectIntentAndSlot, use the exact intent names and slot names defined by the active goal.",
+      "Extract slot values from the learner's natural wording even when the learner does not say the slot name out loud.",
+      'Example: if the goal expects intent `orderDrink` and slot `drinkType`, and the learner says "May I have a cup of mocha?", call the tool with intent `orderDrink` and slots {"drinkType":"mocha"}.',
+      `Current goal intent names: ${currentGoal.logic.required_intents.join(", ") || "none"}`,
+      `Current goal slot names: ${currentGoal.logic.required_slots.join(", ") || "none"}`,
+    ].join("\n");
+  }
+
+  renderActiveGoalSchema() {
+    const currentGoal = this.getCurrentGoal();
+
+    if (!currentGoal) {
+      return ["[ACTIVE_GOAL_SCHEMA]", "All goals are complete."].join("\n");
+    }
+
+    return [
+      "[ACTIVE_GOAL_SCHEMA]",
+      `Goal: ${currentGoal.description}`,
+      `Required intents: ${currentGoal.logic.required_intents.join(", ") || "none"}`,
+      `Required slots: ${currentGoal.logic.required_slots.join(", ") || "none"}`,
+      "Slot extraction rule: if the learner provides a slot value indirectly or naturally, extract it using the exact slot name.",
+    ].join("\n");
+  }
+
   toGoalProgressPacket(transcriptTurnIndex?: number): GoalProgressPacket {
     const currentGoal = this.getCurrentGoal();
     const fallbackGoalId = this.scenario.goals.goals.at(-1)?.id ?? "complete";
@@ -158,6 +194,8 @@ export function createRolePlayInstructions(config: RolePlayRuntimeConfig, sessio
     "Stay in character, speak naturally, and keep replies concise enough for voice conversation.",
     "Call the detectIntentAndSlot tool whenever the learner makes meaningful progress on the active goal.",
     "After the tool returns, use the hint to shape the next in-character turn.",
+    sessionTracker.renderActiveGoalSchema(),
+    sessionTracker.renderExtractionGuidance(),
     sessionTracker.renderCurrentStatus(),
   ].join("\n\n");
 }

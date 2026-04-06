@@ -186,12 +186,12 @@ export const lingAnalysisErrorSchema = z.object({
 export const lingAnalysisResultSchema = z.object({
   errors: z.array(lingAnalysisErrorSchema),
   knowledgeItemsUsed: z.array(lingAnalysisKnowledgeItemSchema),
-  rewrittenUserTurns: z.array(rewrittenTranscriptTurnSchema).default([]),
+  rewrittenUserTurns: z.array(rewrittenTranscriptTurnSchema),
   review: z.string().trim().min(1),
 });
 
 export const inConversationAnalysisResultSchema = z.object({
-  uiPrompts: z.array(inConversationUiPromptSchema).max(3).default([]),
+  uiPrompts: z.array(inConversationUiPromptSchema).max(3),
   workerFeedbackMessage: z.string().trim().min(1),
 });
 

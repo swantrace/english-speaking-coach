@@ -16,7 +16,7 @@ import {
 } from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import { sessionTranscripts } from "@english-coach/database/schema";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { DataPacket_Kind } from "livekit-server-sdk";
@@ -192,11 +192,15 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     transcriptTurnIndex: job.transcriptStartIndex + index,
   }));
 
-  const { object } = await generateObject({
+  const { output } = await generateText({
     model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
+    output: Output.object({
+      schema: inConversationAnalysisResultSchema,
+    }),
     prompt: [
       "You analyze recent turns from an English-speaking coaching conversation.",
       "Return up to 3 transcript-aligned UI prompts and one short worker feedback message for the voice agent.",
+      "Always include uiPrompts. If there are no useful prompts, return uiPrompts as [].",
       "Each UI prompt must be a brief learner-facing follow-up cue, not a full explanation.",
       "Phrase prompts like something the learner could ask next, for example 'Ask the agent why...' or 'Ask how...'.",
       "Use promptKind='error_hint' for learner mistakes, 'knowledge_hint' for useful language patterns worth noticing, and 'fluency_hint' for pacing or clarity cues.",
@@ -204,10 +208,9 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
       "The worker feedback message should be a compact coaching hint for the agent to append into chat context.",
       JSON.stringify(indexedTurns),
     ].join("\n\n"),
-    schema: inConversationAnalysisResultSchema,
   });
 
-  return object;
+  return output;
 }
 
 export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob>(
