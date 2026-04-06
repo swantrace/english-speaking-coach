@@ -32,7 +32,6 @@ export class Agent extends voice.Agent {
                 slots: z.record(z.string(), z.string()).default({}),
               }),
               execute: async ({ intent, slots }) => {
-                console.log("Detected intent and slots:", { intent, slots });
                 sessionTracker.advance(intent, slots);
                 await config.publishGoalProgress(sessionTracker.toGoalProgressPacket(this.getLatestUserTurnIndex()));
 
