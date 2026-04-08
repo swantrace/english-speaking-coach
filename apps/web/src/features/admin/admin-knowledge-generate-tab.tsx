@@ -15,11 +15,9 @@ export function AdminKnowledgeGenerateTab({
   onApprovePendingReview,
   onOpenPendingReview,
   onRejectPendingReview,
-  onShouldFailChange,
   onSubmitBatch,
   reviewMutationPending,
   pendingReview,
-  shouldFail,
   store,
 }: {
   batchCount: number;
@@ -32,11 +30,9 @@ export function AdminKnowledgeGenerateTab({
   onApprovePendingReview: (item: KnowledgeItem) => void;
   onOpenPendingReview: (item: KnowledgeItem) => void;
   onRejectPendingReview: (item: KnowledgeItem) => void;
-  onShouldFailChange: (value: boolean) => void;
   onSubmitBatch: () => void;
   reviewMutationPending: boolean;
   pendingReview: ReturnType<typeof useKnowledgeItemsList>;
-  shouldFail: boolean;
   store: {
     connectionState: "closed" | "connecting" | "open" | "error";
     jobs: Array<{
@@ -65,15 +61,6 @@ export function AdminKnowledgeGenerateTab({
             onChange={(event) => onMessageChange(event.target.value)}
             value={message}
           />
-          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <input
-              checked={shouldFail}
-              className="h-4 w-4 rounded border-slate-300 bg-white"
-              onChange={(event) => onShouldFailChange(event.target.checked)}
-              type="checkbox"
-            />
-            Simulate worker failure for this submission
-          </label>
           {store.lastError ? <p className="text-sm text-rose-700">{store.lastError}</p> : null}
           <div className="flex flex-wrap gap-3">
             <Button disabled={store.submitState === "submitting" || batchCount === 0} onClick={onSubmitBatch} size="lg">

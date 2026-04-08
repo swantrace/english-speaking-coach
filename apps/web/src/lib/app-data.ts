@@ -265,7 +265,7 @@ export function createScenarioContextDocument(scenario: Scenario) {
     .join("\n")}`;
 }
 
-export function createSubmission(message: string, shouldFail: boolean) {
+export function createSubmission(message: string) {
   return message
     .split("\n")
     .map((line) => line.trim())
@@ -273,7 +273,6 @@ export function createSubmission(message: string, shouldFail: boolean) {
     .map((line) => ({
       message: line,
       queuedAt: new Date().toISOString(),
-      shouldFail,
     }));
 }
 

@@ -154,8 +154,8 @@ export function AdminScenarioPage() {
       "Handle a product demo with a skeptical enterprise buyer.",
     ].join("\n"),
   );
-  const [shouldFail, setShouldFail] = useState(false);
-  const batchItems = createSubmission(message, shouldFail);
+
+  const batchItems = createSubmission(message);
   const deleteScenario = useMutation({
     mutationFn: async (scenarioId: string) => {
       await apiVoid(`/api/scenarios/${scenarioId}`, { method: "DELETE" });
@@ -220,15 +220,6 @@ export function AdminScenarioPage() {
               onChange={(event) => setMessage(event.target.value)}
               value={message}
             />
-            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-              <input
-                checked={shouldFail}
-                className="h-4 w-4 rounded border-white/20 bg-slate-900"
-                onChange={(event) => setShouldFail(event.target.checked)}
-                type="checkbox"
-              />
-              Simulate worker failure for this submission
-            </label>
             <div className="flex flex-wrap gap-3">
               <Button
                 disabled={store.submitState === "submitting" || batchItems.length === 0}

@@ -350,10 +350,6 @@ export async function processKnowledgeGenerateJob(jobData: KnowledgeGenerateJobD
   await saveKnowledgeGenerateSnapshot(startedMessage);
   await publishKnowledgeGenerateProgress(startedMessage);
 
-  if (process.env.NODE_ENV !== "production" && jobData.shouldFail) {
-    throw new Error("Knowledge item generation failed");
-  }
-
   const generatedKnowledgeItem = await generateKnowledgeItem(jobData.message);
   const persistedKnowledgeItem = await persistKnowledgeItem(generatedKnowledgeItem, jobData);
 

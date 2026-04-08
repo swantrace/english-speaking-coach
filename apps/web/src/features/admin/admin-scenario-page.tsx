@@ -64,14 +64,13 @@ export function AdminScenarioPage() {
       "Handle a product demo with a skeptical enterprise buyer.",
     ].join("\n"),
   );
-  const [shouldFail, setShouldFail] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [formDraft, setFormDraft] = useState<ScenarioFormDraft>(createEmptyScenarioDraft());
   const [formError, setFormError] = useState<string>();
   const [editingScenarioId, setEditingScenarioId] = useState<string>();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [scenarioToDelete, setScenarioToDelete] = useState<Scenario | null>(null);
-  const batchItems = createSubmission(message, shouldFail);
+  const batchItems = createSubmission(message);
 
   useEffect(() => {
     scenarioGenerateStore.connect();
@@ -240,11 +239,9 @@ export function AdminScenarioPage() {
                 onRejectPendingReview={(scenario) =>
                   void updateScenarioReviewStatus.mutateAsync({ reviewStatus: "rejected", scenarioId: scenario.id })
                 }
-                onShouldFailChange={setShouldFail}
                 onSubmitBatch={() => void scenarioGenerateStore.submit(batchItems)}
                 pendingReview={pendingReview}
                 reviewMutationPending={updateScenarioReviewStatus.isPending}
-                shouldFail={shouldFail}
                 store={store}
               />
             </Suspense>

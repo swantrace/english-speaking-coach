@@ -33,7 +33,6 @@ export const knowledgeGenerateHistoryQuerySchema = z.object({
 export const knowledgeGenerateSubmissionItemSchema = z.object({
   message: z.string().min(1),
   queuedAt: z.string().optional(),
-  shouldFail: z.boolean().optional(),
 });
 
 const adminKnowledgeItemWriteBaseSchema = z.object({

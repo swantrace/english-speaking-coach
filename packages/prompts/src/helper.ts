@@ -7,38 +7,38 @@
  * Maps CEFR level codes to human-readable descriptions.
  */
 export function getLevelDescription(learnerLevel: "A2" | "B1" | "B2" | "C1" | string): string {
-	switch (learnerLevel) {
-		case "A2":
-			return "lower-intermediate (A2)";
-		case "B1":
-			return "intermediate (B1)";
-		case "B2":
-			return "upper-intermediate (B2)";
-		case "C1":
-			return "advanced (C1)";
-		default:
-			return "intermediate";
-	}
+  switch (learnerLevel) {
+    case "A2":
+      return "lower-intermediate (A2)";
+    case "B1":
+      return "intermediate (B1)";
+    case "B2":
+      return "upper-intermediate (B2)";
+    case "C1":
+      return "advanced (C1)";
+    default:
+      return "intermediate";
+  }
 }
 
 /**
  * Generates the analysis context section for free-form prompts.
  */
 export function buildAnalysisSection(
-	analysis?: {
-		summary: string;
-		corrections: {
-			original: string;
-			correction: string;
-			explanation: string;
-		}[];
-		newlyDiscoveredKps: { phrase: string; explanation: string }[];
-		patternIssues: string[];
-	} | null,
+  analysis?: {
+    summary: string;
+    corrections: {
+      original: string;
+      correction: string;
+      explanation: string;
+    }[];
+    newlyDiscoveredKps: { phrase: string; explanation: string }[];
+    patternIssues: string[];
+  } | null,
 ): string {
-	if (!analysis) return "";
+  if (!analysis) return "";
 
-	return `
+  return `
 [ROLE-PLAY ANALYSIS CONTEXT]
 - Summary: ${analysis.summary}
 - Corrections (${analysis.corrections.length}): ${JSON.stringify(analysis.corrections)}
@@ -56,16 +56,16 @@ Use this information to:
  * Generates the functional scenario context section for free-form prompts.
  */
 export function buildFunctionalScenarioSection(
-	functionalScenario?: {
-		title: string;
-		description: string;
-		tags: string[];
-		examplePhrases: { phrase: string; explanation: string }[];
-	} | null,
+  functionalScenario?: {
+    title: string;
+    description: string;
+    tags: string[];
+    examplePhrases: { phrase: string; explanation: string }[];
+  } | null,
 ): string {
-	if (!functionalScenario) return "";
+  if (!functionalScenario) return "";
 
-	return `
+  return `
 [FUNCTIONAL SCENARIO CONTEXT]
 - Title: ${functionalScenario.title}
 - Description: ${functionalScenario.description}
@@ -84,11 +84,11 @@ Use this information to:
  * Combines analysis and functional scenario sections, or provides default text.
  */
 export function buildOverallContextSection(analysisSection: string, functionalScenarioSection: string): string {
-	if (analysisSection || functionalScenarioSection) {
-		return analysisSection + functionalScenarioSection;
-	}
+  if (analysisSection || functionalScenarioSection) {
+    return analysisSection + functionalScenarioSection;
+  }
 
-	return `
+  return `
 [CONTEXT]
 No prior scenario or analysis is provided.
 You are in pure free-form tutoring mode:
@@ -101,24 +101,24 @@ You are in pure free-form tutoring mode:
  * Used in session analysis and scenario generation prompts.
  */
 export function buildMultiWordPhraseGuidelines(context: "discovery" | "suggestion"): string {
-	const countRange = context === "discovery" ? "3-10" : "6-12";
-	const contextDescription = context === "discovery" ? "that appeared in the conversation" : "for this scenario";
-	const purposeDescription =
-		context === "discovery"
-			? "These should be phrases the learner encountered (either used or heard from assistant)."
-			: "These will later become formal knowledge points in the database.";
+  const countRange = context === "discovery" ? "3-10" : "6-12";
+  const contextDescription = context === "discovery" ? "that appeared in the conversation" : "for this scenario";
+  const purposeDescription =
+    context === "discovery"
+      ? "These should be phrases the learner encountered (either used or heard from assistant)."
+      : "These will later become formal knowledge points in the database.";
 
-	const extractionRules =
-		context === "suggestion"
-			? `
+  const extractionRules =
+    context === "suggestion"
+      ? `
    - EXTRACTION RULES:
        - Every "phrase" MUST come directly from the exampleDialogue.
        - Do NOT invent phrases that never appear in the dialogue.
        - You may trim surrounding words, but the core phrase must be a contiguous span from the dialogue.
        - If targetPhrases were provided, prioritize including them (if they appear in dialogue).`
-			: "";
+      : "";
 
-	return `${countRange} useful **multi-word phrases or expressions** ${contextDescription}.
+  return `${countRange} useful **multi-word phrases or expressions** ${contextDescription}.
    - ${purposeDescription}
    - Focus on MULTI-WORD chunks only:
        ✓ Phrasal verbs: "check out", "run into", "look forward to"
@@ -154,8 +154,8 @@ export function buildMultiWordPhraseGuidelines(context: "discovery" | "suggestio
  * Includes detailed field definitions and optional example.
  */
 export function buildToolUsageInstructions(includeExample = true): string {
-	const exampleSection = includeExample
-		? `
+  const exampleSection = includeExample
+    ? `
 -------------------------------------------------------------------------------
 EXAMPLE TOOL INPUT (JSON SHAPE — NOT CONTENT RULES)
 -------------------------------------------------------------------------------
@@ -188,9 +188,9 @@ A correct tool call structure would look like:
   ]
 }
 `
-		: "";
+    : "";
 
-	return `-------------------------------------------------------------------------------
+  return `-------------------------------------------------------------------------------
 GENERAL RULES FOR TOOL CALLS
 -------------------------------------------------------------------------------
 1. Use the data in [PROGRESS STATE] as the source of truth.
@@ -246,8 +246,8 @@ ${exampleSection}`;
  * Generates standard JSON output constraint text.
  */
 export function buildJsonOutputConstraints(requiredKeys: string[]): string {
-	const keysFormatted = requiredKeys.map((k) => `"${k}"`).join(", ");
-	return `- Output MUST be a valid JSON object, not wrapped in markdown, prose, or code fences.
+  const keysFormatted = requiredKeys.map((k) => `"${k}"`).join(", ");
+  return `- Output MUST be a valid JSON object, not wrapped in markdown, prose, or code fences.
 - Keys MUST be exactly: ${keysFormatted}.
 - Do NOT add extra fields.`;
 }
@@ -255,18 +255,18 @@ export function buildJsonOutputConstraints(requiredKeys: string[]): string {
 /**
  * Formats knowledge point types and tag lists for prompts.
  */
-export function formatKnowledgePointTypesAndTags(
-	types: readonly string[],
-	grammarTags: readonly string[],
-	functionalTags: readonly string[],
+export function formatKnowledgeItemTypesAndTags(
+  types: readonly string[],
+  grammarTags: readonly string[],
+  functionalTags: readonly string[],
 ): {
-	formattedTypes: string;
-	formattedGrammarTags: string;
-	formattedFunctionalTags: string;
+  formattedTypes: string;
+  formattedGrammarTags: string;
+  formattedFunctionalTags: string;
 } {
-	return {
-		formattedTypes: types.map((type) => `"${type}"`).join(" | "),
-		formattedGrammarTags: grammarTags.map((tag) => `"${tag}"`).join(", "),
-		formattedFunctionalTags: functionalTags.map((tag) => `"${tag}"`).join(", "),
-	};
+  return {
+    formattedTypes: types.map((type) => `"${type}"`).join(" | "),
+    formattedGrammarTags: grammarTags.map((tag) => `"${tag}"`).join(", "),
+    formattedFunctionalTags: functionalTags.map((tag) => `"${tag}"`).join(", "),
+  };
 }

@@ -63,14 +63,13 @@ export function AdminKnowledgeItemsPage() {
       "softening language for making requests in restaurants",
     ].join("\n"),
   );
-  const [shouldFail, setShouldFail] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [formDraft, setFormDraft] = useState<KnowledgeItemFormDraft>(createEmptyKnowledgeItemDraft());
   const [formError, setFormError] = useState<string>();
   const [editingKnowledgeItemId, setEditingKnowledgeItemId] = useState<string>();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [knowledgeItemToDelete, setKnowledgeItemToDelete] = useState<KnowledgeItem | null>(null);
-  const batchItems = createSubmission(message, shouldFail);
+  const batchItems = createSubmission(message);
 
   useEffect(() => {
     knowledgeGenerateStore.connect();
@@ -248,11 +247,9 @@ export function AdminKnowledgeItemsPage() {
                 }
                 onRefreshGenerationHistory={() => void generationHistory.refetch()}
                 onRefreshPendingReview={() => void pendingReview.refetch()}
-                onShouldFailChange={setShouldFail}
                 onSubmitBatch={() => void knowledgeGenerateStore.submit(batchItems)}
                 pendingReview={pendingReview}
                 reviewMutationPending={updateKnowledgeItemReviewStatus.isPending}
-                shouldFail={shouldFail}
                 store={store}
               />
             </Suspense>

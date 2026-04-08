@@ -370,10 +370,6 @@ export const scenarioGenerateWorker = new Worker<ScenarioGenerateJobData>(
     await saveScenarioGenerateSnapshot(startedMessage);
     await publishScenarioGenerateProgress(startedMessage);
 
-    if (process.env.NODE_ENV !== "production" && job.data.shouldFail) {
-      throw new Error("Scenario generation failed");
-    }
-
     const generatedScenario = await generateScenario(job.data.message);
     const persistedScenario = await persistScenario(generatedScenario, job.data);
 

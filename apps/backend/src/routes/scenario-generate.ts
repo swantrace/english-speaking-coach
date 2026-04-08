@@ -121,8 +121,7 @@ export function registerScenarioGenerateRoutes(app: BackendApp) {
         if (!payload) {
           return {
             cursor: index,
-            error:
-              "Each item requires a non-empty string message, optional string queuedAt, and optional boolean shouldFail",
+            error: "Each item requires a non-empty string message, optional string queuedAt",
             index,
             status: "invalid_input",
             submissionId,
