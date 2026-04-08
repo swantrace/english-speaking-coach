@@ -18,6 +18,7 @@ import { knowledgeItems } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
+import type z from "zod";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import {
   createCompletedProgressMessage,
@@ -51,7 +52,12 @@ const generatedKnowledgeItemSchema = adminKnowledgeItemCreateSchema.omit({
   source: true,
 });
 
-type GeneratedKnowledgeItem = typeof generatedKnowledgeItemSchema._output;
+const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
+  pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),
+});
+
+type GeneratedKnowledgeItem = z.output<typeof generatedKnowledgeItemSchema>;
+type ModelGeneratedKnowledgeItem = z.output<typeof modelGeneratedKnowledgeItemSchema>;
 
 let knowledgeGeneratorOverride: ((prompt: string) => Promise<GeneratedKnowledgeItem>) | null = null;
 
@@ -211,6 +217,32 @@ export async function getKnowledgeGenerateSnapshots({
   );
 }
 
+function normalizePatternValue(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function derivePatternFallback(prompt: string, example?: string | null): string {
+  const normalizedExample = normalizePatternValue(example?.replace(/^\s*(["'])/, "").replace(/(["'])\s*$/, ""));
+
+  if (normalizedExample) {
+    return normalizedExample;
+  }
+
+  return normalizePatternValue(prompt) ?? "General language pattern";
+}
+
+function coerceGeneratedKnowledgeItem(output: ModelGeneratedKnowledgeItem, prompt: string): GeneratedKnowledgeItem {
+  return generatedKnowledgeItemSchema.parse({
+    ...output,
+    pattern: normalizePatternValue(output.pattern) ?? derivePatternFallback(prompt, output.example),
+  });
+}
+
 async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledgeItem> {
   if (knowledgeGeneratorOverride) {
     return knowledgeGeneratorOverride(prompt);
@@ -229,10 +261,11 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
   const { output } = await generateText({
     model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
     output: Output.object({
-      schema: generatedKnowledgeItemSchema,
+      schema: modelGeneratedKnowledgeItemSchema,
     }),
     prompt: [
       "You generate one structured English knowledge item for an admin review queue.",
+      "Always include a non-empty 'pattern' field.",
       "Return a useful phrase pattern, optional example sentence, and linguistic classifications when confident.",
       "Keep the pattern concise and reusable for coaching.",
       prompt,
@@ -244,7 +277,7 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
     },
   });
 
-  return output;
+  return coerceGeneratedKnowledgeItem(output, prompt);
 }
 
 async function persistKnowledgeItem(
