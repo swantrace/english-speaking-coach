@@ -4,6 +4,8 @@ import { user } from "./auth";
 import { freeFormContexts } from "./free-form-contexts";
 import { scenarios } from "./scenarios";
 
+export const sessionTypeValues = ["role-play", "free-form"] as const;
+
 export const sessionHistory = sqliteTable(
   "session_history",
   {
@@ -27,19 +29,16 @@ export const sessionHistory = sqliteTable(
     // ── free-form only (null for role-play) ──────────────────────────────────
     freeFormContextId: text("free_form_context_id").references(() => freeFormContexts.id),
   },
-  (table) => ({
-    userIdIdx: index("session_history_user_id_idx").on(table.userId),
-    sessionTypeCheck: check(
-      "session_history_session_type_check",
-      sql`${table.sessionType} in ('role-play', 'free-form')`,
-    ),
-    rolePlayCheck: check(
+  (table) => [
+    index("session_history_user_id_idx").on(table.userId),
+    check("session_history_session_type_check", sql`${table.sessionType} in ('role-play', 'free-form')`),
+    check(
       "session_history_role_play_check",
       sql`${table.sessionType} != 'role-play' OR ${table.scenarioId} IS NOT NULL`,
     ),
-    freeFormCheck: check(
+    check(
       "session_history_free_form_check",
       sql`${table.sessionType} != 'free-form' OR ${table.freeFormContextId} IS NOT NULL`,
     ),
-  }),
+  ],
 );

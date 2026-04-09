@@ -20,13 +20,10 @@ export const submissionJobs = sqliteTable(
       .notNull()
       .references(() => submissions.id, { onDelete: "cascade" }),
   },
-  (table) => ({
-    cursorBySubmissionIdx: uniqueIndex("submission_jobs_submission_cursor_idx").on(table.submissionId, table.cursor),
-    jobIdIdx: uniqueIndex("submission_jobs_job_id_idx").on(table.jobId),
-    statusCheck: check(
-      "submission_jobs_status_check",
-      sql`${table.status} in ('queued', 'started', 'completed', 'failed')`,
-    ),
-    submissionIdx: index("submission_jobs_submission_idx").on(table.submissionId),
-  }),
+  (table) => [
+    uniqueIndex("submission_jobs_submission_cursor_idx").on(table.submissionId, table.cursor),
+    uniqueIndex("submission_jobs_job_id_idx").on(table.jobId),
+    check("submission_jobs_status_check", sql`${table.status} in ('queued', 'started', 'completed', 'failed')`),
+    index("submission_jobs_submission_idx").on(table.submissionId),
+  ],
 );

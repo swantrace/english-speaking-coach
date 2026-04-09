@@ -1,3 +1,5 @@
+import { knowledgeItems } from "@english-coach/database/schema";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import {
   createJobEventsSubmissionResponseSchema,
@@ -35,13 +37,21 @@ export const knowledgeGenerateSubmissionItemSchema = z.object({
   queuedAt: z.string().optional(),
 });
 
-const adminKnowledgeItemWriteBaseSchema = z.object({
+const adminKnowledgeItemWriteBaseSchema = createInsertSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctions).nullable().optional(),
   example: z.string().trim().min(1).nullable().optional(),
   fixednessLevel: z.enum(fixednessLevels).nullable().optional(),
   pattern: z.string().trim().min(1),
   source: knowledgeItemSourceSchema.optional(),
   syntaxRole: z.enum(syntaxRoles).nullable().optional(),
+}).omit({
+  createdAt: true,
+  id: true,
+  reviewStatus: true,
+  reviewedAt: true,
+  reviewedByUserId: true,
+  submissionId: true,
+  updatedAt: true,
 });
 
 export const adminKnowledgeItemCreateSchema = adminKnowledgeItemWriteBaseSchema.extend({

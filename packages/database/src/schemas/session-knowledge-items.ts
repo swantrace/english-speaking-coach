@@ -19,12 +19,8 @@ export const sessionKnowledgeItems = sqliteTable(
     /** string[] of utterance excerpts where the item appeared. */
     examples: text("examples", { mode: "json" }).notNull().$type<string[]>(),
   },
-  (table) => ({
-    uniqueKey: uniqueIndex("session_knowledge_items_unique_idx").on(
-      table.sessionHistoryId,
-      table.knowledgeItemId,
-      table.speaker,
-    ),
-    speakerCheck: check("session_knowledge_items_speaker_check", sql`${table.speaker} in ('user', 'agent')`),
-  }),
+  (table) => [
+    uniqueIndex("session_knowledge_items_unique_idx").on(table.sessionHistoryId, table.knowledgeItemId, table.speaker),
+    check("session_knowledge_items_speaker_check", sql`${table.speaker} in ('user', 'agent')`),
+  ],
 );

@@ -1,3 +1,5 @@
+import { scenarios } from "@english-coach/database/schema";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import {
   createJobEventsSubmissionResponseSchema,
@@ -39,12 +41,21 @@ export const scenarioGenerateSubmissionBodySchema = z.object({
   items: z.array(scenarioGenerateSubmissionItemSchema).min(1),
 });
 
-const adminScenarioWriteBaseSchema = z.object({
+const adminScenarioWriteBaseSchema = createInsertSchema(scenarios, {
   characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
   exampleDialogue: z.array(scenarioDialogueTurnSchema).min(1),
   goals: scenarioGoalsSchema,
   setting: z.string().trim().min(1),
   title: z.string().trim().min(1),
+}).omit({
+  createdAt: true,
+  id: true,
+  reviewStatus: true,
+  reviewedAt: true,
+  reviewedByUserId: true,
+  source: true,
+  submissionId: true,
+  updatedAt: true,
 });
 
 export const adminScenarioCreateSchema = adminScenarioWriteBaseSchema.extend({

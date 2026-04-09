@@ -41,14 +41,11 @@ export const scenarios = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => ({
-    reviewStatusCheck: check(
-      "scenarios_review_status_check",
-      sql`${table.reviewStatus} in ('pending_review', 'approved', 'rejected')`,
-    ),
-    reviewStatusIdx: index("scenarios_review_status_idx").on(table.reviewStatus),
-    sourceCheck: check("scenarios_source_check", sql`${table.source} in ('admin', 'auto_generated')`),
-    sourceIdx: index("scenarios_source_idx").on(table.source),
-    submissionIdx: index("scenarios_submission_id_idx").on(table.submissionId),
-  }),
+  (table) => [
+    check("scenarios_review_status_check", sql`${table.reviewStatus} in ('pending_review', 'approved', 'rejected')`),
+    index("scenarios_review_status_idx").on(table.reviewStatus),
+    check("scenarios_source_check", sql`${table.source} in ('admin', 'auto_generated')`),
+    index("scenarios_source_idx").on(table.source),
+    index("scenarios_submission_id_idx").on(table.submissionId),
+  ],
 );

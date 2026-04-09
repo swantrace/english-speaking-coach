@@ -14,8 +14,8 @@ export const submissions = sqliteTable(
     updatedAt: text("updated_at").notNull(),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   },
-  (table) => ({
-    kindIdx: index("submissions_kind_idx").on(table.kind),
-    kindCheck: check("submissions_kind_check", sql`${table.kind} in ('scenario.generate', 'knowledge.generate')`),
-  }),
+  (table) => [
+    index("submissions_kind_idx").on(table.kind),
+    check("submissions_kind_check", sql`${table.kind} in ('scenario.generate', 'knowledge.generate')`),
+  ],
 );

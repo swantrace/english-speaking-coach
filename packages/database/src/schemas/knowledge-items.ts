@@ -2,6 +2,26 @@ import { sql } from "drizzle-orm";
 import { check, index, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const knowledgeItemReviewStatusValues = ["pending_review", "approved", "rejected"] as const;
+export const knowledgeItemSourceValues = ["admin", "auto_generated"] as const;
+export const syntaxRoleValues = [
+  "predicate_verb",
+  "predicate_adjective",
+  "adverbial_modifier",
+  "noun_phrase",
+  "discourse_linker",
+  "clause_pattern",
+] as const;
+export const fixednessLevelValues = ["restricted_collocation", "fixed_expression", "idiom"] as const;
+export const communicativeFunctionValues = [
+  "manage_social_relation",
+  "express_attitude_or_opinion",
+  "make_request_or_offer",
+  "give_or_seek_information",
+  "organize_discourse",
+  "react_in_conversation",
+  "express_degree_or_soften",
+  "express_time_or_sequence",
+] as const;
 
 export const knowledgeItems = sqliteTable(
   "knowledge_items",
@@ -14,7 +34,7 @@ export const knowledgeItems = sqliteTable(
     communicativeFunction: text("communicative_function"),
     example: text("example"),
     /** "admin" = manually managed; "auto_generated" = created by lingAnalysis worker, pending review. */
-    source: text("source", { enum: ["admin", "auto_generated"] }).notNull(),
+    source: text("source", { enum: knowledgeItemSourceValues }).notNull(),
     reviewStatus: text("review_status", { enum: knowledgeItemReviewStatusValues }).notNull().default("approved"),
     reviewedAt: text("reviewed_at"),
     reviewedByUserId: text("reviewed_by_user_id"),

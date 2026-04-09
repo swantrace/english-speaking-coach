@@ -1,7 +1,14 @@
+import {
+  scenarioReviewStatusValues,
+  scenarioSourceValues,
+  scenarios,
+  sessionTypeValues,
+} from "@english-coach/database/schema";
+import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 /** Step 2: session type discriminator */
-export const sessionTypeSchema = z.enum(["role-play", "free-form"]);
+export const sessionTypeSchema = z.enum(sessionTypeValues);
 export type SessionType = z.infer<typeof sessionTypeSchema>;
 
 export const sessionTurnSchema = z.object({
@@ -77,27 +84,16 @@ export const scenarioGoalsSchema = z.object({
   goals: z.array(scenarioGoalSchema),
 });
 
-export const scenarioSourceSchema = z.enum(["admin", "auto_generated"]);
-export const scenarioReviewStatusSchema = z.enum(["pending_review", "approved", "rejected"]);
+export const scenarioSourceSchema = z.enum(scenarioSourceValues);
+export const scenarioReviewStatusSchema = z.enum(scenarioReviewStatusValues);
 
 /** Step 3: domain object produced by a completed scenario generation job. */
-export const scenarioSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  /** Scene-setting text: used as the card subtitle and fed into the agent prompt. */
-  setting: z.string(),
+export const scenarioSchema = createSelectSchema(scenarios, {
   /** Always exactly two scenario roles. The learner's role is chosen later via `selectedCharacterIndex`. */
   characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
-  goals: scenarioGoalsSchema,
   /** Pre-written model dialogue shown on the scenario detail page before practice, keyed to `characters` by index. */
   exampleDialogue: z.array(scenarioDialogueTurnSchema),
-  reviewStatus: scenarioReviewStatusSchema,
-  reviewedAt: z.string().nullable(),
-  reviewedByUserId: z.string().nullable(),
-  source: scenarioSourceSchema,
-  submissionId: z.string().nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  goals: scenarioGoalsSchema,
 });
 
 // ── In-conversation analysis job ─────────────────────────────────────────────

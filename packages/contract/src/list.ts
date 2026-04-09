@@ -1,5 +1,15 @@
+import {
+  knowledgeItemReviewStatusValues,
+  knowledgeItemSourceValues,
+  knowledgeItems,
+  scenarios,
+  sessionErrors,
+  sessionHistory,
+  sessionKnowledgePointOccurrences,
+} from "@english-coach/database/schema";
+import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { communicativeFunctions, fixednessLevels, syntaxRoles } from "./linguistics";
+import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
 import {
   rewrittenTranscriptTurnSchema,
   scenarioCharacterSchema,
@@ -92,19 +102,11 @@ export const adminScenarioListQuerySchema = pageListQuerySchema.extend({
   source: scenarioSourceSchema.optional(),
 });
 
-export const historySummarySchema = z.object({
-  canReopen: z.boolean(),
+export const historySummarySchema = createSelectSchema(sessionHistory, {
   completedGoals: z.array(z.string()).nullable().optional(),
-  endedAt: z.string().nullable(),
-  freeFormContextId: z.string().nullable().optional(),
-  id: z.string(),
-  review: z.string().nullable(),
-  scenarioId: z.string().nullable(),
-  selectedCharacterIndex: z.number().nullable(),
-  sessionType: sessionTypeSchema,
-  startedAt: z.string(),
+}).extend({
+  canReopen: z.boolean(),
   title: z.string(),
-  userId: z.string(),
 });
 
 export const historyListSortBySchema = z.enum(["startedAt", "endedAt", "title"]);
@@ -114,25 +116,29 @@ export const historyListQuerySchema = pageListQuerySchema.extend({
   sortBy: historyListSortBySchema.default(historyListSortBySchema.enum.startedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
 });
-export const knowledgeItemSourceSchema = z.enum(["admin", "auto_generated"]);
-export const knowledgeItemReviewStatusSchema = z.enum(["pending_review", "approved", "rejected"]);
+export const knowledgeItemSourceSchema = z.enum(knowledgeItemSourceValues);
+export const knowledgeItemReviewStatusSchema = z.enum(knowledgeItemReviewStatusValues);
 export const historyDetailTabSchema = z.enum(["review", "transcript", "rewritten"]);
 
-export const historyDetailScenarioSchema = z.object({
+export const historyDetailScenarioSchema = createSelectSchema(scenarios, {
   characters: z.tuple([scenarioCharacterSchema, scenarioCharacterSchema]),
   exampleDialogue: z.array(scenarioDialogueTurnSchema),
   goals: scenarioGoalsSchema,
-  id: z.string(),
-  setting: z.string(),
-  title: z.string(),
+}).pick({
+  characters: true,
+  exampleDialogue: true,
+  goals: true,
+  id: true,
+  setting: true,
+  title: true,
 });
 
-export const historyKnowledgeItemOccurrenceSummarySchema = z.object({
-  excerpt: z.string().trim().min(1),
-  id: z.string(),
-  occurrenceCount: z.number().int().min(1),
-  speaker: z.enum(["user", "agent"]),
-  transcriptTurnIndex: z.number().int().min(0),
+export const historyKnowledgeItemOccurrenceSummarySchema = createSelectSchema(sessionKnowledgePointOccurrences).pick({
+  excerpt: true,
+  id: true,
+  occurrenceCount: true,
+  speaker: true,
+  transcriptTurnIndex: true,
 });
 
 export const historyKnowledgeItemSchema = z.object({
@@ -150,14 +156,10 @@ export const historyKnowledgeItemSchema = z.object({
   syntaxRole: z.enum(syntaxRoles).nullable(),
 });
 
-export const historySessionErrorSchema = z.object({
-  dimension: z.enum(["lexical", "syntactic", "pragmatic", "discourse", "phonological"]),
-  errorDescription: z.string(),
-  id: z.string(),
+export const historySessionErrorSchema = createSelectSchema(sessionErrors, {
+  dimension: z.enum(errorDimensions),
+}).extend({
   matchedTranscriptTurnIndex: z.number().int().min(0).nullable(),
-  sessionHistoryId: z.string(),
-  suggestion: z.string(),
-  utterance: z.string(),
 });
 
 export const historyTranscriptTurnAnchorSchema = z.object({
@@ -183,20 +185,10 @@ export const historyDetailResponseSchema = z.object({
   transcriptTurnAnchors: z.array(historyTranscriptTurnAnchorSchema),
 });
 
-export const knowledgeItemSchema = z.object({
+export const knowledgeItemSchema = createSelectSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctions).nullable(),
-  createdAt: z.string(),
-  example: z.string().nullable(),
   fixednessLevel: z.enum(fixednessLevels).nullable(),
-  id: z.string(),
-  pattern: z.string(),
-  reviewStatus: knowledgeItemReviewStatusSchema,
-  reviewedAt: z.string().nullable(),
-  reviewedByUserId: z.string().nullable(),
-  submissionId: z.string().nullable(),
-  source: knowledgeItemSourceSchema,
   syntaxRole: z.enum(syntaxRoles).nullable(),
-  updatedAt: z.string(),
 });
 
 export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "reviewStatus", "source"]);

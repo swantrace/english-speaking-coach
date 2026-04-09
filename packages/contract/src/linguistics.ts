@@ -1,3 +1,11 @@
+import {
+  communicativeFunctionValues,
+  errorDimensionValues,
+  fixednessLevelValues,
+  syntaxRoleValues,
+  userRoleValues,
+} from "@english-coach/database/schema";
+
 /**
  * Single source of truth for all linguistic taxonomy enums.
  * Database CHECK constraints and Zod schemas both import from here.
@@ -22,31 +30,15 @@
  * they are NOT validated by runtime code.
  */
 
-export const syntaxRoles = [
-  "predicate_verb",
-  "predicate_adjective",
-  "adverbial_modifier",
-  "noun_phrase",
-  "discourse_linker",
-  "clause_pattern",
-] as const;
+export const syntaxRoles = syntaxRoleValues;
 
-export const fixednessLevels = ["restricted_collocation", "fixed_expression", "idiom"] as const;
+export const fixednessLevels = fixednessLevelValues;
 
-export const communicativeFunctions = [
-  "manage_social_relation",
-  "express_attitude_or_opinion",
-  "make_request_or_offer",
-  "give_or_seek_information",
-  "organize_discourse",
-  "react_in_conversation",
-  "express_degree_or_soften",
-  "express_time_or_sequence",
-] as const;
+export const communicativeFunctions = communicativeFunctionValues;
 
-export const errorDimensions = ["lexical", "syntactic", "pragmatic", "discourse", "phonological"] as const;
+export const errorDimensions = errorDimensionValues;
 
-export const userRoles = ["student", "admin"] as const;
+export const userRoles = userRoleValues;
 
 export type SyntaxRole = (typeof syntaxRoles)[number];
 export type FixednessLevel = (typeof fixednessLevels)[number];

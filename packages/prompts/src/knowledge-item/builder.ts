@@ -1,4 +1,7 @@
 // import { buildJsonOutputConstraints, formatKnowledgeItemTypesAndTags } from "../helper";
+
+import { syntaxRoles } from "../../../contract/src/linguistics";
+
 // import { type BuildKnowledgeItemGeneratePromptParams, functionalTags, grammarTags, knowledgeItemTypes } from "./schema";
 
 // export function buildKnowledgeItemGeneratePrompt(params: BuildKnowledgeItemGeneratePromptParams) {

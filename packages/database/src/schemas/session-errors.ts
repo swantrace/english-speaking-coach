@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm";
 import { check, index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sessionHistory } from "./session-history";
 
+export const errorDimensionValues = ["lexical", "syntactic", "pragmatic", "discourse", "phonological"] as const;
+
 export const sessionErrors = sqliteTable(
   "session_errors",
   {
@@ -14,11 +16,11 @@ export const sessionErrors = sqliteTable(
     utterance: text("utterance").notNull(),
     suggestion: text("suggestion").notNull(),
   },
-  (table) => ({
-    sessionHistoryIdIdx: index("session_errors_session_history_id_idx").on(table.sessionHistoryId),
-    dimensionCheck: check(
+  (table) => [
+    index("session_errors_session_history_id_idx").on(table.sessionHistoryId),
+    check(
       "session_errors_dimension_check",
       sql`${table.dimension} in ('lexical', 'syntactic', 'pragmatic', 'discourse', 'phonological')`,
     ),
-  }),
+  ],
 );
