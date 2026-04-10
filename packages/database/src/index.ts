@@ -21,8 +21,8 @@ mkdirSync(dirname(databasePath), { recursive: true });
 
 export const sqlite = new Database(databasePath);
 
-sqlite.exec("PRAGMA journal_mode = WAL;");
-sqlite.exec("PRAGMA busy_timeout = 5000;");
+sqlite.run("PRAGMA journal_mode = WAL;");
+sqlite.run("PRAGMA busy_timeout = 5000;");
 
 export const db = drizzle({ client: sqlite, schema });
 

@@ -11,13 +11,7 @@ export function AdminKnowledgeGenerateTab({
   onMessageChange,
   onReconnectStream,
   onRefreshGenerationHistory,
-  onRefreshPendingReview,
-  onApprovePendingReview,
-  onOpenPendingReview,
-  onRejectPendingReview,
   onSubmitBatch,
-  reviewMutationPending,
-  pendingReview,
   store,
 }: {
   batchCount: number;
@@ -26,13 +20,7 @@ export function AdminKnowledgeGenerateTab({
   onMessageChange: (value: string) => void;
   onReconnectStream: (eventsUrl: string) => void;
   onRefreshGenerationHistory: () => void;
-  onRefreshPendingReview: () => void;
-  onApprovePendingReview: (item: KnowledgeItem) => void;
-  onOpenPendingReview: (item: KnowledgeItem) => void;
-  onRejectPendingReview: (item: KnowledgeItem) => void;
   onSubmitBatch: () => void;
-  reviewMutationPending: boolean;
-  pendingReview: ReturnType<typeof useKnowledgeItemsList>;
   store: {
     connectionState: "closed" | "connecting" | "open" | "error";
     jobs: Array<{
@@ -65,9 +53,6 @@ export function AdminKnowledgeGenerateTab({
           <div className="flex flex-wrap gap-3">
             <Button disabled={store.submitState === "submitting" || batchCount === 0} onClick={onSubmitBatch} size="lg">
               {store.submitState === "submitting" ? "Submitting..." : `Queue ${batchCount} jobs`}
-            </Button>
-            <Button onClick={onRefreshPendingReview} variant="outline">
-              Refresh review queue
             </Button>
             <Button onClick={onRefreshGenerationHistory} variant="outline">
               Refresh submission history
@@ -200,87 +185,7 @@ export function AdminKnowledgeGenerateTab({
         )}
       </Card>
 
-      <Card className="grid gap-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="grid gap-2">
-            <h2 className="text-2xl text-slate-950">Pending review queue</h2>
-            <p className="text-sm leading-7 text-slate-600">
-              Generated knowledge items stay admin-only until an operator reviews and approves them.
-            </p>
-          </div>
-          <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
-            {pendingReview.data?.total ?? 0} pending
-          </span>
-        </div>
-
-        {pendingReview.error ? (
-          <PageState description={pendingReview.error.message} title="Could not load the review queue" />
-        ) : (
-          <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200">
-                  <TableHead className="text-slate-600">Pattern</TableHead>
-                  <TableHead className="text-slate-600">Submission</TableHead>
-                  <TableHead className="text-slate-600">Updated</TableHead>
-                  <TableHead className="text-right text-slate-600">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingReview.data?.items.length ? (
-                  pendingReview.data.items.map((item) => (
-                    <TableRow className="border-slate-200" key={item.id}>
-                      <TableCell>
-                        <div className="grid gap-1">
-                          <span className="font-medium text-slate-900">{item.pattern}</span>
-                          <span className="text-xs leading-6 text-slate-500">
-                            {ellipsize(item.example ?? "No example", 110)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        {item.submissionId ? ellipsize(item.submissionId, 18) : "Manual"}
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">{formatTimestamp(item.updatedAt)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Button onClick={() => onOpenPendingReview(item)} size="sm" variant="outline">
-                            Review
-                          </Button>
-                          <Button
-                            className="border border-amber-300 bg-amber-100 text-amber-950 hover:bg-amber-200"
-                            disabled={reviewMutationPending}
-                            onClick={() => onApprovePendingReview(item)}
-                            size="sm"
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            disabled={reviewMutationPending}
-                            onClick={() => onRejectPendingReview(item)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow className="border-white/10">
-                    <TableCell className="h-24 text-center text-slate-400" colSpan={4}>
-                      {pendingReview.isPending
-                        ? "Loading review queue..."
-                        : "No knowledge items are waiting for review."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
+      {/* Pending review queue is temporarily disabled while knowledge-item moderation fields are being simplified. */}
     </div>
   );
 }

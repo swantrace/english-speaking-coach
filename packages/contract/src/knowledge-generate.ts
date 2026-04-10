@@ -7,7 +7,7 @@ import {
   jobProgressStatusSchema,
 } from "./job-events";
 import { communicativeFunctions, fixednessLevels, syntaxRoles } from "./linguistics";
-import { knowledgeItemReviewStatusSchema, knowledgeItemSourceSchema } from "./list";
+import { knowledgeItemPendingReviewSchema } from "./list";
 
 export const knowledgeGenerateSubmissionKind = "knowledge.generate";
 export const knowledgeGenerateQueueName = knowledgeGenerateSubmissionKind;
@@ -39,30 +39,22 @@ export const knowledgeGenerateSubmissionItemSchema = z.object({
 
 const adminKnowledgeItemWriteBaseSchema = createInsertSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctions).nullable().optional(),
-  example: z.string().trim().min(1).nullable().optional(),
   fixednessLevel: z.enum(fixednessLevels).nullable().optional(),
+  isPendingReview: knowledgeItemPendingReviewSchema.optional(),
   pattern: z.string().trim().min(1),
-  source: knowledgeItemSourceSchema.optional(),
   syntaxRole: z.enum(syntaxRoles).nullable().optional(),
 }).omit({
   createdAt: true,
   id: true,
-  reviewStatus: true,
-  reviewedAt: true,
-  reviewedByUserId: true,
-  submissionId: true,
+  senses: true,
   updatedAt: true,
 });
 
 export const adminKnowledgeItemCreateSchema = adminKnowledgeItemWriteBaseSchema.extend({
-  reviewStatus: knowledgeItemReviewStatusSchema.optional().default(knowledgeItemReviewStatusSchema.enum.approved),
-  source: knowledgeItemSourceSchema.optional().default(knowledgeItemSourceSchema.enum.admin),
+  isPendingReview: knowledgeItemPendingReviewSchema.optional().default(false),
 });
 
 export const adminKnowledgeItemUpdateSchema = adminKnowledgeItemWriteBaseSchema
-  .extend({
-    reviewStatus: knowledgeItemReviewStatusSchema.optional(),
-  })
   .partial()
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 

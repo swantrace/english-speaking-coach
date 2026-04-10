@@ -7,7 +7,7 @@ import {
   sessionKnowledgeItems,
   sessionKnowledgePointOccurrences,
 } from "@english-coach/database/schema";
-import { and, asc, desc, eq, isNotNull, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, like, sql } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
@@ -19,7 +19,7 @@ function createKnowledgePointSearchCondition(search?: string) {
 
   const pattern = `%${search}%`;
 
-  return or(like(knowledgeItems.pattern, pattern), like(knowledgeItems.example, pattern));
+  return like(knowledgeItems.pattern, pattern);
 }
 
 function createKnowledgePointAccessCondition(userId: string) {
@@ -84,19 +84,14 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
             .as("agentOccurrenceCount"),
         communicativeFunction: knowledgeItems.communicativeFunction,
         createdAt: knowledgeItems.createdAt,
-        example: knowledgeItems.example,
         fixednessLevel: knowledgeItems.fixednessLevel,
         id: knowledgeItems.id,
+        isPendingReview: knowledgeItems.isPendingReview,
         lastSeenAt: sql<string>`max(coalesce(${sessionHistory.endedAt}, ${sessionHistory.startedAt}))`.as("lastSeenAt"),
         pattern: knowledgeItems.pattern,
-        reviewStatus: knowledgeItems.reviewStatus,
-        reviewedAt: knowledgeItems.reviewedAt,
-        reviewedByUserId: knowledgeItems.reviewedByUserId,
         sessionCount: sql<number>`count(distinct ${sessionKnowledgeItems.sessionHistoryId})`
           .mapWith(Number)
           .as("sessionCount"),
-        source: knowledgeItems.source,
-        submissionId: knowledgeItems.submissionId,
         syntaxRole: knowledgeItems.syntaxRole,
         totalOccurrences: sql<number>`coalesce(sum(${sessionKnowledgeItems.count}), 0)`
           .mapWith(Number)
@@ -140,19 +135,14 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
             .as("agentOccurrenceCount"),
         communicativeFunction: knowledgeItems.communicativeFunction,
         createdAt: knowledgeItems.createdAt,
-        example: knowledgeItems.example,
         fixednessLevel: knowledgeItems.fixednessLevel,
         id: knowledgeItems.id,
+        isPendingReview: knowledgeItems.isPendingReview,
         lastSeenAt: sql<string>`max(coalesce(${sessionHistory.endedAt}, ${sessionHistory.startedAt}))`.as("lastSeenAt"),
         pattern: knowledgeItems.pattern,
-        reviewStatus: knowledgeItems.reviewStatus,
-        reviewedAt: knowledgeItems.reviewedAt,
-        reviewedByUserId: knowledgeItems.reviewedByUserId,
         sessionCount: sql<number>`count(distinct ${sessionKnowledgeItems.sessionHistoryId})`
           .mapWith(Number)
           .as("sessionCount"),
-        source: knowledgeItems.source,
-        submissionId: knowledgeItems.submissionId,
         syntaxRole: knowledgeItems.syntaxRole,
         totalOccurrences: sql<number>`coalesce(sum(${sessionKnowledgeItems.count}), 0)`
           .mapWith(Number)

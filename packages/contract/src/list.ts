@@ -1,6 +1,4 @@
 import {
-  knowledgeItemReviewStatusValues,
-  knowledgeItemSourceValues,
   knowledgeItems,
   scenarios,
   sessionErrors,
@@ -28,6 +26,7 @@ export const defaultListPage = 1;
 export const defaultListPageSize = 20;
 export const maxListPageSize = 100;
 export const defaultScenarioCursorPageSize = 24;
+export const knowledgeItemPendingReviewSchema = z.boolean();
 
 const optionalSearchTextSchema = z.preprocess((value) => {
   if (typeof value !== "string") {
@@ -117,8 +116,6 @@ export const historyListQuerySchema = pageListQuerySchema.extend({
   sortBy: historyListSortBySchema.default(historyListSortBySchema.enum.startedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
 });
-export const knowledgeItemSourceSchema = z.enum(knowledgeItemSourceValues);
-export const knowledgeItemReviewStatusSchema = z.enum(knowledgeItemReviewStatusValues);
 export const historyDetailTabSchema = z.enum(["review", "transcript", "rewritten"]);
 
 export const historyDetailScenarioSchema = createSelectSchema(scenarios, {
@@ -145,14 +142,12 @@ export const historyKnowledgeItemOccurrenceSummarySchema = createSelectSchema(se
 export const historyKnowledgeItemSchema = z.object({
   communicativeFunction: z.enum(communicativeFunctions).nullable(),
   count: z.number().int(),
-  example: z.string().nullable(),
   examples: z.array(z.string()),
   fixednessLevel: z.enum(fixednessLevels).nullable(),
   id: z.string(),
   knowledgeItemId: z.string(),
   occurrences: z.array(historyKnowledgeItemOccurrenceSummarySchema),
   pattern: z.string(),
-  source: knowledgeItemSourceSchema,
   speaker: z.enum(speakerValues),
   syntaxRole: z.enum(syntaxRoles).nullable(),
 });
@@ -189,18 +184,18 @@ export const historyDetailResponseSchema = z.object({
 export const knowledgeItemSchema = createSelectSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctions).nullable(),
   fixednessLevel: z.enum(fixednessLevels).nullable(),
+  isPendingReview: z.boolean(),
   syntaxRole: z.enum(syntaxRoles).nullable(),
 });
 
-export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "reviewStatus", "source"]);
+export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "isPendingReview"]);
 export const knowledgeItemListQuerySchema = pageListQuerySchema.extend({
   communicativeFunction: z.enum(communicativeFunctions).optional(),
   fixednessLevel: z.enum(fixednessLevels).optional(),
-  reviewStatus: knowledgeItemReviewStatusSchema.optional(),
+  isPendingReview: z.coerce.boolean().optional(),
   search: optionalSearchTextSchema,
   sortBy: knowledgeItemListSortBySchema.default(knowledgeItemListSortBySchema.enum.updatedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
-  source: knowledgeItemSourceSchema.optional(),
   syntaxRole: z.enum(syntaxRoles).optional(),
 });
 
@@ -259,8 +254,6 @@ export type HistorySessionError = z.infer<typeof historySessionErrorSchema>;
 export type HistoryTranscriptTurnAnchor = z.infer<typeof historyTranscriptTurnAnchorSchema>;
 export type HistoryDetailSession = z.infer<typeof historyDetailSessionSchema>;
 export type HistoryDetailResponse = z.infer<typeof historyDetailResponseSchema>;
-export type KnowledgeItemSource = z.infer<typeof knowledgeItemSourceSchema>;
-export type KnowledgeItemReviewStatus = z.infer<typeof knowledgeItemReviewStatusSchema>;
 export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
 export type KnowledgePointListQuery = z.infer<typeof knowledgePointListQuerySchema>;

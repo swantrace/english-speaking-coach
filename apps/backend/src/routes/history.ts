@@ -161,13 +161,11 @@ export function registerHistoryRoutes(app: BackendApp) {
         .select({
           communicativeFunction: knowledgeItems.communicativeFunction,
           count: sessionKnowledgeItems.count,
-          example: knowledgeItems.example,
           examples: sessionKnowledgeItems.examples,
           fixednessLevel: knowledgeItems.fixednessLevel,
           id: sessionKnowledgeItems.id,
           knowledgeItemId: knowledgeItems.id,
           pattern: knowledgeItems.pattern,
-          source: knowledgeItems.source,
           speaker: sessionKnowledgeItems.speaker,
           syntaxRole: knowledgeItems.syntaxRole,
         })

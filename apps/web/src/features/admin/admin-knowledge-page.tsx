@@ -1,4 +1,4 @@
-import { type KnowledgeItem, type KnowledgeItemReviewStatus, knowledgeItemSchema } from "@english-coach/contract";
+import { type KnowledgeItem, knowledgeItemSchema } from "@english-coach/contract";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@english-coach/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -44,16 +44,7 @@ export function AdminKnowledgeItemsPage() {
   const queryClient = useQueryClient();
   const queryState = useAdminKnowledgeQueryState();
   const items = useKnowledgeItemsList(queryState.query);
-  const pendingReview = useKnowledgeItemsList({
-    page: 1,
-    pageSize: 8,
-    reviewStatus: "pending_review",
-    search: undefined,
-    sortBy: "updatedAt",
-    sortDirection: "desc",
-    source: "auto_generated",
-    tab: "generate",
-  });
+  // Pending-review tracking is temporarily disabled while the knowledge-item schema is simplified.
   const generationHistory = useKnowledgeGenerateHistory();
   const store = useKnowledgeGenerateStore();
   const [message, setMessage] = useState(
@@ -108,23 +99,7 @@ export function AdminKnowledgeItemsPage() {
     },
   });
 
-  const updateKnowledgeItemReviewStatus = useMutation({
-    mutationFn: async ({
-      knowledgeItemId,
-      reviewStatus,
-    }: {
-      knowledgeItemId: string;
-      reviewStatus: KnowledgeItemReviewStatus;
-    }) => {
-      return apiJson(`/api/admin/knowledge-items/${knowledgeItemId}`, knowledgeItemSchema, {
-        body: JSON.stringify({ reviewStatus }),
-        method: "PATCH",
-      });
-    },
-    onSuccess: async () => {
-      await invalidateKnowledgeQueries();
-    },
-  });
+  // Review-status mutations are temporarily disabled while the knowledge-item schema is simplified.
 
   const deleteKnowledgeItem = useMutation({
     mutationFn: async (knowledgeItemId: string) => {
@@ -171,7 +146,7 @@ export function AdminKnowledgeItemsPage() {
               </div>
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-slate-500">Pending review</dt>
-                <dd>{pendingReview.data?.total ?? 0}</dd>
+                <dd>Temporarily hidden</dd>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <dt className="text-slate-500">Generator connection</dt>
@@ -210,15 +185,11 @@ export function AdminKnowledgeItemsPage() {
             <Suspense fallback={<AdminKnowledgeFallback />}>
               <AdminKnowledgeManageTab
                 isDeletePending={deleteKnowledgeItem.isPending}
-                isReviewStatusPending={updateKnowledgeItemReviewStatus.isPending}
                 isSavePending={saveKnowledgeItem.isPending}
                 items={items}
                 onDelete={setKnowledgeItemToDelete}
                 onOpenCreate={openCreateDialog}
                 onOpenEdit={openEditDialog}
-                onReviewStatusChange={(knowledgeItemId, reviewStatus) =>
-                  void updateKnowledgeItemReviewStatus.mutateAsync({ knowledgeItemId, reviewStatus })
-                }
                 queryState={queryState}
               />
             </Suspense>
@@ -230,26 +201,10 @@ export function AdminKnowledgeItemsPage() {
                 batchCount={batchItems.length}
                 generationHistory={generationHistory}
                 message={message}
-                onApprovePendingReview={(item) =>
-                  void updateKnowledgeItemReviewStatus.mutateAsync({
-                    knowledgeItemId: item.id,
-                    reviewStatus: "approved",
-                  })
-                }
                 onMessageChange={setMessage}
-                onOpenPendingReview={openEditDialog}
                 onReconnectStream={(eventsUrl) => knowledgeGenerateStore.connectToEventsUrl(eventsUrl)}
-                onRejectPendingReview={(item) =>
-                  void updateKnowledgeItemReviewStatus.mutateAsync({
-                    knowledgeItemId: item.id,
-                    reviewStatus: "rejected",
-                  })
-                }
                 onRefreshGenerationHistory={() => void generationHistory.refetch()}
-                onRefreshPendingReview={() => void pendingReview.refetch()}
                 onSubmitBatch={() => void knowledgeGenerateStore.submit(batchItems)}
-                pendingReview={pendingReview}
-                reviewMutationPending={updateKnowledgeItemReviewStatus.isPending}
                 store={store}
               />
             </Suspense>

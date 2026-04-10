@@ -1,8 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-
-export const knowledgeItemReviewStatusValues = ["pending_review", "approved", "rejected"] as const;
-export const knowledgeItemSourceValues = ["admin", "auto_generated"] as const;
+import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 export const syntaxRoleValues = [
   "predicate_verb",
   "predicate_adjective",
@@ -29,29 +26,26 @@ export const knowledgeItems = sqliteTable(
     id: text("id").primaryKey(),
     /** e.g. "I'd like <np>", "it's worth <v_ing>" — UNIQUE so workers can upsert by pattern. */
     pattern: text("pattern").notNull().unique(),
-    syntaxRole: text("syntax_role"),
-    fixednessLevel: text("fixedness_level"),
-    communicativeFunction: text("communicative_function"),
-    example: text("example"),
-    /** "admin" = manually managed; "auto_generated" = created by lingAnalysis worker, pending review. */
-    source: text("source", { enum: knowledgeItemSourceValues }).notNull(),
-    reviewStatus: text("review_status", { enum: knowledgeItemReviewStatusValues }).notNull().default("approved"),
-    reviewedAt: text("reviewed_at"),
-    reviewedByUserId: text("reviewed_by_user_id"),
-    submissionId: text("submission_id"),
+    syntaxRole: text("syntax_role", { enum: syntaxRoleValues }),
+    fixednessLevel: text("fixedness_level", { enum: fixednessLevelValues }),
+    communicativeFunction: text("communicative_function", { enum: communicativeFunctionValues }),
+    isPendingReview: integer("is_pending_review", { mode: "boolean" }).notNull().default(false),
+    senses: text("senses", { mode: "json" }).notNull().$type<
+      Array<{
+        order: number;
+        meaning_en: string;
+        meaning_zh: string;
+        grammatical_note?: string;
+        example: string;
+        example_zh: string;
+      }>
+    >(),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
   (table) => ({
     patternIdx: uniqueIndex("knowledge_items_pattern_idx").on(table.pattern),
-    reviewStatusCheck: check(
-      "knowledge_items_review_status_check",
-      sql`${table.reviewStatus} in ('pending_review', 'approved', 'rejected')`,
-    ),
-    reviewStatusIdx: index("knowledge_items_review_status_idx").on(table.reviewStatus),
-    sourceCheck: check("knowledge_items_source_check", sql`${table.source} in ('admin', 'auto_generated')`),
-    sourceIdx: index("knowledge_items_source_idx").on(table.source),
-    submissionIdx: index("knowledge_items_submission_id_idx").on(table.submissionId),
+    pendingReviewIdx: index("knowledge_items_is_pending_review_idx").on(table.isPendingReview),
     syntaxRoleCheck: check(
       "knowledge_items_syntax_role_check",
       sql`${table.syntaxRole} IS NULL OR ${table.syntaxRole} in ('predicate_verb', 'predicate_adjective', 'adverbial_modifier', 'noun_phrase', 'discourse_linker', 'clause_pattern')`,

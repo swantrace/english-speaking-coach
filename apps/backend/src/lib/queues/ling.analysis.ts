@@ -253,12 +253,11 @@ async function resolveKnowledgeItemId(result: LingAnalysisResult["knowledgeItems
   const [existing] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.pattern, result.pattern)).limit(1);
 
   if (existing) {
-    if (existing.source !== "admin") {
+    if (existing.isPendingReview) {
       await db
         .update(knowledgeItems)
         .set({
           communicativeFunction: result.communicativeFunction,
-          example: result.example,
           fixednessLevel: result.fixednessLevel,
           syntaxRole: result.syntaxRole,
           updatedAt: now,
@@ -274,15 +273,11 @@ async function resolveKnowledgeItemId(result: LingAnalysisResult["knowledgeItems
   await db.insert(knowledgeItems).values({
     communicativeFunction: result.communicativeFunction,
     createdAt: now,
-    example: result.example,
     fixednessLevel: result.fixednessLevel,
     id: knowledgeItemId,
+    isPendingReview: true,
     pattern: result.pattern,
-    reviewStatus: "pending_review",
-    reviewedAt: null,
-    reviewedByUserId: null,
-    source: "auto_generated",
-    submissionId: null,
+    senses: [],
     syntaxRole: result.syntaxRole,
     updatedAt: now,
   });

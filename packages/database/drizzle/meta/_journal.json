@@ -64,6 +64,13 @@
       "when": 1775362800000,
       "tag": "0008_knowledge_point_occurrences",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1775787000000,
+      "tag": "0009_simplify_knowledge_items",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import type { KnowledgeItem, KnowledgeItemReviewStatus } from "@english-coach/contract";
+import type { KnowledgeItem } from "@english-coach/contract";
 import {
   Button,
   Dialog,
@@ -41,8 +41,7 @@ export function KnowledgeItemFormDialog({
         <DialogHeader>
           <DialogTitle>{mode === "create" ? "Create knowledge item" : "Edit knowledge item"}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Keep origin and review state separate. Source shows where the item came from; review status controls whether
-            it is approved.
+            Review metadata is temporarily disabled here while the knowledge-item schema is being simplified.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
@@ -54,15 +53,8 @@ export function KnowledgeItemFormDialog({
               value={draft.pattern}
             />
           </div>
-          <div className="grid gap-2 text-sm text-slate-200">
-            <span>Example</span>
-            <Textarea
-              className="min-h-24 border-white/10 bg-slate-900 text-slate-50"
-              onChange={(event) => onDraftChange({ ...draft, example: event.target.value })}
-              value={draft.example}
-            />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {/* Example text is temporarily disabled while the knowledge-item schema is simplified. */}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="grid gap-2 text-sm text-slate-200">
               <span>Syntax role</span>
               <Select
@@ -131,24 +123,7 @@ export function KnowledgeItemFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2 text-sm text-slate-200">
-              <span>Review status</span>
-              <Select
-                onValueChange={(value: string) =>
-                  onDraftChange({ ...draft, reviewStatus: value as KnowledgeItemReviewStatus })
-                }
-                value={draft.reviewStatus}
-              >
-                <SelectTrigger className="border-white/10 bg-slate-900 text-slate-50">
-                  <SelectValue placeholder="Choose review status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending_review">Pending review</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Review status controls are disabled until the simplified knowledge-item review model lands. */}
           </div>
         </div>
         {error ? <p className="text-sm text-rose-300">{error}</p> : null}

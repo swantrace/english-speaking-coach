@@ -1265,15 +1265,11 @@ describe("backend phase 2 integration", () => {
     await db.insert(knowledgeItems).values({
       communicativeFunction: "make_request_or_offer",
       createdAt: now,
-      example: "I'd like a coffee, please.",
       fixednessLevel: "fixed_expression",
       id: knowledgeItemId,
+      isPendingReview: false,
       pattern: `I'd like <np> phase7 ${Date.now()}`,
-      reviewStatus: "approved",
-      reviewedAt: now,
-      reviewedByUserId: student.userId,
-      source: "admin",
-      submissionId: null,
+      senses: [],
       syntaxRole: "clause_pattern",
       updatedAt: now,
     });

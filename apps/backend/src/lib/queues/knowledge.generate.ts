@@ -18,7 +18,7 @@ import { knowledgeItems } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
-import type z from "zod";
+import { z } from "zod";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import {
   createCompletedProgressMessage,
@@ -47,10 +47,13 @@ export const knowledgeGenerateQueue = new Queue<KnowledgeGenerateJobData>(knowle
   connection: producerRedis,
 });
 
-const generatedKnowledgeItemSchema = adminKnowledgeItemCreateSchema.omit({
-  reviewStatus: true,
-  source: true,
-});
+const generatedKnowledgeItemSchema = adminKnowledgeItemCreateSchema
+  .omit({
+    isPendingReview: true,
+  })
+  .extend({
+    example: z.string().trim().min(1).nullable().optional(),
+  });
 
 const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
   pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),
@@ -248,15 +251,15 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
     return knowledgeGeneratorOverride(prompt);
   }
 
-  if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1" || process.env.NODE_ENV === "test") {
-    return generatedKnowledgeItemSchema.parse({
-      communicativeFunction: "give_or_seek_information",
-      example: `Could you walk me through ${prompt}?`,
-      fixednessLevel: "restricted_collocation",
-      pattern: `Could you walk me through <np> ${prompt}`,
-      syntaxRole: "clause_pattern",
-    });
-  }
+  // if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1" || process.env.NODE_ENV === "test") {
+  //   return generatedKnowledgeItemSchema.parse({
+  //     communicativeFunction: "give_or_seek_information",
+  //     example: `Could you walk me through ${prompt}?`,
+  //     fixednessLevel: "restricted_collocation",
+  //     pattern: `Could you walk me through <np> ${prompt}`,
+  //     syntaxRole: "clause_pattern",
+  //   });
+  // }
 
   const { output } = await generateText({
     model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
@@ -280,10 +283,7 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
   return coerceGeneratedKnowledgeItem(output, prompt);
 }
 
-async function persistKnowledgeItem(
-  generatedKnowledgeItem: GeneratedKnowledgeItem,
-  jobData: Pick<KnowledgeGenerateJobData, "submissionId">,
-) {
+async function persistKnowledgeItem(generatedKnowledgeItem: GeneratedKnowledgeItem) {
   const now = new Date().toISOString();
   const [existing] = await db
     .select()
@@ -292,14 +292,12 @@ async function persistKnowledgeItem(
     .limit(1);
 
   if (existing) {
-    if (existing.source !== "admin") {
+    if (existing.isPendingReview) {
       await db
         .update(knowledgeItems)
         .set({
           communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
-          example: generatedKnowledgeItem.example ?? null,
           fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
-          submissionId: jobData.submissionId,
           syntaxRole: generatedKnowledgeItem.syntaxRole ?? null,
           updatedAt: now,
         })
@@ -318,15 +316,11 @@ async function persistKnowledgeItem(
   await db.insert(knowledgeItems).values({
     communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
     createdAt: now,
-    example: generatedKnowledgeItem.example ?? null,
     fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
     id: knowledgeItemId,
+    isPendingReview: true,
     pattern: generatedKnowledgeItem.pattern,
-    reviewStatus: "pending_review",
-    reviewedAt: null,
-    reviewedByUserId: null,
-    source: "auto_generated",
-    submissionId: jobData.submissionId,
+    senses: [],
     syntaxRole: generatedKnowledgeItem.syntaxRole ?? null,
     updatedAt: now,
   });
@@ -351,7 +345,7 @@ export async function processKnowledgeGenerateJob(jobData: KnowledgeGenerateJobD
   await publishKnowledgeGenerateProgress(startedMessage);
 
   const generatedKnowledgeItem = await generateKnowledgeItem(jobData.message);
-  const persistedKnowledgeItem = await persistKnowledgeItem(generatedKnowledgeItem, jobData);
+  const persistedKnowledgeItem = await persistKnowledgeItem(generatedKnowledgeItem);
 
   const completedMessage = createCompletedKnowledgeGenerateProgressMessage(
     jobId,

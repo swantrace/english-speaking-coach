@@ -2,7 +2,6 @@ import {
   communicativeFunctions,
   fixednessLevels,
   knowledgeItemListQuerySchema,
-  knowledgeItemReviewStatusSchema,
   syntaxRoles,
 } from "@english-coach/contract";
 import {
@@ -18,9 +17,8 @@ import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/p
 
 const knowledgeItemSortColumnMap = {
   createdAt: knowledgeItems.createdAt,
+  isPendingReview: knowledgeItems.isPendingReview,
   pattern: knowledgeItems.pattern,
-  reviewStatus: knowledgeItems.reviewStatus,
-  source: knowledgeItems.source,
   updatedAt: knowledgeItems.updatedAt,
 } as const;
 
@@ -31,7 +29,7 @@ function createKnowledgeItemSearchCondition(search?: string) {
 
   const pattern = `%${search}%`;
 
-  return or(like(knowledgeItems.pattern, pattern), like(knowledgeItems.example, pattern));
+  return like(knowledgeItems.pattern, pattern);
 }
 
 export function registerAdminRoutes(app: BackendApp) {
@@ -45,19 +43,17 @@ export function registerAdminRoutes(app: BackendApp) {
     const {
       communicativeFunction,
       fixednessLevel,
+      isPendingReview,
       page,
       pageSize,
-      reviewStatus,
       search,
       sortBy,
       sortDirection,
-      source,
       syntaxRole,
     } = parsedQuery.data;
     const offset = getPageOffset(page, pageSize);
     const conditions = [
-      source ? eq(knowledgeItems.source, source) : null,
-      reviewStatus ? eq(knowledgeItems.reviewStatus, reviewStatus) : null,
+      isPendingReview === undefined ? null : eq(knowledgeItems.isPendingReview, isPendingReview),
       syntaxRole ? eq(knowledgeItems.syntaxRole, syntaxRole) : null,
       fixednessLevel ? eq(knowledgeItems.fixednessLevel, fixednessLevel) : null,
       communicativeFunction ? eq(knowledgeItems.communicativeFunction, communicativeFunction) : null,
@@ -89,18 +85,11 @@ export function registerAdminRoutes(app: BackendApp) {
     await db.insert(knowledgeItems).values({
       communicativeFunction: parsedBody.data.communicativeFunction ?? null,
       createdAt: now,
-      example: parsedBody.data.example ?? null,
       fixednessLevel: parsedBody.data.fixednessLevel ?? null,
       id: knowledgeItemId,
+      isPendingReview: parsedBody.data.isPendingReview ?? false,
       pattern: parsedBody.data.pattern,
-      reviewStatus: parsedBody.data.reviewStatus,
-      reviewedAt: parsedBody.data.reviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review ? null : now,
-      reviewedByUserId:
-        parsedBody.data.reviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review
-          ? null
-          : (context.get("user")?.id ?? null),
-      source: parsedBody.data.source,
-      submissionId: null,
+      senses: [],
       syntaxRole: parsedBody.data.syntaxRole ?? null,
       updatedAt: now,
     });
@@ -128,7 +117,6 @@ export function registerAdminRoutes(app: BackendApp) {
       return context.json({ error: "Knowledge item not found" }, 404);
     }
 
-    const nextReviewStatus = parsedBody.data.reviewStatus ?? existingRecord.reviewStatus;
     const now = new Date().toISOString();
 
     await db
@@ -138,18 +126,14 @@ export function registerAdminRoutes(app: BackendApp) {
           parsedBody.data.communicativeFunction === undefined
             ? existingRecord.communicativeFunction
             : parsedBody.data.communicativeFunction,
-        example: parsedBody.data.example === undefined ? existingRecord.example : parsedBody.data.example,
         fixednessLevel:
           parsedBody.data.fixednessLevel === undefined ? existingRecord.fixednessLevel : parsedBody.data.fixednessLevel,
+        isPendingReview:
+          parsedBody.data.isPendingReview === undefined
+            ? existingRecord.isPendingReview
+            : parsedBody.data.isPendingReview,
         pattern: parsedBody.data.pattern ?? existingRecord.pattern,
-        source: parsedBody.data.source ?? existingRecord.source,
         syntaxRole: parsedBody.data.syntaxRole === undefined ? existingRecord.syntaxRole : parsedBody.data.syntaxRole,
-        reviewStatus: nextReviewStatus,
-        reviewedAt: nextReviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review ? null : now,
-        reviewedByUserId:
-          nextReviewStatus === knowledgeItemReviewStatusSchema.enum.pending_review
-            ? null
-            : (context.get("user")?.id ?? null),
         updatedAt: now,
       })
       .where(eq(knowledgeItems.id, knowledgeItemId));
