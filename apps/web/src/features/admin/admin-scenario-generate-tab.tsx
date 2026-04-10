@@ -11,7 +11,6 @@ export function AdminScenarioGenerateTab({
   onMessageChange,
   onOpenPendingReview,
   onRefreshPendingReview,
-  onRejectPendingReview,
   onSubmitBatch,
   pendingReview,
   reviewMutationPending,
@@ -23,7 +22,6 @@ export function AdminScenarioGenerateTab({
   onMessageChange: (value: string) => void;
   onOpenPendingReview: (scenario: Scenario) => void;
   onRefreshPendingReview: () => void;
-  onRejectPendingReview: (scenario: Scenario) => void;
   onSubmitBatch: () => void;
   pendingReview: ReturnType<typeof useAdminScenarios>;
   reviewMutationPending: boolean;
@@ -125,7 +123,6 @@ export function AdminScenarioGenerateTab({
               <TableHeader>
                 <TableRow className="border-slate-200">
                   <TableHead className="text-slate-600">Scenario</TableHead>
-                  <TableHead className="text-slate-600">Submission</TableHead>
                   <TableHead className="text-slate-600">Updated</TableHead>
                   <TableHead className="text-right text-slate-600">Actions</TableHead>
                 </TableRow>
@@ -139,9 +136,6 @@ export function AdminScenarioGenerateTab({
                           <span className="font-medium text-slate-900">{scenario.title}</span>
                           <span className="text-xs leading-6 text-slate-500">{ellipsize(scenario.setting, 110)}</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        {scenario.submissionId ? ellipsize(scenario.submissionId, 18) : "Manual"}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">{formatTimestamp(scenario.updatedAt)}</TableCell>
                       <TableCell>
@@ -157,21 +151,14 @@ export function AdminScenarioGenerateTab({
                           >
                             Approve
                           </Button>
-                          <Button
-                            disabled={reviewMutationPending}
-                            onClick={() => onRejectPendingReview(scenario)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Reject
-                          </Button>
+                          {/* Reject action is temporarily disabled while scenarios use isPendingReview only. */}
                         </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow className="border-slate-200">
-                    <TableCell className="h-24 text-center text-slate-500" colSpan={4}>
+                    <TableCell className="h-24 text-center text-slate-500" colSpan={3}>
                       {pendingReview.isPending ? "Loading review queue..." : "No scenarios are waiting for review."}
                     </TableCell>
                   </TableRow>

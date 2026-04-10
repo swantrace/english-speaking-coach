@@ -17,7 +17,6 @@ import {
   scenarios,
   sessionErrors,
   sessionHistory,
-  sessionKnowledgeItems,
   sessionKnowledgePointOccurrences,
   sessionTranscripts,
   submissions,
@@ -991,15 +990,6 @@ describe("backend phase 2 integration", () => {
       utterance: "I'd like a coffee.",
     });
 
-    await db.insert(sessionKnowledgeItems).values({
-      count: 2,
-      examples: ["I'd like a coffee.", "I'd like some water."],
-      id: crypto.randomUUID(),
-      knowledgeItemId: createdKnowledgeItem.id,
-      sessionHistoryId: freeFormSessionId,
-      speaker: "user",
-    });
-
     await db.insert(sessionTranscripts).values({
       annotations: [
         {
@@ -1084,13 +1074,12 @@ describe("backend phase 2 integration", () => {
     );
 
     await db.insert(sessionKnowledgePointOccurrences).values({
-      excerpt: "I went to the cafe yesterday.",
       id: crypto.randomUUID(),
       knowledgeItemId: createdKnowledgeItem.id,
-      occurrenceCount: 1,
+      proposedPattern: "I went to <place> yesterday",
       sessionHistoryId: freeFormSessionId,
-      speaker: "user",
       transcriptTurnIndex: 1,
+      utterance: "I went to the cafe yesterday.",
     });
 
     const historyDetailResponse = await app.request(`http://localhost/api/history/${freeFormSessionId}`, {
@@ -1310,69 +1299,38 @@ describe("backend phase 2 integration", () => {
       },
     ]);
 
-    await db.insert(sessionKnowledgeItems).values([
-      {
-        count: 2,
-        examples: ["I'd like a coffee.", "I'd like some water."],
-        id: crypto.randomUUID(),
-        knowledgeItemId,
-        sessionHistoryId: firstSessionId,
-        speaker: "user",
-      },
-      {
-        count: 1,
-        examples: ["I'd like to help."],
-        id: crypto.randomUUID(),
-        knowledgeItemId,
-        sessionHistoryId: secondSessionId,
-        speaker: "assistant",
-      },
-      {
-        count: 4,
-        examples: ["I'd like a discount."],
-        id: crypto.randomUUID(),
-        knowledgeItemId,
-        sessionHistoryId: otherSessionId,
-        speaker: "user",
-      },
-    ]);
-
     await db.insert(sessionKnowledgePointOccurrences).values([
       {
-        excerpt: "I'd like a coffee.",
         id: crypto.randomUUID(),
         knowledgeItemId,
-        occurrenceCount: 1,
+        proposedPattern: "I'd like <np>",
         sessionHistoryId: firstSessionId,
-        speaker: "user",
         transcriptTurnIndex: 1,
+        utterance: "I'd like a coffee.",
       },
       {
-        excerpt: "I'd like some water.",
         id: crypto.randomUUID(),
         knowledgeItemId,
-        occurrenceCount: 1,
+        proposedPattern: "I'd like <np>",
         sessionHistoryId: firstSessionId,
-        speaker: "user",
         transcriptTurnIndex: 3,
+        utterance: "I'd like some water.",
       },
       {
-        excerpt: "I'd like to help.",
         id: crypto.randomUUID(),
         knowledgeItemId,
-        occurrenceCount: 1,
+        proposedPattern: "I'd like to <verb>",
         sessionHistoryId: secondSessionId,
-        speaker: "assistant",
         transcriptTurnIndex: 0,
+        utterance: "I'd like to help.",
       },
       {
-        excerpt: "I'd like a discount.",
         id: crypto.randomUUID(),
         knowledgeItemId,
-        occurrenceCount: 4,
+        proposedPattern: "I'd like <np>",
         sessionHistoryId: otherSessionId,
-        speaker: "user",
         transcriptTurnIndex: 2,
+        utterance: "I'd like a discount.",
       },
     ]);
 
@@ -1389,11 +1347,11 @@ describe("backend phase 2 integration", () => {
     expect(listResponse.json()).resolves.toMatchObject({
       items: [
         expect.objectContaining({
-          agentOccurrenceCount: 1,
+          agentOccurrenceCount: 0,
           id: knowledgeItemId,
           sessionCount: 2,
           totalOccurrences: 3,
-          userOccurrenceCount: 2,
+          userOccurrenceCount: 0,
         }),
       ],
       page: 1,

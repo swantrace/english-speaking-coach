@@ -1,7 +1,11 @@
 import {
+  adminKnowledgeOccurrencesQuerySchema,
+  adminKnowledgeOccurrencesResponseSchema,
+  assignKnowledgeOccurrenceSchema,
   communicativeFunctions,
   fixednessLevels,
   knowledgeItemListQuerySchema,
+  resolveKnowledgeOccurrenceSchema,
   syntaxRoles,
 } from "@english-coach/contract";
 import {
@@ -9,11 +13,12 @@ import {
   adminKnowledgeItemUpdateSchema,
 } from "@english-coach/contract/knowledge-generate";
 import { db } from "@english-coach/database";
-import { knowledgeItems } from "@english-coach/database/schema";
-import { and, asc, count, desc, eq, like, or } from "drizzle-orm";
+import { knowledgeItems, sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
+import { and, asc, count, desc, eq, isNull, like, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { parseJsonBody } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
+import { knowledgeOccurrenceResolveQueue } from "../lib/queues/knowledge-occurrence.resolve";
 
 const knowledgeItemSortColumnMap = {
   createdAt: knowledgeItems.createdAt,
@@ -33,6 +38,111 @@ function createKnowledgeItemSearchCondition(search?: string) {
 }
 
 export function registerAdminRoutes(app: BackendApp) {
+  app.get("/api/admin/knowledge-occurrences", async (context) => {
+    const parsedQuery = adminKnowledgeOccurrencesQuerySchema.safeParse(normalizePageQuery(context.req.query()));
+
+    if (!parsedQuery.success) {
+      return context.json({ error: "Invalid knowledge occurrence query parameters" }, 400);
+    }
+
+    const { page, pageSize, search } = parsedQuery.data;
+    const offset = getPageOffset(page, pageSize);
+    const conditions = [
+      isNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+      search
+        ? or(
+            like(sessionKnowledgePointOccurrences.proposedPattern, `%${search}%`),
+            like(sessionKnowledgePointOccurrences.utterance, `%${search}%`),
+          )
+        : null,
+    ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+    const whereCondition = and(...conditions);
+
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(sessionKnowledgePointOccurrences)
+        .where(whereCondition)
+        .orderBy(desc(sessionKnowledgePointOccurrences.id))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ total: count() }).from(sessionKnowledgePointOccurrences).where(whereCondition),
+    ]);
+
+    return context.json(
+      adminKnowledgeOccurrencesResponseSchema.parse(
+        createPageResponse(
+          rows.map((row) => ({
+            id: row.id,
+            knowledgeItemId: row.knowledgeItemId,
+            proposedPattern: row.proposedPattern,
+            sessionHistoryId: row.sessionHistoryId,
+            transcriptTurnIndex: row.transcriptTurnIndex,
+            utterance: row.utterance,
+          })),
+          totalResult[0]?.total ?? 0,
+          page,
+          pageSize,
+        ),
+      ),
+    );
+  });
+
+  app.patch("/api/admin/knowledge-occurrences/:id", async (context) => {
+    const parsedBody = await parseJsonBody(context, assignKnowledgeOccurrenceSchema);
+
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
+    const occurrenceId = context.req.param("id");
+    const [existingOccurrence] = await db
+      .select()
+      .from(sessionKnowledgePointOccurrences)
+      .where(eq(sessionKnowledgePointOccurrences.id, occurrenceId))
+      .limit(1);
+
+    if (!existingOccurrence) {
+      return context.json({ error: "Knowledge occurrence not found" }, 404);
+    }
+
+    const [existingKnowledgeItem] = await db
+      .select({ id: knowledgeItems.id })
+      .from(knowledgeItems)
+      .where(eq(knowledgeItems.id, parsedBody.data.knowledgeItemId))
+      .limit(1);
+
+    if (!existingKnowledgeItem) {
+      return context.json({ error: "Knowledge item not found" }, 404);
+    }
+
+    await db
+      .update(sessionKnowledgePointOccurrences)
+      .set({ knowledgeItemId: existingKnowledgeItem.id })
+      .where(eq(sessionKnowledgePointOccurrences.id, occurrenceId));
+
+    return context.json({ id: occurrenceId, knowledgeItemId: existingKnowledgeItem.id });
+  });
+
+  app.post("/api/admin/knowledge-occurrences/resolve", async (context) => {
+    const parsedBody = await parseJsonBody(context, resolveKnowledgeOccurrenceSchema);
+
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
+    const job = await knowledgeOccurrenceResolveQueue.add(
+      "knowledgeOccurrenceResolve",
+      { occurrenceId: parsedBody.data.occurrenceId },
+      {
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+
+    return context.json({ jobId: String(job.id), occurrenceId: parsedBody.data.occurrenceId }, 202);
+  });
+
   app.get("/api/admin/knowledge-items", async (context) => {
     const parsedQuery = knowledgeItemListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 

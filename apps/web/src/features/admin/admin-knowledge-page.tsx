@@ -9,6 +9,7 @@ import {
   createSubmission,
   knowledgeItemsQueryKey,
   useKnowledgeGenerateHistory,
+  useKnowledgeItems,
   useKnowledgeItemsList,
   useViewer,
 } from "../../lib/app-data";
@@ -28,6 +29,9 @@ const AdminKnowledgeGenerateTab = lazy(() =>
 const AdminKnowledgeManageTab = lazy(() =>
   import("./admin-knowledge-manage-tab").then((module) => ({ default: module.AdminKnowledgeManageTab })),
 );
+const AdminKnowledgeOccurrencesTab = lazy(() =>
+  import("./admin-knowledge-occurrences-tab").then((module) => ({ default: module.AdminKnowledgeOccurrencesTab })),
+);
 const DeleteKnowledgeItemDialog = lazy(() =>
   import("./delete-knowledge-item-dialog").then((module) => ({ default: module.DeleteKnowledgeItemDialog })),
 );
@@ -44,6 +48,7 @@ export function AdminKnowledgeItemsPage() {
   const queryClient = useQueryClient();
   const queryState = useAdminKnowledgeQueryState();
   const items = useKnowledgeItemsList(queryState.query);
+  const allKnowledgeItems = useKnowledgeItems();
   // Pending-review tracking is temporarily disabled while the knowledge-item schema is simplified.
   const generationHistory = useKnowledgeGenerateHistory();
   const store = useKnowledgeGenerateStore();
@@ -163,7 +168,7 @@ export function AdminKnowledgeItemsPage() {
         />
 
         <Tabs
-          onValueChange={(value: string) => queryState.setTab(value as "manage" | "generate")}
+          onValueChange={(value: string) => queryState.setTab(value as "manage" | "generate" | "occurrences")}
           value={queryState.tab}
         >
           <TabsList className="h-auto w-fit rounded-[20px] border border-slate-200 bg-white/90 p-1 text-slate-600 shadow-sm">
@@ -178,6 +183,12 @@ export function AdminKnowledgeItemsPage() {
               value="generate"
             >
               Bulk Generation
+            </TabsTrigger>
+            <TabsTrigger
+              className="rounded-2xl px-4 py-2 data-[state=active]:border data-[state=active]:border-amber-200 data-[state=active]:bg-amber-100 data-[state=active]:text-slate-900"
+              value="occurrences"
+            >
+              Occurrences
             </TabsTrigger>
           </TabsList>
 
@@ -206,6 +217,15 @@ export function AdminKnowledgeItemsPage() {
                 onRefreshGenerationHistory={() => void generationHistory.refetch()}
                 onSubmitBatch={() => void knowledgeGenerateStore.submit(batchItems)}
                 store={store}
+              />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent className="grid gap-6" value="occurrences">
+            <Suspense fallback={<AdminKnowledgeFallback />}>
+              <AdminKnowledgeOccurrencesTab
+                allKnowledgeItems={allKnowledgeItems.data?.items ?? []}
+                queryState={queryState}
               />
             </Suspense>
           </TabsContent>

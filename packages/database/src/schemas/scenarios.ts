@@ -1,8 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, sqliteTable, text } from "drizzle-orm/sqlite-core";
-
-export const scenarioSourceValues = ["admin", "auto_generated"] as const;
-export const scenarioReviewStatusValues = ["pending_review", "approved", "rejected"] as const;
+import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const scenarios = sqliteTable(
   "scenarios",
@@ -33,19 +30,12 @@ export const scenarios = sqliteTable(
     exampleDialogue: text("example_dialogue", { mode: "json" })
       .notNull()
       .$type<Array<{ characterIndex: 0 | 1; text: string }>>(),
-    source: text("source", { enum: scenarioSourceValues }).notNull().default("admin"),
-    reviewStatus: text("review_status", { enum: scenarioReviewStatusValues }).notNull().default("approved"),
-    reviewedAt: text("reviewed_at"),
-    reviewedByUserId: text("reviewed_by_user_id"),
-    submissionId: text("submission_id"),
+    isPendingReview: integer("is_pending_review", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
   (table) => [
-    check("scenarios_review_status_check", sql`${table.reviewStatus} in ('pending_review', 'approved', 'rejected')`),
-    index("scenarios_review_status_idx").on(table.reviewStatus),
-    check("scenarios_source_check", sql`${table.source} in ('admin', 'auto_generated')`),
-    index("scenarios_source_idx").on(table.source),
-    index("scenarios_submission_id_idx").on(table.submissionId),
+    check("scenarios_is_pending_review_check", sql`${table.isPendingReview} in (0, 1)`),
+    index("scenarios_is_pending_review_idx").on(table.isPendingReview),
   ],
 );

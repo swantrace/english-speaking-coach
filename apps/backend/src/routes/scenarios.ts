@@ -4,7 +4,6 @@ import {
   learnerScenarioListQuerySchema,
   scenarioCursorResponseSchema,
   scenarioPageResponseSchema,
-  scenarioReviewStatusSchema,
   scenarioSchema,
 } from "@english-coach/contract";
 import { adminScenarioCreateSchema, adminScenarioUpdateSchema } from "@english-coach/contract/scenario-generate";
@@ -49,14 +48,12 @@ function createScenarioSearchCondition(search?: string) {
 
 function createScenarioFilterCondition(options: {
   approvedOnly?: boolean;
-  reviewStatus?: (typeof scenarioReviewStatusSchema)["_output"];
+  isPendingReview?: (typeof scenarios.$inferSelect)["isPendingReview"];
   search?: string;
-  source?: (typeof scenarios.$inferSelect)["source"];
 }) {
   const conditions = [
-    options.approvedOnly ? eq(scenarios.reviewStatus, scenarioReviewStatusSchema.enum.approved) : null,
-    options.reviewStatus ? eq(scenarios.reviewStatus, options.reviewStatus) : null,
-    options.source ? eq(scenarios.source, options.source) : null,
+    options.approvedOnly ? eq(scenarios.isPendingReview, false) : null,
+    options.isPendingReview !== undefined ? eq(scenarios.isPendingReview, options.isPendingReview) : null,
     createScenarioSearchCondition(options.search),
   ].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
 
@@ -172,9 +169,9 @@ export function registerScenarioRoutes(app: BackendApp) {
       return context.json({ error: "Invalid scenario query parameters" }, 400);
     }
 
-    const { page, pageSize, reviewStatus, search, sortBy, sortDirection, source } = parsedQuery.data;
+    const { isPendingReview, page, pageSize, search, sortBy, sortDirection } = parsedQuery.data;
     const offset = getPageOffset(page, pageSize);
-    const filterCondition = createScenarioFilterCondition({ reviewStatus, search, source });
+    const filterCondition = createScenarioFilterCondition({ isPendingReview, search });
     const orderColumn = scenarioSortColumnMap[sortBy];
     const orderExpression = sortDirection === "asc" ? asc(orderColumn) : desc(orderColumn);
     const [records, totalResult] = await Promise.all([
@@ -209,9 +206,6 @@ export function registerScenarioRoutes(app: BackendApp) {
 
     const now = new Date().toISOString();
     const scenarioId = crypto.randomUUID();
-    const currentUser = getAuthenticatedUser(context);
-    const reviewStatus = parsedBody.data.reviewStatus;
-    const isReviewed = reviewStatus !== scenarioReviewStatusSchema.enum.pending_review;
 
     await db.insert(scenarios).values({
       characters: parsedBody.data.characters,
@@ -219,12 +213,8 @@ export function registerScenarioRoutes(app: BackendApp) {
       exampleDialogue: parsedBody.data.exampleDialogue,
       goals: parsedBody.data.goals,
       id: scenarioId,
-      reviewStatus,
-      reviewedAt: isReviewed ? now : null,
-      reviewedByUserId: isReviewed ? (currentUser?.id ?? null) : null,
+      isPendingReview: false,
       setting: parsedBody.data.setting,
-      source: "admin",
-      submissionId: null,
       title: parsedBody.data.title,
       updatedAt: now,
     });
@@ -249,10 +239,6 @@ export function registerScenarioRoutes(app: BackendApp) {
     }
 
     const now = new Date().toISOString();
-    const currentUser = getAuthenticatedUser(context);
-    const nextReviewStatus = parsedBody.data.reviewStatus ?? existingScenario.reviewStatus;
-    const reviewStatusChanged =
-      parsedBody.data.reviewStatus !== undefined && parsedBody.data.reviewStatus !== existingScenario.reviewStatus;
 
     await db
       .update(scenarios)
@@ -260,17 +246,7 @@ export function registerScenarioRoutes(app: BackendApp) {
         characters: parsedBody.data.characters ?? existingScenario.characters,
         exampleDialogue: parsedBody.data.exampleDialogue ?? existingScenario.exampleDialogue,
         goals: parsedBody.data.goals ?? existingScenario.goals,
-        reviewStatus: nextReviewStatus,
-        reviewedAt: reviewStatusChanged
-          ? nextReviewStatus === scenarioReviewStatusSchema.enum.pending_review
-            ? null
-            : now
-          : existingScenario.reviewedAt,
-        reviewedByUserId: reviewStatusChanged
-          ? nextReviewStatus === scenarioReviewStatusSchema.enum.pending_review
-            ? null
-            : (currentUser?.id ?? null)
-          : existingScenario.reviewedByUserId,
+        isPendingReview: parsedBody.data.isPendingReview ?? existingScenario.isPendingReview,
         setting: parsedBody.data.setting ?? existingScenario.setting,
         title: parsedBody.data.title ?? existingScenario.title,
         updatedAt: now,
@@ -299,10 +275,7 @@ export function registerScenarioRoutes(app: BackendApp) {
       return context.json({ error: "Scenario not found" }, 404);
     }
 
-    if (
-      getAuthenticatedUser(context)?.role !== "admin" &&
-      record.reviewStatus !== scenarioReviewStatusSchema.enum.approved
-    ) {
+    if (getAuthenticatedUser(context)?.role !== "admin" && record.isPendingReview) {
       return context.json({ error: "Scenario not found" }, 404);
     }
 

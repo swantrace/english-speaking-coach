@@ -1,41 +1,27 @@
-import type { Scenario, ScenarioReviewStatus, ScenarioSource } from "@english-coach/contract";
-import {
-  Badge,
-  Button,
-  DataTable,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@english-coach/ui";
+import type { Scenario } from "@english-coach/contract";
+import { Button, DataTable } from "@english-coach/ui";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { useAdminScenarios } from "../../lib/app-data";
 import { ellipsize, formatTimestamp, humanizeLabel } from "../../lib/app-data";
 import { Card, PageState } from "../../lib/app-shell";
 import type { AdminScenarioQueryState } from "./admin-scenario-query-state";
-import { getReviewBadgeClassName, getSourceBadgeClassName } from "./admin-scenario-types";
 
 export function AdminScenarioManageTab({
   isDeletePending,
-  isReviewStatusPending,
   isSavePending,
   onDelete,
   onOpenCreate,
   onOpenEdit,
   onPreview,
-  onReviewStatusChange,
   queryState,
   scenarios,
 }: {
   isDeletePending: boolean;
-  isReviewStatusPending: boolean;
   isSavePending: boolean;
   onDelete: (scenario: Scenario) => void;
   onOpenCreate: () => void;
   onOpenEdit: (scenario: Scenario) => void;
   onPreview: (scenario: Scenario) => void;
-  onReviewStatusChange: (scenarioId: string, reviewStatus: ScenarioReviewStatus) => void;
   queryState: AdminScenarioQueryState;
   scenarios: ReturnType<typeof useAdminScenarios>;
 }) {
@@ -50,26 +36,7 @@ export function AdminScenarioManageTab({
       ),
       header: "Title",
     },
-    {
-      accessorKey: "source",
-      cell: ({ row }) => (
-        <Badge className={getSourceBadgeClassName(row.original.source)} variant="outline">
-          {humanizeLabel(row.original.source)}
-        </Badge>
-      ),
-      enableSorting: false,
-      header: "Source",
-    },
-    {
-      accessorKey: "reviewStatus",
-      cell: ({ row }) => (
-        <Badge className={getReviewBadgeClassName(row.original.reviewStatus)} variant="outline">
-          {humanizeLabel(row.original.reviewStatus)}
-        </Badge>
-      ),
-      enableSorting: false,
-      header: "Status",
-    },
+    // Source/review-status columns are temporarily disabled while scenarios use isPendingReview.
     {
       accessorFn: (row) => row.goals.goals.length,
       enableSorting: false,
@@ -90,36 +57,7 @@ export function AdminScenarioManageTab({
           <Button onClick={() => onOpenEdit(row.original)} size="sm" variant="outline">
             Edit
           </Button>
-          {row.original.reviewStatus !== "approved" ? (
-            <Button
-              className="border border-amber-300 bg-amber-100 text-amber-950 hover:bg-amber-200"
-              disabled={isReviewStatusPending}
-              onClick={() => onReviewStatusChange(row.original.id, "approved")}
-              size="sm"
-            >
-              Approve
-            </Button>
-          ) : null}
-          {row.original.reviewStatus !== "rejected" ? (
-            <Button
-              disabled={isReviewStatusPending}
-              onClick={() => onReviewStatusChange(row.original.id, "rejected")}
-              size="sm"
-              variant="outline"
-            >
-              Reject
-            </Button>
-          ) : null}
-          {row.original.reviewStatus !== "pending_review" ? (
-            <Button
-              disabled={isReviewStatusPending}
-              onClick={() => onReviewStatusChange(row.original.id, "pending_review")}
-              size="sm"
-              variant="outline"
-            >
-              Requeue
-            </Button>
-          ) : null}
+          {/* Approval/rejection actions are temporarily disabled while scenarios use isPendingReview. */}
           <Button onClick={() => onDelete(row.original)} size="sm" variant="outline">
             Delete
           </Button>
@@ -146,51 +84,7 @@ export function AdminScenarioManageTab({
         <Button onClick={onOpenCreate}>Add scenario</Button>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
-        <div className="grid gap-2 text-sm text-slate-700">
-          <span>Source</span>
-          <Select
-            onValueChange={(value: string) =>
-              queryState.setSource(value === "all" ? undefined : (value as ScenarioSource))
-            }
-            value={queryState.source ?? "all"}
-          >
-            <SelectTrigger className="border-slate-200 bg-white text-slate-900">
-              <SelectValue placeholder="All sources" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All sources</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="auto_generated">Auto generated</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2 text-sm text-slate-700">
-          <span>Review status</span>
-          <Select
-            onValueChange={(value: string) =>
-              queryState.setReviewStatus(value === "all" ? undefined : (value as ScenarioReviewStatus))
-            }
-            value={queryState.reviewStatus ?? "all"}
-          >
-            <SelectTrigger className="border-slate-200 bg-white text-slate-900">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="pending_review">Pending review</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2 text-sm text-slate-700">
-          <span>Moderation state</span>
-          <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
-            Approved scenarios are learner-visible. Pending and rejected scenarios stay admin-only.
-          </div>
-        </div>
-      </div>
+      {/* Source/review filters are temporarily disabled while scenarios use isPendingReview. */}
 
       {scenarios.error ? <PageState description={scenarios.error.message} title="Could not load scenarios" /> : null}
       {!scenarios.error ? (

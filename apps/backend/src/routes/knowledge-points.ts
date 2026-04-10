@@ -4,10 +4,10 @@ import {
   knowledgeItems,
   scenarios,
   sessionHistory,
-  sessionKnowledgeItems,
   sessionKnowledgePointOccurrences,
+  sessionTranscripts,
 } from "@english-coach/database/schema";
-import { and, asc, desc, eq, isNotNull, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, like, sql } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
@@ -78,10 +78,7 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
     const whereCondition = searchCondition ? and(accessCondition, searchCondition) : accessCondition;
     const records = await db
       .select({
-        agentOccurrenceCount:
-          sql<number>`coalesce(sum(case when ${sessionKnowledgeItems.speaker} = 'agent' then ${sessionKnowledgeItems.count} else 0 end), 0)`
-            .mapWith(Number)
-            .as("agentOccurrenceCount"),
+        agentOccurrenceCount: sql<number>`0`.mapWith(Number).as("agentOccurrenceCount"),
         communicativeFunction: knowledgeItems.communicativeFunction,
         createdAt: knowledgeItems.createdAt,
         fixednessLevel: knowledgeItems.fixednessLevel,
@@ -89,22 +86,19 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
         isPendingReview: knowledgeItems.isPendingReview,
         lastSeenAt: sql<string>`max(coalesce(${sessionHistory.endedAt}, ${sessionHistory.startedAt}))`.as("lastSeenAt"),
         pattern: knowledgeItems.pattern,
-        sessionCount: sql<number>`count(distinct ${sessionKnowledgeItems.sessionHistoryId})`
+        sessionCount: sql<number>`count(distinct ${sessionKnowledgePointOccurrences.sessionHistoryId})`
           .mapWith(Number)
           .as("sessionCount"),
         syntaxRole: knowledgeItems.syntaxRole,
-        totalOccurrences: sql<number>`coalesce(sum(${sessionKnowledgeItems.count}), 0)`
+        totalOccurrences: sql<number>`count(${sessionKnowledgePointOccurrences.id})`
           .mapWith(Number)
           .as("totalOccurrences"),
         updatedAt: knowledgeItems.updatedAt,
-        userOccurrenceCount:
-          sql<number>`coalesce(sum(case when ${sessionKnowledgeItems.speaker} = 'user' then ${sessionKnowledgeItems.count} else 0 end), 0)`
-            .mapWith(Number)
-            .as("userOccurrenceCount"),
+        userOccurrenceCount: sql<number>`0`.mapWith(Number).as("userOccurrenceCount"),
       })
-      .from(sessionKnowledgeItems)
-      .innerJoin(sessionHistory, eq(sessionKnowledgeItems.sessionHistoryId, sessionHistory.id))
-      .innerJoin(knowledgeItems, eq(sessionKnowledgeItems.knowledgeItemId, knowledgeItems.id))
+      .from(sessionKnowledgePointOccurrences)
+      .innerJoin(sessionHistory, eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistory.id))
+      .innerJoin(knowledgeItems, eq(sessionKnowledgePointOccurrences.knowledgeItemId, knowledgeItems.id))
       .where(whereCondition)
       .groupBy(knowledgeItems.id);
 
@@ -129,10 +123,7 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
 
     const [summary] = await db
       .select({
-        agentOccurrenceCount:
-          sql<number>`coalesce(sum(case when ${sessionKnowledgeItems.speaker} = 'agent' then ${sessionKnowledgeItems.count} else 0 end), 0)`
-            .mapWith(Number)
-            .as("agentOccurrenceCount"),
+        agentOccurrenceCount: sql<number>`0`.mapWith(Number).as("agentOccurrenceCount"),
         communicativeFunction: knowledgeItems.communicativeFunction,
         createdAt: knowledgeItems.createdAt,
         fixednessLevel: knowledgeItems.fixednessLevel,
@@ -140,22 +131,19 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
         isPendingReview: knowledgeItems.isPendingReview,
         lastSeenAt: sql<string>`max(coalesce(${sessionHistory.endedAt}, ${sessionHistory.startedAt}))`.as("lastSeenAt"),
         pattern: knowledgeItems.pattern,
-        sessionCount: sql<number>`count(distinct ${sessionKnowledgeItems.sessionHistoryId})`
+        sessionCount: sql<number>`count(distinct ${sessionKnowledgePointOccurrences.sessionHistoryId})`
           .mapWith(Number)
           .as("sessionCount"),
         syntaxRole: knowledgeItems.syntaxRole,
-        totalOccurrences: sql<number>`coalesce(sum(${sessionKnowledgeItems.count}), 0)`
+        totalOccurrences: sql<number>`count(${sessionKnowledgePointOccurrences.id})`
           .mapWith(Number)
           .as("totalOccurrences"),
         updatedAt: knowledgeItems.updatedAt,
-        userOccurrenceCount:
-          sql<number>`coalesce(sum(case when ${sessionKnowledgeItems.speaker} = 'user' then ${sessionKnowledgeItems.count} else 0 end), 0)`
-            .mapWith(Number)
-            .as("userOccurrenceCount"),
+        userOccurrenceCount: sql<number>`0`.mapWith(Number).as("userOccurrenceCount"),
       })
-      .from(sessionKnowledgeItems)
-      .innerJoin(sessionHistory, eq(sessionKnowledgeItems.sessionHistoryId, sessionHistory.id))
-      .innerJoin(knowledgeItems, eq(sessionKnowledgeItems.knowledgeItemId, knowledgeItems.id))
+      .from(sessionKnowledgePointOccurrences)
+      .innerJoin(sessionHistory, eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistory.id))
+      .innerJoin(knowledgeItems, eq(sessionKnowledgePointOccurrences.knowledgeItemId, knowledgeItems.id))
       .where(and(accessCondition, eq(knowledgeItems.id, knowledgeItemId)))
       .groupBy(knowledgeItems.id)
       .limit(1);
@@ -166,16 +154,15 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
 
     const occurrences = await db
       .select({
-        excerpt: sessionKnowledgePointOccurrences.excerpt,
         id: sessionKnowledgePointOccurrences.id,
-        occurrenceCount: sessionKnowledgePointOccurrences.occurrenceCount,
+        proposedPattern: sessionKnowledgePointOccurrences.proposedPattern,
         scenarioTitle: scenarios.title,
         sessionEndedAt: sessionHistory.endedAt,
         sessionHistoryId: sessionHistory.id,
         sessionStartedAt: sessionHistory.startedAt,
         sessionType: sessionHistory.sessionType,
-        speaker: sessionKnowledgePointOccurrences.speaker,
         transcriptTurnIndex: sessionKnowledgePointOccurrences.transcriptTurnIndex,
+        utterance: sessionKnowledgePointOccurrences.utterance,
       })
       .from(sessionKnowledgePointOccurrences)
       .innerJoin(sessionHistory, eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistory.id))
@@ -187,13 +174,25 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
         asc(sessionKnowledgePointOccurrences.id),
       );
 
+    const occurrenceSessionIds = [...new Set(occurrences.map((occurrence) => occurrence.sessionHistoryId))];
+    const transcriptRows = occurrenceSessionIds.length
+      ? await db
+          .select({
+            sessionHistoryId: sessionTranscripts.sessionHistoryId,
+            turns: sessionTranscripts.turns,
+          })
+          .from(sessionTranscripts)
+          .where(inArray(sessionTranscripts.sessionHistoryId, occurrenceSessionIds))
+      : [];
+    const transcriptMap = new Map(transcriptRows.map((row) => [row.sessionHistoryId, row.turns]));
+
     return context.json(
       knowledgePointDetailSchema.parse({
         ...summary,
         occurrences: occurrences.map((occurrence) => ({
-          excerpt: occurrence.excerpt,
+          excerpt: occurrence.utterance,
           id: occurrence.id,
-          occurrenceCount: occurrence.occurrenceCount,
+          occurrenceCount: 1,
           sessionEndedAt: occurrence.sessionEndedAt,
           sessionHistoryId: occurrence.sessionHistoryId,
           sessionStartedAt: occurrence.sessionStartedAt,
@@ -202,7 +201,10 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
               ? "Free-form"
               : (occurrence.scenarioTitle ?? "Role-play"),
           sessionType: occurrence.sessionType,
-          speaker: occurrence.speaker,
+          speaker:
+            transcriptMap.get(occurrence.sessionHistoryId)?.[occurrence.transcriptTurnIndex]?.speaker === "assistant"
+              ? "assistant"
+              : "user",
           transcriptTurnIndex: occurrence.transcriptTurnIndex,
         })),
       }),

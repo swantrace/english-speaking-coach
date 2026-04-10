@@ -1,4 +1,3 @@
-import type { ScenarioReviewStatus } from "@english-coach/contract";
 import {
   Button,
   Dialog,
@@ -8,11 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Textarea,
 } from "@english-coach/ui";
 import type { ScenarioFormDraft } from "./admin-scenario-types";
@@ -55,24 +49,7 @@ export function ScenarioFormDialog({
               value={draft.title}
             />
           </div>
-          <div className="grid gap-2 text-sm text-slate-200">
-            <span>Review status</span>
-            <Select
-              onValueChange={(value: string) =>
-                onDraftChange({ ...draft, reviewStatus: value as ScenarioReviewStatus })
-              }
-              value={draft.reviewStatus}
-            >
-              <SelectTrigger className="border-white/10 bg-slate-900 text-slate-50">
-                <SelectValue placeholder="Choose review status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="pending_review">Pending review</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Review status control is temporarily disabled while scenarios use isPendingReview only. */}
           <div className="grid gap-2 text-sm text-slate-200 md:col-span-2">
             <span>Setting</span>
             <Textarea

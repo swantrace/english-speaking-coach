@@ -5,11 +5,13 @@ import type { AppVariables } from "./http/context";
 import { attachRequestSession, registerAccessPolicies } from "./http/guards";
 import { authTrustedOrigins } from "./lib/auth/options";
 import { knowledgeGenerateWorker } from "./lib/queues/knowledge.generate";
+import { knowledgeOccurrenceResolveWorker } from "./lib/queues/knowledge-occurrence.resolve";
 import { scenarioGenerateWorker } from "./lib/queues/scenario.generate";
 import { registerRoutes } from "./routes";
 
 migrateDatabase();
 void knowledgeGenerateWorker;
+void knowledgeOccurrenceResolveWorker;
 void scenarioGenerateWorker;
 
 export const app = new Hono<{ Variables: AppVariables }>();

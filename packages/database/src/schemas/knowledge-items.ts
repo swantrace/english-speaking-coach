@@ -43,20 +43,20 @@ export const knowledgeItems = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => ({
-    patternIdx: uniqueIndex("knowledge_items_pattern_idx").on(table.pattern),
-    pendingReviewIdx: index("knowledge_items_is_pending_review_idx").on(table.isPendingReview),
-    syntaxRoleCheck: check(
+  (table) => [
+    uniqueIndex("knowledge_items_pattern_idx").on(table.pattern),
+    index("knowledge_items_is_pending_review_idx").on(table.isPendingReview),
+    check(
       "knowledge_items_syntax_role_check",
       sql`${table.syntaxRole} IS NULL OR ${table.syntaxRole} in ('predicate_verb', 'predicate_adjective', 'adverbial_modifier', 'noun_phrase', 'discourse_linker', 'clause_pattern')`,
     ),
-    fixednessLevelCheck: check(
+    check(
       "knowledge_items_fixedness_level_check",
       sql`${table.fixednessLevel} IS NULL OR ${table.fixednessLevel} in ('restricted_collocation', 'fixed_expression', 'idiom')`,
     ),
-    communicativeFunctionCheck: check(
+    check(
       "knowledge_items_communicative_function_check",
       sql`${table.communicativeFunction} IS NULL OR ${table.communicativeFunction} in ('manage_social_relation', 'express_attitude_or_opinion', 'make_request_or_offer', 'give_or_seek_information', 'organize_discourse', 'react_in_conversation', 'express_degree_or_soften', 'express_time_or_sequence')`,
     ),
-  }),
+  ],
 );

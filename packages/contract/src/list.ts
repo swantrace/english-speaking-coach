@@ -3,7 +3,6 @@ import {
   scenarios,
   sessionErrors,
   sessionHistory,
-  sessionKnowledgePointOccurrences,
   speakerValues,
 } from "@english-coach/database/schema";
 import { createSelectSchema } from "drizzle-zod";
@@ -14,9 +13,7 @@ import {
   scenarioCharacterSchema,
   scenarioDialogueTurnSchema,
   scenarioGoalsSchema,
-  scenarioReviewStatusSchema,
   scenarioSchema,
-  scenarioSourceSchema,
   sessionTurnSchema,
   sessionTypeSchema,
   transcriptAnnotationSchema,
@@ -95,11 +92,10 @@ export const learnerScenarioListQuerySchema = pageListQuerySchema
     },
   );
 export const adminScenarioListQuerySchema = pageListQuerySchema.extend({
-  reviewStatus: scenarioReviewStatusSchema.optional(),
+  isPendingReview: z.coerce.boolean().optional(),
   search: optionalSearchTextSchema,
   sortBy: scenarioListSortBySchema.default(scenarioListSortBySchema.enum.updatedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
-  source: scenarioSourceSchema.optional(),
 });
 
 export const historySummarySchema = createSelectSchema(sessionHistory, {
@@ -131,12 +127,12 @@ export const historyDetailScenarioSchema = createSelectSchema(scenarios, {
   title: true,
 });
 
-export const historyKnowledgeItemOccurrenceSummarySchema = createSelectSchema(sessionKnowledgePointOccurrences).pick({
-  excerpt: true,
-  id: true,
-  occurrenceCount: true,
-  speaker: true,
-  transcriptTurnIndex: true,
+export const historyKnowledgeItemOccurrenceSummarySchema = z.object({
+  excerpt: z.string().trim().min(1),
+  id: z.string(),
+  occurrenceCount: z.number().int().min(1),
+  speaker: z.enum(speakerValues),
+  transcriptTurnIndex: z.number().int().min(0),
 });
 
 export const historyKnowledgeItemSchema = z.object({
@@ -227,6 +223,31 @@ export const knowledgePointOccurrenceSchema = z.object({
   transcriptTurnIndex: z.number().int().min(0),
 });
 
+export const unresolvedKnowledgeOccurrenceSchema = z.object({
+  id: z.string(),
+  knowledgeItemId: z.string().nullable(),
+  proposedPattern: z.string().trim().min(1),
+  sessionHistoryId: z.string(),
+  transcriptTurnIndex: z.number().int().min(0),
+  utterance: z.string().trim().min(1),
+});
+
+export const adminKnowledgeOccurrencesQuerySchema = pageListQuerySchema.extend({
+  search: optionalSearchTextSchema,
+});
+
+export const assignKnowledgeOccurrenceSchema = z.object({
+  knowledgeItemId: z.string().min(1),
+});
+
+export const resolveKnowledgeOccurrenceSchema = z.object({
+  occurrenceId: z.string().min(1),
+});
+
+export const adminKnowledgeOccurrencesResponseSchema = createPageListResponseSchema(
+  unresolvedKnowledgeOccurrenceSchema,
+);
+
 export const knowledgePointDetailSchema = knowledgePointSummarySchema.extend({
   occurrences: z.array(knowledgePointOccurrenceSchema),
 });
@@ -260,6 +281,8 @@ export type KnowledgePointListQuery = z.infer<typeof knowledgePointListQuerySche
 export type KnowledgePointSummary = z.infer<typeof knowledgePointSummarySchema>;
 export type KnowledgePointOccurrence = z.infer<typeof knowledgePointOccurrenceSchema>;
 export type KnowledgePointDetail = z.infer<typeof knowledgePointDetailSchema>;
+export type UnresolvedKnowledgeOccurrence = z.infer<typeof unresolvedKnowledgeOccurrenceSchema>;
+export type AdminKnowledgeOccurrencesQuery = z.infer<typeof adminKnowledgeOccurrencesQuerySchema>;
 export type ScenarioPageResponse = z.infer<typeof scenarioPageResponseSchema>;
 export type ScenarioCursorResponse = z.infer<typeof scenarioCursorResponseSchema>;
 export type AdminScenarioListResponse = z.infer<typeof adminScenarioListResponseSchema>;

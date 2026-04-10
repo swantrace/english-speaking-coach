@@ -1,10 +1,4 @@
-import {
-  scenarioReviewStatusValues,
-  scenarioSourceValues,
-  scenarios,
-  sessionTypeValues,
-  speakerValues,
-} from "@english-coach/database/schema";
+import { scenarios, sessionTypeValues, speakerValues } from "@english-coach/database/schema";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
@@ -40,9 +34,15 @@ export const inConversationUiPromptSchema = z.object({
   promptKind: coachingPromptKindSchema,
   transcriptTurnIndex: z.number().int().min(0).optional(),
 });
+export const inConversationKnowledgeOccurrenceSchema = z.object({
+  proposedPattern: z.string().trim().min(1),
+  transcriptTurnIndex: z.number().int().min(0),
+  utterance: z.string().trim().min(1),
+});
 export type TranscriptAnnotation = z.infer<typeof transcriptAnnotationSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
 export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;
+export type InConversationKnowledgeOccurrence = z.infer<typeof inConversationKnowledgeOccurrenceSchema>;
 
 // ── Scenario sub-schemas ──────────────────────────────────────────────────────
 
@@ -86,8 +86,7 @@ export const scenarioGoalsSchema = z.object({
   goals: z.array(scenarioGoalSchema),
 });
 
-export const scenarioSourceSchema = z.enum(scenarioSourceValues);
-export const scenarioReviewStatusSchema = z.enum(scenarioReviewStatusValues);
+export const scenarioPendingReviewSchema = z.boolean();
 
 /** Step 3: domain object produced by a completed scenario generation job. */
 export const scenarioSchema = createSelectSchema(scenarios, {
@@ -173,6 +172,7 @@ export const lingAnalysisResultSchema = z.object({
 });
 
 export const inConversationAnalysisResultSchema = z.object({
+  occurrences: z.array(inConversationKnowledgeOccurrenceSchema).min(0).max(12),
   uiPrompts: z.array(inConversationUiPromptSchema).min(0).max(3),
   workerFeedbackMessage: z.string().trim().min(1),
 });
@@ -188,8 +188,7 @@ export type ScenarioCharacter = z.infer<typeof scenarioCharacterSchema>;
 export type ScenarioDialogueTurn = z.infer<typeof scenarioDialogueTurnSchema>;
 export type ScenarioGoal = z.infer<typeof scenarioGoalSchema>;
 export type ScenarioGoals = z.infer<typeof scenarioGoalsSchema>;
-export type ScenarioSource = z.infer<typeof scenarioSourceSchema>;
-export type ScenarioReviewStatus = z.infer<typeof scenarioReviewStatusSchema>;
+export type ScenarioPendingReview = z.infer<typeof scenarioPendingReviewSchema>;
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type InConversationAnalysisJob = z.infer<typeof inConversationAnalysisJobSchema>;
 export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSchema>;

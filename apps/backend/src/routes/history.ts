@@ -6,11 +6,10 @@ import {
   scenarios,
   sessionErrors,
   sessionHistory,
-  sessionKnowledgeItems,
   sessionKnowledgePointOccurrences,
   sessionTranscripts,
 } from "@english-coach/database/schema";
-import { and, asc, count, desc, eq, isNotNull, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, like, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
@@ -156,32 +155,16 @@ export function registerHistoryRoutes(app: BackendApp) {
       return context.json({ error: "Session not found" }, 404);
     }
 
-    const [knowledgeItemRows, errorRows, transcriptRow, occurrenceRows] = await Promise.all([
-      db
-        .select({
-          communicativeFunction: knowledgeItems.communicativeFunction,
-          count: sessionKnowledgeItems.count,
-          examples: sessionKnowledgeItems.examples,
-          fixednessLevel: knowledgeItems.fixednessLevel,
-          id: sessionKnowledgeItems.id,
-          knowledgeItemId: knowledgeItems.id,
-          pattern: knowledgeItems.pattern,
-          speaker: sessionKnowledgeItems.speaker,
-          syntaxRole: knowledgeItems.syntaxRole,
-        })
-        .from(sessionKnowledgeItems)
-        .innerJoin(knowledgeItems, eq(sessionKnowledgeItems.knowledgeItemId, knowledgeItems.id))
-        .where(eq(sessionKnowledgeItems.sessionHistoryId, sessionId)),
+    const [errorRows, transcriptRow, occurrenceRows] = await Promise.all([
       db.select().from(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionId)),
       db.select().from(sessionTranscripts).where(eq(sessionTranscripts.sessionHistoryId, sessionId)).limit(1),
       db
         .select({
-          excerpt: sessionKnowledgePointOccurrences.excerpt,
           id: sessionKnowledgePointOccurrences.id,
           knowledgeItemId: sessionKnowledgePointOccurrences.knowledgeItemId,
-          occurrenceCount: sessionKnowledgePointOccurrences.occurrenceCount,
-          speaker: sessionKnowledgePointOccurrences.speaker,
+          proposedPattern: sessionKnowledgePointOccurrences.proposedPattern,
           transcriptTurnIndex: sessionKnowledgePointOccurrences.transcriptTurnIndex,
+          utterance: sessionKnowledgePointOccurrences.utterance,
         })
         .from(sessionKnowledgePointOccurrences)
         .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionId))
@@ -189,12 +172,105 @@ export function registerHistoryRoutes(app: BackendApp) {
     ]);
 
     const transcriptTurns = transcriptRow[0]?.turns ?? [];
-    const occurrencesByKnowledgeItemId = occurrenceRows.reduce((groups, occurrence) => {
-      const bucket = groups.get(occurrence.knowledgeItemId) ?? [];
-      bucket.push(occurrence);
-      groups.set(occurrence.knowledgeItemId, bucket);
-      return groups;
-    }, new Map<string, typeof occurrenceRows>());
+    const resolvedOccurrenceRows = occurrenceRows.filter(
+      (occurrence): occurrence is (typeof occurrenceRows)[number] & { knowledgeItemId: string } =>
+        Boolean(occurrence.knowledgeItemId),
+    );
+    const resolvedKnowledgeItemIds = [
+      ...new Set(resolvedOccurrenceRows.map((occurrence) => occurrence.knowledgeItemId)),
+    ];
+    const knowledgeItemRecords = resolvedKnowledgeItemIds.length
+      ? await db
+          .select({
+            communicativeFunction: knowledgeItems.communicativeFunction,
+            fixednessLevel: knowledgeItems.fixednessLevel,
+            id: knowledgeItems.id,
+            pattern: knowledgeItems.pattern,
+            syntaxRole: knowledgeItems.syntaxRole,
+          })
+          .from(knowledgeItems)
+          .where(inArray(knowledgeItems.id, resolvedKnowledgeItemIds))
+      : [];
+    const knowledgeItemsById = new Map(knowledgeItemRecords.map((item) => [item.id, item]));
+    const groupedKnowledgeItems = new Map<
+      string,
+      {
+        communicativeFunction: (typeof knowledgeItemRecords)[number]["communicativeFunction"];
+        count: number;
+        examples: string[];
+        fixednessLevel: (typeof knowledgeItemRecords)[number]["fixednessLevel"];
+        id: string;
+        knowledgeItemId: string;
+        occurrences: Array<{
+          excerpt: string;
+          id: string;
+          occurrenceCount: number;
+          speaker: "user" | "assistant";
+          transcriptTurnIndex: number;
+        }>;
+        pattern: string;
+        speaker: "user" | "assistant";
+        syntaxRole: (typeof knowledgeItemRecords)[number]["syntaxRole"];
+      }
+    >();
+
+    for (const occurrence of resolvedOccurrenceRows) {
+      const knowledgeItem = knowledgeItemsById.get(occurrence.knowledgeItemId);
+
+      if (!knowledgeItem) {
+        continue;
+      }
+
+      const turnSpeaker = transcriptTurns[occurrence.transcriptTurnIndex]?.speaker;
+      const speaker: "user" | "assistant" = turnSpeaker === "assistant" ? "assistant" : "user";
+      const key = `${occurrence.knowledgeItemId}:${speaker}`;
+      const existingGroup = groupedKnowledgeItems.get(key);
+
+      if (!existingGroup) {
+        groupedKnowledgeItems.set(key, {
+          communicativeFunction: knowledgeItem.communicativeFunction,
+          count: 1,
+          examples: [occurrence.utterance],
+          fixednessLevel: knowledgeItem.fixednessLevel,
+          id: key,
+          knowledgeItemId: knowledgeItem.id,
+          occurrences: [
+            {
+              excerpt: occurrence.utterance,
+              id: occurrence.id,
+              occurrenceCount: 1,
+              speaker,
+              transcriptTurnIndex: occurrence.transcriptTurnIndex,
+            },
+          ],
+          pattern: knowledgeItem.pattern,
+          speaker,
+          syntaxRole: knowledgeItem.syntaxRole,
+        });
+        continue;
+      }
+
+      const nextExamples = existingGroup.examples.includes(occurrence.utterance)
+        ? existingGroup.examples
+        : [...existingGroup.examples, occurrence.utterance];
+      groupedKnowledgeItems.set(key, {
+        ...existingGroup,
+        count: existingGroup.count + 1,
+        examples: nextExamples,
+        occurrences: [
+          ...existingGroup.occurrences,
+          {
+            excerpt: occurrence.utterance,
+            id: occurrence.id,
+            occurrenceCount: 1,
+            speaker,
+            transcriptTurnIndex: occurrence.transcriptTurnIndex,
+          },
+        ],
+      });
+    }
+
+    const knowledgeItemRows = [...groupedKnowledgeItems.values()];
 
     return context.json(
       historyDetailResponseSchema.parse({
@@ -208,13 +284,7 @@ export function registerHistoryRoutes(app: BackendApp) {
         }),
         knowledgeItems: knowledgeItemRows.map((item) => ({
           ...item,
-          occurrences: (occurrencesByKnowledgeItemId.get(item.knowledgeItemId) ?? []).map((occurrence) => ({
-            excerpt: occurrence.excerpt,
-            id: occurrence.id,
-            occurrenceCount: occurrence.occurrenceCount,
-            speaker: occurrence.speaker,
-            transcriptTurnIndex: occurrence.transcriptTurnIndex,
-          })),
+          occurrences: item.occurrences,
         })),
         rewrittenTranscript: transcriptRow[0]?.rewrittenTurns ?? [],
         session: {

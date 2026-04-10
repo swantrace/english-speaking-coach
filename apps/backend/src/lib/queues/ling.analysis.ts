@@ -16,7 +16,6 @@ import {
   knowledgeItems,
   sessionErrors,
   sessionHistory,
-  sessionKnowledgeItems,
   sessionKnowledgePointOccurrences,
   sessionTranscripts,
 } from "@english-coach/database/schema";
@@ -35,18 +34,13 @@ function normalizeTextForMatching(value: string) {
   return value.trim().toLowerCase();
 }
 
-function humanizeToken(value: string) {
-  return value.replaceAll("_", " ");
-}
-
 function buildErrorFollowUpPrompt(suggestion: string) {
   const normalizedSuggestion = suggestion.trim().replace(/[.?!]+$/u, "");
   return `Ask the agent why ${normalizedSuggestion} fits better here.`;
 }
 
-function buildKnowledgeFollowUpPrompt(item: LingAnalysisResult["knowledgeItemsUsed"][number]) {
-  const example = item.example.trim().replace(/[.?!]+$/u, "");
-  return `Ask the agent how "${example}" helps ${humanizeToken(item.communicativeFunction)}.`;
+function buildKnowledgeFollowUpPrompt(pattern: string) {
+  return `Ask the agent when to use the pattern "${pattern}" naturally.`;
 }
 
 function findMatchedTranscriptTurnIndex(turns: TranscriptTurns, utterance: string) {
@@ -63,8 +57,8 @@ function buildPostSessionTranscriptAnnotations({
 }: {
   analysis: LingAnalysisResult;
   occurrencePromptCandidates: Array<{
-    item: LingAnalysisResult["knowledgeItemsUsed"][number];
-    occurrences: ReturnType<typeof deriveKnowledgePointOccurrences>;
+    proposedPattern: string;
+    transcriptTurnIndex: number;
   }>;
   sessionHistoryId: string;
   turns: TranscriptTurns;
@@ -91,100 +85,19 @@ function buildPostSessionTranscriptAnnotations({
   }
 
   for (const candidate of occurrencePromptCandidates) {
-    const primaryOccurrence =
-      candidate.occurrences.find((occurrence) => occurrence.speaker === "user") ?? candidate.occurrences[0];
-
-    if (!primaryOccurrence) {
-      continue;
-    }
-
     annotations.push(
       transcriptAnnotationSchema.parse({
         coachingKind: "knowledge_hint",
-        id: `post-session:knowledge:${sessionHistoryId}:${candidate.item.pattern}:${primaryOccurrence.transcriptTurnIndex}`,
+        id: `post-session:knowledge:${sessionHistoryId}:${candidate.proposedPattern}:${candidate.transcriptTurnIndex}`,
         kind: "coaching",
         source: "post-session-review",
-        text: buildKnowledgeFollowUpPrompt(candidate.item),
-        transcriptTurnIndex: primaryOccurrence.transcriptTurnIndex,
+        text: buildKnowledgeFollowUpPrompt(candidate.proposedPattern),
+        transcriptTurnIndex: candidate.transcriptTurnIndex,
       }),
     );
   }
 
   return annotations;
-}
-
-function deriveKnowledgePointOccurrences({
-  item,
-  knowledgeItemId,
-  sessionHistoryId,
-  turns,
-}: {
-  item: LingAnalysisResult["knowledgeItemsUsed"][number];
-  knowledgeItemId: string;
-  sessionHistoryId: string;
-  turns: TranscriptTurns;
-}) {
-  const speakerTurns = turns
-    .map((turn, transcriptTurnIndex) => ({ ...turn, transcriptTurnIndex }))
-    .filter((turn) => turn.speaker === item.speaker);
-  const assignmentCountsByTurn = new Map<number, number>();
-  const groupedOccurrences = new Map<string, typeof sessionKnowledgePointOccurrences.$inferInsert>();
-
-  for (const excerpt of item.usageExcerpts) {
-    const normalizedExcerpt = normalizeTextForMatching(excerpt);
-
-    if (!normalizedExcerpt) {
-      continue;
-    }
-
-    const candidates = speakerTurns.filter((turn) => {
-      const normalizedTurn = normalizeTextForMatching(turn.text);
-
-      return normalizedTurn.includes(normalizedExcerpt) || normalizedExcerpt.includes(normalizedTurn);
-    });
-    const matchedTurn = candidates.sort((left, right) => {
-      const leftAssignments = assignmentCountsByTurn.get(left.transcriptTurnIndex) ?? 0;
-      const rightAssignments = assignmentCountsByTurn.get(right.transcriptTurnIndex) ?? 0;
-
-      if (leftAssignments !== rightAssignments) {
-        return leftAssignments - rightAssignments;
-      }
-
-      return left.transcriptTurnIndex - right.transcriptTurnIndex;
-    })[0];
-
-    if (!matchedTurn) {
-      continue;
-    }
-
-    assignmentCountsByTurn.set(
-      matchedTurn.transcriptTurnIndex,
-      (assignmentCountsByTurn.get(matchedTurn.transcriptTurnIndex) ?? 0) + 1,
-    );
-
-    const occurrenceKey = [matchedTurn.transcriptTurnIndex, item.speaker, excerpt].join(":");
-    const existingOccurrence = groupedOccurrences.get(occurrenceKey);
-
-    if (existingOccurrence) {
-      groupedOccurrences.set(occurrenceKey, {
-        ...existingOccurrence,
-        occurrenceCount: (existingOccurrence.occurrenceCount ?? 1) + 1,
-      });
-      continue;
-    }
-
-    groupedOccurrences.set(occurrenceKey, {
-      excerpt,
-      id: crypto.randomUUID(),
-      knowledgeItemId,
-      occurrenceCount: 1,
-      sessionHistoryId,
-      speaker: item.speaker,
-      transcriptTurnIndex: matchedTurn.transcriptTurnIndex,
-    });
-  }
-
-  return [...groupedOccurrences.values()];
 }
 
 export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAnalysisQueueName, {
@@ -239,50 +152,13 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
       `Valid fixednessLevel values: ${fixednessLevels.join(", ")}`,
       `Valid communicativeFunction values: ${communicativeFunctions.join(", ")}`,
       `Valid error dimensions: ${errorDimensions.join(", ")}`,
-      "Extract knowledge items from both user and agent turns. Use speaker='user' for active learner production and speaker='agent' for target language modelled by the coach.",
+      "Extract knowledge items from both user and assistant turns. Use speaker='user' for active learner production and speaker='assistant' for target language modelled by the coach.",
       "Only report genuine learner errors for user utterances.",
       JSON.stringify(turns),
     ].join("\n\n"),
   });
 
   return output;
-}
-
-async function resolveKnowledgeItemId(result: LingAnalysisResult["knowledgeItemsUsed"][number]) {
-  const now = new Date().toISOString();
-  const [existing] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.pattern, result.pattern)).limit(1);
-
-  if (existing) {
-    if (existing.isPendingReview) {
-      await db
-        .update(knowledgeItems)
-        .set({
-          communicativeFunction: result.communicativeFunction,
-          fixednessLevel: result.fixednessLevel,
-          syntaxRole: result.syntaxRole,
-          updatedAt: now,
-        })
-        .where(eq(knowledgeItems.id, existing.id));
-    }
-
-    return existing.id;
-  }
-
-  const knowledgeItemId = crypto.randomUUID();
-
-  await db.insert(knowledgeItems).values({
-    communicativeFunction: result.communicativeFunction,
-    createdAt: now,
-    fixednessLevel: result.fixednessLevel,
-    id: knowledgeItemId,
-    isPendingReview: true,
-    pattern: result.pattern,
-    senses: [],
-    syntaxRole: result.syntaxRole,
-    updatedAt: now,
-  });
-
-  return knowledgeItemId;
 }
 
 export const lingAnalysisWorker = new Worker<{ sessionHistoryId: string }>(
@@ -305,43 +181,10 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   }
 
   const analysis = await generateLingAnalysis(transcriptRecord.turns);
-  const occurrencePromptCandidates: Array<{
-    item: LingAnalysisResult["knowledgeItemsUsed"][number];
-    occurrences: ReturnType<typeof deriveKnowledgePointOccurrences>;
-  }> = [];
+  const occurrencePromptCandidates: Array<{ proposedPattern: string; transcriptTurnIndex: number }> = [];
 
   await db.transaction(async (transaction) => {
-    await transaction.delete(sessionKnowledgeItems).where(eq(sessionKnowledgeItems.sessionHistoryId, sessionHistoryId));
-    await transaction
-      .delete(sessionKnowledgePointOccurrences)
-      .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId));
     await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));
-
-    for (const item of analysis.knowledgeItemsUsed) {
-      const knowledgeItemId = await resolveKnowledgeItemId(item);
-
-      await transaction.insert(sessionKnowledgeItems).values({
-        count: item.count,
-        examples: item.usageExcerpts,
-        id: crypto.randomUUID(),
-        knowledgeItemId,
-        sessionHistoryId,
-        speaker: item.speaker,
-      });
-
-      const occurrences = deriveKnowledgePointOccurrences({
-        item,
-        knowledgeItemId,
-        sessionHistoryId,
-        turns: transcriptRecord.turns,
-      });
-
-      occurrencePromptCandidates.push({ item, occurrences });
-
-      if (occurrences.length > 0) {
-        await transaction.insert(sessionKnowledgePointOccurrences).values(occurrences);
-      }
-    }
 
     if (analysis.errors.length > 0) {
       await transaction.insert(sessionErrors).values(
@@ -363,6 +206,21 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
       })
       .where(eq(sessionHistory.id, sessionHistoryId));
   });
+
+  const unresolvedOccurrences = await db
+    .select({
+      proposedPattern: sessionKnowledgePointOccurrences.proposedPattern,
+      transcriptTurnIndex: sessionKnowledgePointOccurrences.transcriptTurnIndex,
+    })
+    .from(sessionKnowledgePointOccurrences)
+    .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId));
+
+  for (const occurrence of unresolvedOccurrences) {
+    occurrencePromptCandidates.push({
+      proposedPattern: occurrence.proposedPattern,
+      transcriptTurnIndex: occurrence.transcriptTurnIndex,
+    });
+  }
 
   await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
   await persistTranscriptAnnotationsForSession(

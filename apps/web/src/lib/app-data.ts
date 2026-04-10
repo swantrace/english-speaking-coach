@@ -1,4 +1,5 @@
 import {
+  adminKnowledgeOccurrencesResponseSchema,
   adminScenarioListResponseSchema,
   defaultScenarioCursorPageSize,
   historyDetailResponseSchema,
@@ -8,7 +9,6 @@ import {
   knowledgeGenerateSubmissionHistoryResponseSchema,
   knowledgeItemListResponseSchema,
   knowledgeItemListSortBySchema,
-  knowledgeItemReviewStatusSchema,
   knowledgeItemSchema,
   knowledgePointDetailSchema,
   knowledgePointListResponseSchema,
@@ -17,9 +17,7 @@ import {
   scenarioCursorResponseSchema,
   scenarioListSortBySchema,
   scenarioPageResponseSchema,
-  scenarioReviewStatusSchema,
   scenarioSchema,
-  scenarioSourceSchema,
   sessionTypeSchema,
   userRoles,
 } from "@english-coach/contract";
@@ -100,25 +98,28 @@ export const historyDetailSearchSchema = z.object({
 });
 
 export const adminScenariosSearchSchema = z.object({
+  isPendingReview: z.coerce.boolean().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
-  reviewStatus: scenarioReviewStatusSchema.optional(),
   search: optionalRouteSearchSchema,
   sortBy: scenarioListSortBySchema.default("updatedAt"),
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
-  source: scenarioSourceSchema.optional(),
   tab: z.enum(["manage", "generate"]).default("manage"),
 });
 
 export const adminKnowledgeItemsSearchSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
-  reviewStatus: knowledgeItemReviewStatusSchema.optional(),
   search: optionalRouteSearchSchema,
   sortBy: knowledgeItemListSortBySchema.default("updatedAt"),
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
-  source: z.enum(["all", "admin", "auto_generated"]).default("all"),
-  tab: z.enum(["manage", "generate"]).default("manage"),
+  tab: z.enum(["manage", "generate", "occurrences"]).default("manage"),
+});
+
+export const adminKnowledgeOccurrencesSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  search: optionalRouteSearchSchema,
 });
 
 export const knowledgePointsSearchSchema = z.object({
@@ -142,6 +143,7 @@ export const scenariosQueryKey = ["scenarios"] as const;
 export const adminScenariosQueryKey = ["admin-scenarios"] as const;
 export const historyQueryKey = ["history"] as const;
 export const knowledgeItemsQueryKey = ["knowledge-items"] as const;
+export const knowledgeOccurrencesQueryKey = ["knowledge-occurrences"] as const;
 export const knowledgePointsQueryKey = ["knowledge-points"] as const;
 export const knowledgeGenerateHistoryQueryKey = ["knowledge-generate-history"] as const;
 export { knowledgeItemSchema };
@@ -372,13 +374,12 @@ export function useLearnerScenarios(query: {
 
 export function useAdminScenarios(query: z.infer<typeof adminScenariosSearchSchema>) {
   const searchParams = createSearchParams({
+    isPendingReview: query.isPendingReview,
     page: query.page,
     pageSize: query.pageSize,
-    reviewStatus: query.reviewStatus,
     search: query.search,
     sortBy: query.sortBy,
     sortDirection: query.sortDirection,
-    source: query.source,
   });
 
   return useQuery({
@@ -423,13 +424,12 @@ export function useSessionDetail(sessionId: string) {
 }
 
 export function useKnowledgeItems(source?: "admin" | "auto_generated") {
+  void source;
   return useKnowledgeItemsList({
     page: 1,
     pageSize: 100,
-    reviewStatus: undefined,
     sortBy: "updatedAt",
     sortDirection: "desc",
-    source: source ?? "all",
     tab: "manage",
   });
 }
@@ -461,16 +461,28 @@ export function useKnowledgeItemsList(query: z.infer<typeof adminKnowledgeItemsS
   const searchParams = createSearchParams({
     page: query.page,
     pageSize: query.pageSize,
-    reviewStatus: query.reviewStatus,
     search: query.search,
     sortBy: query.sortBy,
     sortDirection: query.sortDirection,
-    source: query.source === "all" ? undefined : query.source,
   });
 
   return useQuery({
     queryKey: [...knowledgeItemsQueryKey, query],
     queryFn: () => apiJson(`/api/admin/knowledge-items?${searchParams.toString()}`, knowledgeItemListResponseSchema),
+  });
+}
+
+export function useUnresolvedKnowledgeOccurrences(query: z.infer<typeof adminKnowledgeOccurrencesSearchSchema>) {
+  const searchParams = createSearchParams({
+    page: query.page,
+    pageSize: query.pageSize,
+    search: query.search,
+  });
+
+  return useQuery({
+    queryKey: [...knowledgeOccurrencesQueryKey, query],
+    queryFn: () =>
+      apiJson(`/api/admin/knowledge-occurrences?${searchParams.toString()}`, adminKnowledgeOccurrencesResponseSchema),
   });
 }
 

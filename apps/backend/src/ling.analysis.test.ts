@@ -3,14 +3,13 @@ import { db, migrateDatabase } from "@english-coach/database";
 import {
   freeFormContexts,
   sessionHistory,
-  sessionKnowledgeItems,
   sessionKnowledgePointOccurrences,
   sessionTranscripts,
 } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
 import { processLingAnalysisSession, setLingAnalysisGeneratorForTests } from "./lib/queues/ling.analysis";
 
-describe("lingAnalysis knowledge point occurrence persistence", () => {
+describe("lingAnalysis post-session annotations from occurrences", () => {
   beforeAll(async () => {
     migrateDatabase();
   });
@@ -19,7 +18,7 @@ describe("lingAnalysis knowledge point occurrence persistence", () => {
     setLingAnalysisGeneratorForTests(null);
   });
 
-  test("persists transcript-turn knowledge point occurrences alongside session aggregates", async () => {
+  test("uses unresolved occurrences to write transcript-aligned knowledge hints", async () => {
     const now = new Date().toISOString();
     const freeFormContextId = crypto.randomUUID();
     const sessionId = crypto.randomUUID();
@@ -50,6 +49,15 @@ describe("lingAnalysis knowledge point occurrence persistence", () => {
       ],
     });
 
+    await db.insert(sessionKnowledgePointOccurrences).values({
+      id: crypto.randomUUID(),
+      knowledgeItemId: null,
+      proposedPattern: "I'd like <np>",
+      sessionHistoryId: sessionId,
+      transcriptTurnIndex: 0,
+      utterance: "I'd like a coffee.",
+    });
+
     setLingAnalysisGeneratorForTests(async () => ({
       errors: [],
       knowledgeItemsUsed: [
@@ -74,20 +82,15 @@ describe("lingAnalysis knowledge point occurrence persistence", () => {
       .select()
       .from(sessionKnowledgePointOccurrences)
       .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionId));
-    const aggregateRows = await db
-      .select()
-      .from(sessionKnowledgeItems)
-      .where(eq(sessionKnowledgeItems.sessionHistoryId, sessionId));
     const [transcriptRecord] = await db
       .select()
       .from(sessionTranscripts)
       .where(eq(sessionTranscripts.sessionHistoryId, sessionId))
       .limit(1);
 
-    expect(aggregateRows).toHaveLength(1);
-    expect(aggregateRows[0]?.count).toBe(2);
-    expect(occurrenceRows.map((row) => row.transcriptTurnIndex).sort((left, right) => left - right)).toEqual([0, 2]);
-    expect(occurrenceRows.map((row) => row.excerpt)).toEqual(["I'd like a coffee.", "I'd like a coffee."]);
+    expect(occurrenceRows).toHaveLength(1);
+    expect(occurrenceRows[0]?.transcriptTurnIndex).toBe(0);
+    expect(occurrenceRows[0]?.utterance).toBe("I'd like a coffee.");
     expect(transcriptRecord?.annotations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import {
   type InConversationAnalysisJob,
+  type InConversationKnowledgeOccurrence,
   type InConversationUiPrompt,
   inConversationAnalysisJobName,
   inConversationAnalysisJobSchema,
@@ -15,7 +16,7 @@ import {
   workerFeedbackPacketSchema,
 } from "@english-coach/contract";
 import { db } from "@english-coach/database";
-import { sessionTranscripts } from "@english-coach/database/schema";
+import { sessionKnowledgePointOccurrences, sessionTranscripts } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
@@ -38,9 +39,11 @@ function getLatestUserTurnIndex(job: InConversationAnalysisJob) {
 }
 
 let inConversationAnalysisGeneratorOverride:
-  | ((
-      job: InConversationAnalysisJob,
-    ) => Promise<{ uiPrompts: InConversationUiPrompt[]; workerFeedbackMessage: string }>)
+  | ((job: InConversationAnalysisJob) => Promise<{
+      occurrences: InConversationKnowledgeOccurrence[];
+      uiPrompts: InConversationUiPrompt[];
+      workerFeedbackMessage: string;
+    }>)
   | null = null;
 
 type TranscriptAnnotations = NonNullable<typeof sessionTranscripts.$inferSelect.annotations>;
@@ -176,6 +179,13 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
 
   if (process.env.LING_ANALYSIS_USE_TEST_GENERATOR === "1") {
     return inConversationAnalysisResultSchema.parse({
+      occurrences: [
+        {
+          proposedPattern: "I'd like <np>",
+          transcriptTurnIndex: getLatestUserTurnIndex(job) ?? job.transcriptStartIndex,
+          utterance: "I'd like coffee",
+        },
+      ],
       uiPrompts: [
         {
           prompt: "Ask the agent why the last tense choice sounds more natural here.",
@@ -200,6 +210,9 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     prompt: [
       "You analyze recent turns from an English-speaking coaching conversation.",
       "Return up to 3 transcript-aligned UI prompts and one short worker feedback message for the voice agent.",
+      "Also extract up to 12 unresolved knowledge occurrences with { transcriptTurnIndex, proposedPattern, utterance }.",
+      "Only include occurrences where transcriptTurnIndex points to a user or assistant turn that exists in the transcript.",
+      "Use concise reusable pattern notation like 'I'd like <np>' for proposedPattern.",
       "Always include uiPrompts. If there are no useful prompts, return uiPrompts as [].",
       "Each UI prompt must be a brief learner-facing follow-up cue, not a full explanation.",
       "Phrase prompts like something the learner could ask next, for example 'Ask the agent why...' or 'Ask how...'.",
@@ -213,6 +226,53 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
   return output;
 }
 
+async function persistInConversationOccurrences(
+  sessionHistoryId: string,
+  turns: SessionTurn[],
+  transcriptStartIndex: number,
+  occurrences: InConversationKnowledgeOccurrence[],
+) {
+  if (!occurrences.length) {
+    return;
+  }
+
+  const values = occurrences
+    .filter((occurrence) => {
+      const localIndex = occurrence.transcriptTurnIndex - transcriptStartIndex;
+      const turn = turns[localIndex];
+
+      if (!turn) {
+        return false;
+      }
+
+      return turn.text.trim().length > 0;
+    })
+    .map((occurrence) => ({
+      id: crypto.randomUUID(),
+      knowledgeItemId: null,
+      proposedPattern: occurrence.proposedPattern,
+      sessionHistoryId,
+      transcriptTurnIndex: occurrence.transcriptTurnIndex,
+      utterance: occurrence.utterance,
+    }));
+
+  if (!values.length) {
+    return;
+  }
+
+  await db
+    .insert(sessionKnowledgePointOccurrences)
+    .values(values)
+    .onConflictDoNothing({
+      target: [
+        sessionKnowledgePointOccurrences.sessionHistoryId,
+        sessionKnowledgePointOccurrences.transcriptTurnIndex,
+        sessionKnowledgePointOccurrences.proposedPattern,
+        sessionKnowledgePointOccurrences.utterance,
+      ],
+    });
+}
+
 export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob>(
   inConversationAnalysisQueueName,
   async (job) => {
@@ -221,6 +281,12 @@ export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob
     await persistTranscriptBatchForSession(parsedJob.sessionHistoryId, parsedJob.turns);
 
     const result = await generateInConversationFeedback(parsedJob);
+    await persistInConversationOccurrences(
+      parsedJob.sessionHistoryId,
+      parsedJob.turns,
+      parsedJob.transcriptStartIndex,
+      result.occurrences,
+    );
     const roomServiceClient = getRoomServiceClient();
 
     const workerFeedbackPacket = workerFeedbackPacketSchema.parse({
@@ -292,9 +358,11 @@ inConversationAnalysisWorker.on("failed", (job, error) => {
 
 export function setInConversationAnalysisGeneratorForTests(
   generator:
-    | ((
-        job: InConversationAnalysisJob,
-      ) => Promise<{ uiPrompts: InConversationUiPrompt[]; workerFeedbackMessage: string }>)
+    | ((job: InConversationAnalysisJob) => Promise<{
+        occurrences: InConversationKnowledgeOccurrence[];
+        uiPrompts: InConversationUiPrompt[];
+        workerFeedbackMessage: string;
+      }>)
     | null,
 ) {
   inConversationAnalysisGeneratorOverride = generator;

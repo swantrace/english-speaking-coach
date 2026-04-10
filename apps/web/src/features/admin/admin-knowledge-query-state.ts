@@ -24,7 +24,7 @@ export function useAdminKnowledgeQueryState() {
       updateSearch((previous) => ({ ...previous, page: 1, search: search?.trim() || undefined })),
     setSort: (sortBy: "updatedAt" | "createdAt" | "pattern", sortDirection: "asc" | "desc") =>
       updateSearch((previous) => ({ ...previous, page: 1, sortBy, sortDirection })),
-    setTab: (tab: "manage" | "generate") => updateSearch((previous) => ({ ...previous, tab })),
+    setTab: (tab: "manage" | "generate" | "occurrences") => updateSearch((previous) => ({ ...previous, tab })),
   };
 }
 

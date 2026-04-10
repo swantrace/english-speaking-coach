@@ -6,12 +6,7 @@ import {
   jobProgressMessageSchema,
   jobProgressStatusSchema,
 } from "./job-events";
-import {
-  scenarioCharacterSchema,
-  scenarioDialogueTurnSchema,
-  scenarioGoalsSchema,
-  scenarioReviewStatusSchema,
-} from "./session";
+import { scenarioCharacterSchema, scenarioDialogueTurnSchema, scenarioGoalsSchema } from "./session";
 
 export const scenarioGenerateSubmissionKind = "scenario.generate";
 export const scenarioGenerateQueueName = scenarioGenerateSubmissionKind;
@@ -50,22 +45,13 @@ const adminScenarioWriteBaseSchema = createInsertSchema(scenarios, {
 }).omit({
   createdAt: true,
   id: true,
-  reviewStatus: true,
-  reviewedAt: true,
-  reviewedByUserId: true,
-  source: true,
-  submissionId: true,
+  isPendingReview: true,
   updatedAt: true,
 });
 
-export const adminScenarioCreateSchema = adminScenarioWriteBaseSchema.extend({
-  reviewStatus: scenarioReviewStatusSchema.optional().default(scenarioReviewStatusSchema.enum.approved),
-});
+export const adminScenarioCreateSchema = adminScenarioWriteBaseSchema;
 
 export const adminScenarioUpdateSchema = adminScenarioWriteBaseSchema
-  .extend({
-    reviewStatus: scenarioReviewStatusSchema.optional(),
-  })
   .partial()
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 

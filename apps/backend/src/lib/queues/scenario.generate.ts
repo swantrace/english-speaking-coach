@@ -3,9 +3,7 @@ import {
   scenarioCharacterSchema,
   scenarioDialogueTurnSchema,
   scenarioGoalsSchema,
-  scenarioReviewStatusSchema,
   scenarioSchema,
-  scenarioSourceSchema,
 } from "@english-coach/contract";
 import type {
   ScenarioGenerateJobUpdate,
@@ -58,11 +56,7 @@ const generatedScenarioSchema = scenarioSchema
   .omit({
     createdAt: true,
     id: true,
-    reviewStatus: true,
-    reviewedAt: true,
-    reviewedByUserId: true,
-    source: true,
-    submissionId: true,
+    isPendingReview: true,
     updatedAt: true,
   })
   .extend({
@@ -322,10 +316,7 @@ async function generateScenarioDialogue(story: ScenarioStory, goals: z.infer<typ
   return result.exampleDialogue;
 }
 
-async function persistScenario(
-  generatedScenario: GeneratedScenario,
-  jobData: Pick<ScenarioGenerateJobData, "submissionId">,
-) {
+async function persistScenario(generatedScenario: GeneratedScenario) {
   const now = new Date().toISOString();
   const scenarioId = crypto.randomUUID();
 
@@ -339,12 +330,8 @@ async function persistScenario(
     exampleDialogue: generatedScenario.exampleDialogue,
     goals: generatedScenario.goals,
     id: scenarioId,
-    reviewStatus: scenarioReviewStatusSchema.enum.pending_review,
-    reviewedAt: null,
-    reviewedByUserId: null,
+    isPendingReview: true,
     setting: generatedScenario.setting,
-    source: scenarioSourceSchema.enum.auto_generated,
-    submissionId: jobData.submissionId,
     title: generatedScenario.title,
     updatedAt: now,
   });
@@ -371,7 +358,7 @@ export const scenarioGenerateWorker = new Worker<ScenarioGenerateJobData>(
     await publishScenarioGenerateProgress(startedMessage);
 
     const generatedScenario = await generateScenario(job.data.message);
-    const persistedScenario = await persistScenario(generatedScenario, job.data);
+    const persistedScenario = await persistScenario(generatedScenario);
 
     const completedMessage = createCompletedScenarioGenerateProgressMessage(
       String(job.id),

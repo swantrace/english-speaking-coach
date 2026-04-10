@@ -1,11 +1,10 @@
-import type { Scenario, ScenarioReviewStatus, ScenarioSource } from "@english-coach/contract";
+import type { Scenario } from "@english-coach/contract";
 import { adminScenarioCreateSchema } from "@english-coach/contract/scenario-generate";
 
 export type ScenarioFormDraft = {
   charactersJson: string;
   exampleDialogueJson: string;
   goalsJson: string;
-  reviewStatus: ScenarioReviewStatus;
   setting: string;
   title: string;
 };
@@ -35,7 +34,6 @@ export function createEmptyScenarioDraft(): ScenarioFormDraft {
       intents: ["state_request"],
       slots: ["request_detail"],
     }),
-    reviewStatus: "approved",
     setting: "",
     title: "",
   };
@@ -46,7 +44,6 @@ export function createDraftFromScenario(scenario: Scenario): ScenarioFormDraft {
     charactersJson: toPrettyJson(scenario.characters),
     exampleDialogueJson: toPrettyJson(scenario.exampleDialogue),
     goalsJson: toPrettyJson(scenario.goals),
-    reviewStatus: scenario.reviewStatus,
     setting: scenario.setting,
     title: scenario.title,
   };
@@ -79,7 +76,6 @@ export function parseScenarioDraft(draft: ScenarioFormDraft) {
     characters,
     exampleDialogue,
     goals,
-    reviewStatus: draft.reviewStatus,
     setting: draft.setting,
     title: draft.title,
   });
@@ -89,24 +85,4 @@ export function parseScenarioDraft(draft: ScenarioFormDraft) {
   }
 
   return parsedDraft.data;
-}
-
-export function getReviewBadgeClassName(reviewStatus: ScenarioReviewStatus) {
-  if (reviewStatus === "approved") {
-    return "border-emerald-300 bg-emerald-100 text-emerald-900";
-  }
-
-  if (reviewStatus === "rejected") {
-    return "border-rose-300 bg-rose-100 text-rose-900";
-  }
-
-  return "border-amber-300 bg-amber-100 text-amber-900";
-}
-
-export function getSourceBadgeClassName(source: ScenarioSource) {
-  if (source === "admin") {
-    return "border-cyan-300 bg-cyan-100 text-cyan-900";
-  }
-
-  return "border-violet-300 bg-violet-100 text-violet-900";
 }

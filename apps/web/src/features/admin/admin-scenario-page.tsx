@@ -1,4 +1,4 @@
-import { type Scenario, type ScenarioReviewStatus, scenarioSchema } from "@english-coach/contract";
+import { type Scenario, scenarioSchema } from "@english-coach/contract";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@english-coach/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -47,13 +47,12 @@ export function AdminScenarioPage() {
   const queryState = useAdminScenarioQueryState();
   const scenarios = useAdminScenarios(queryState.query);
   const pendingReview = useAdminScenarios({
+    isPendingReview: true,
     page: 1,
     pageSize: 8,
-    reviewStatus: "pending_review",
     search: undefined,
     sortBy: "updatedAt",
     sortDirection: "desc",
-    source: "auto_generated",
     tab: "generate",
   });
   const store = useScenarioGenerateStore();
@@ -112,10 +111,10 @@ export function AdminScenarioPage() {
     },
   });
 
-  const updateScenarioReviewStatus = useMutation({
-    mutationFn: async ({ reviewStatus, scenarioId }: { reviewStatus: ScenarioReviewStatus; scenarioId: string }) => {
+  const updateScenarioPendingReview = useMutation({
+    mutationFn: async ({ isPendingReview, scenarioId }: { isPendingReview: boolean; scenarioId: string }) => {
       return apiJson(`/api/admin/scenarios/${scenarioId}`, scenarioSchema, {
-        body: JSON.stringify({ reviewStatus }),
+        body: JSON.stringify({ isPendingReview }),
         method: "PATCH",
       });
     },
@@ -208,16 +207,12 @@ export function AdminScenarioPage() {
             <Suspense fallback={<AdminTabFallback />}>
               <AdminScenarioManageTab
                 isDeletePending={deleteScenario.isPending}
-                isReviewStatusPending={updateScenarioReviewStatus.isPending}
                 isSavePending={saveScenario.isPending}
                 onDelete={setScenarioToDelete}
                 onOpenCreate={openCreateDialog}
                 onOpenEdit={openEditDialog}
                 onPreview={(scenario) =>
                   void navigate({ params: { scenarioId: scenario.id }, to: "/scenarios/$scenarioId" })
-                }
-                onReviewStatusChange={(scenarioId, reviewStatus) =>
-                  void updateScenarioReviewStatus.mutateAsync({ reviewStatus, scenarioId })
                 }
                 queryState={queryState}
                 scenarios={scenarios}
@@ -231,17 +226,14 @@ export function AdminScenarioPage() {
                 batchCount={batchItems.length}
                 message={message}
                 onApprovePendingReview={(scenario) =>
-                  void updateScenarioReviewStatus.mutateAsync({ reviewStatus: "approved", scenarioId: scenario.id })
+                  void updateScenarioPendingReview.mutateAsync({ isPendingReview: false, scenarioId: scenario.id })
                 }
                 onMessageChange={setMessage}
                 onOpenPendingReview={openEditDialog}
                 onRefreshPendingReview={() => void pendingReview.refetch()}
-                onRejectPendingReview={(scenario) =>
-                  void updateScenarioReviewStatus.mutateAsync({ reviewStatus: "rejected", scenarioId: scenario.id })
-                }
                 onSubmitBatch={() => void scenarioGenerateStore.submit(batchItems)}
                 pendingReview={pendingReview}
-                reviewMutationPending={updateScenarioReviewStatus.isPending}
+                reviewMutationPending={updateScenarioPendingReview.isPending}
                 store={store}
               />
             </Suspense>
