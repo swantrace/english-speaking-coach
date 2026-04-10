@@ -19,7 +19,7 @@ export function toSessionTurns(chatContext: Pick<llm.ChatContext, "items">): Ses
 
     return [
       {
-        speaker: item.role === "assistant" ? "agent" : "user",
+        speaker: item.role,
         text,
         timestampMs: item.createdAt,
       },

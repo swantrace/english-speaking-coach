@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { knowledgeItems } from "./knowledge-items";
 import { sessionHistory } from "./session-history";
+import { speakerValues } from "./session-knowledge-items";
 
 export const sessionKnowledgePointOccurrences = sqliteTable(
   "session_knowledge_point_occurrences",
@@ -13,7 +14,7 @@ export const sessionKnowledgePointOccurrences = sqliteTable(
     knowledgeItemId: text("knowledge_item_id")
       .notNull()
       .references(() => knowledgeItems.id),
-    speaker: text("speaker", { enum: ["user", "agent"] }).notNull(),
+    speaker: text("speaker", { enum: speakerValues }).notNull(),
     transcriptTurnIndex: integer("transcript_turn_index").notNull(),
     excerpt: text("excerpt").notNull(),
     occurrenceCount: integer("occurrence_count").notNull().default(1),

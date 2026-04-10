@@ -101,7 +101,7 @@ describe("history detail transcript annotations", () => {
       sessionHistoryId: sessionId,
       turns: [
         { speaker: "user", text: "I goed to the cafe yesterday.", timestampMs: 1_000 },
-        { speaker: "agent", text: "What did you do there?", timestampMs: 2_000 },
+        { speaker: "assistant", text: "What did you do there?", timestampMs: 2_000 },
         { speaker: "user", text: "I went to the cafe yesterday.", timestampMs: 3_000 },
       ],
     });

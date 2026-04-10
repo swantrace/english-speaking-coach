@@ -68,7 +68,7 @@ export function getTranscriptEntriesFromSessionTurns(turns: SessionTurn[]) {
   return turns.map<TranscriptEntry>((turn, index) => ({
     id: `turn-${index}`,
     message: turn.text,
-    speaker: turn.speaker === "agent" ? "assistant" : "user",
+    speaker: turn.speaker,
     timestamp: normalizeTimestamp(turn.timestampMs),
     turnIndex: index,
   }));

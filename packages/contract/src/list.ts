@@ -6,6 +6,7 @@ import {
   sessionErrors,
   sessionHistory,
   sessionKnowledgePointOccurrences,
+  speakerValues,
 } from "@english-coach/database/schema";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -152,7 +153,7 @@ export const historyKnowledgeItemSchema = z.object({
   occurrences: z.array(historyKnowledgeItemOccurrenceSummarySchema),
   pattern: z.string(),
   source: knowledgeItemSourceSchema,
-  speaker: z.enum(["user", "agent"]),
+  speaker: z.enum(speakerValues),
   syntaxRole: z.enum(syntaxRoles).nullable(),
 });
 
@@ -164,7 +165,7 @@ export const historySessionErrorSchema = createSelectSchema(sessionErrors, {
 
 export const historyTranscriptTurnAnchorSchema = z.object({
   id: z.string(),
-  speaker: z.enum(["user", "assistant"]),
+  speaker: z.enum(speakerValues),
   transcriptTurnIndex: z.number().int().min(0),
   turnLabel: z.string(),
 });
@@ -227,7 +228,7 @@ export const knowledgePointOccurrenceSchema = z.object({
   sessionStartedAt: z.string(),
   sessionTitle: z.string(),
   sessionType: sessionTypeSchema,
-  speaker: z.enum(["user", "agent"]),
+  speaker: z.enum(speakerValues),
   transcriptTurnIndex: z.number().int().min(0),
 });
 

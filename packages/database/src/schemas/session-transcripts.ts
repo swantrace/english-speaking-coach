@@ -8,10 +8,10 @@ export const sessionTranscripts = sqliteTable("session_transcripts", {
     .notNull()
     .unique()
     .references(() => sessionHistory.id, { onDelete: "cascade" }),
-  /** Array<{ speaker: "user" | "agent", text: string, timestampMs: number }> */
+  /** Array<{ speaker: "user" | "assistant", text: string, timestampMs: number }> */
   turns: text("turns", { mode: "json" })
     .notNull()
-    .$type<Array<{ speaker: "user" | "agent"; text: string; timestampMs: number }>>(),
+    .$type<Array<{ speaker: "user" | "assistant"; text: string; timestampMs: number }>>(),
   /** Array<{ id, kind, text, transcriptTurnIndex, coachingKind?, source? }> */
   annotations: text("annotations", { mode: "json" }).$type<
     Array<{

@@ -3,16 +3,18 @@ import {
   scenarioSourceValues,
   scenarios,
   sessionTypeValues,
+  speakerValues,
 } from "@english-coach/database/schema";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
 
 /** Step 2: session type discriminator */
 export const sessionTypeSchema = z.enum(sessionTypeValues);
 export type SessionType = z.infer<typeof sessionTypeSchema>;
 
 export const sessionTurnSchema = z.object({
-  speaker: z.enum(["user", "agent"]),
+  speaker: z.enum(speakerValues),
   text: z.string().trim().min(1),
   timestampMs: z.number(),
 });
@@ -58,7 +60,7 @@ export const scenarioDialogueTurnSchema = z.union([
   }),
   z
     .object({
-      speaker: z.enum(["user", "agent"]),
+      speaker: z.enum(speakerValues),
       text: scenarioDialogueTurnTextSchema,
     })
     .transform(({ speaker, text }) => ({
@@ -147,33 +149,17 @@ export const transcriptAnnotationUpsertRequestSchema = z.object({
 
 export const lingAnalysisKnowledgeItemSchema = z.object({
   pattern: z.string().trim().min(1),
-  syntaxRole: z.enum([
-    "predicate_verb",
-    "predicate_adjective",
-    "adverbial_modifier",
-    "noun_phrase",
-    "discourse_linker",
-    "clause_pattern",
-  ]),
-  fixednessLevel: z.enum(["restricted_collocation", "fixed_expression", "idiom"]),
-  communicativeFunction: z.enum([
-    "manage_social_relation",
-    "express_attitude_or_opinion",
-    "make_request_or_offer",
-    "give_or_seek_information",
-    "organize_discourse",
-    "react_in_conversation",
-    "express_degree_or_soften",
-    "express_time_or_sequence",
-  ]),
+  syntaxRole: z.enum(syntaxRoles),
+  fixednessLevel: z.enum(fixednessLevels),
+  communicativeFunction: z.enum(communicativeFunctions),
   example: z.string().trim().min(1),
-  speaker: z.enum(["user", "agent"]),
+  speaker: z.enum(speakerValues),
   count: z.number().int().nonnegative(),
   usageExcerpts: z.array(z.string().trim().min(1)),
 });
 
 export const lingAnalysisErrorSchema = z.object({
-  dimension: z.enum(["lexical", "syntactic", "pragmatic", "discourse", "phonological"]),
+  dimension: z.enum(errorDimensions),
   errorDescription: z.string().trim().min(1),
   suggestion: z.string().trim().min(1),
   utterance: z.string().trim().min(1),

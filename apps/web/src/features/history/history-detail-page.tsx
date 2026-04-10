@@ -235,7 +235,7 @@ export function HistoryDetailPage() {
                     <div className="grid gap-4" key={group}>
                       <h3 className="text-lg text-slate-950 capitalize">{humanizeLabel(group)}</h3>
                       <div className="grid gap-4 md:grid-cols-2">
-                        {(["user", "agent"] as const).map((speaker) => {
+                        {(["user", "assistant"] as const).map((speaker) => {
                           const speakerItems = items.filter((item) => item.speaker === speaker);
 
                           return (

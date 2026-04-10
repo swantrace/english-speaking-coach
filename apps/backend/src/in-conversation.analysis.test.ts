@@ -20,13 +20,13 @@ describe("inConversationAnalysis transcript persistence", () => {
       [{ speaker: "user", text: "Hello", timestampMs: 1_000 }],
       [
         { speaker: "user", text: "Hello", timestampMs: 1_000 },
-        { speaker: "agent", text: "Hi there", timestampMs: 2_000 },
+        { speaker: "assistant", text: "Hi there", timestampMs: 2_000 },
       ],
     );
 
     expect(merged).toEqual([
       { speaker: "user", text: "Hello", timestampMs: 1_000 },
-      { speaker: "agent", text: "Hi there", timestampMs: 2_000 },
+      { speaker: "assistant", text: "Hi there", timestampMs: 2_000 },
     ]);
   });
 
@@ -51,11 +51,11 @@ describe("inConversationAnalysis transcript persistence", () => {
 
     await persistTranscriptBatchForSession(sessionId, [
       { speaker: "user", text: "I want to talk about my trip.", timestampMs: 1_000 },
-      { speaker: "agent", text: "Great, where are you going?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "Great, where are you going?", timestampMs: 2_000 },
     ]);
 
     await persistTranscriptBatchForSession(sessionId, [
-      { speaker: "agent", text: "Great, where are you going?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "Great, where are you going?", timestampMs: 2_000 },
       { speaker: "user", text: "I am going to Spain next month.", timestampMs: 3_000 },
     ]);
 
@@ -67,7 +67,7 @@ describe("inConversationAnalysis transcript persistence", () => {
 
     expect(transcriptRecord?.turns).toEqual([
       { speaker: "user", text: "I want to talk about my trip.", timestampMs: 1_000 },
-      { speaker: "agent", text: "Great, where are you going?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "Great, where are you going?", timestampMs: 2_000 },
       { speaker: "user", text: "I am going to Spain next month.", timestampMs: 3_000 },
     ]);
   });
@@ -109,7 +109,7 @@ describe("inConversationAnalysis transcript persistence", () => {
 
     await persistTranscriptBatchForSession(sessionId, [
       { speaker: "user", text: "I goed to the cafe yesterday.", timestampMs: 1_000 },
-      { speaker: "agent", text: "What happened next?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "What happened next?", timestampMs: 2_000 },
     ]);
 
     const [transcriptRecord] = await db

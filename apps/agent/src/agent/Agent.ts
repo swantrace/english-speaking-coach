@@ -101,7 +101,7 @@ export class Agent extends voice.Agent {
     const userTurnCount = pendingTurns.filter((turn) => turn.speaker === "user").length;
     const lastTurn = pendingTurns.at(-1);
 
-    if (userTurnCount < analysisTurnThreshold || lastTurn?.speaker !== "agent") {
+    if (userTurnCount < analysisTurnThreshold || lastTurn?.speaker !== "assistant") {
       return lastAnalysisTurnIndex;
     }
 

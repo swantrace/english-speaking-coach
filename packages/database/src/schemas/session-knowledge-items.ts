@@ -3,6 +3,8 @@ import { check, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 import { knowledgeItems } from "./knowledge-items";
 import { sessionHistory } from "./session-history";
 
+export const speakerValues = ["user", "assistant"] as const;
+
 export const sessionKnowledgeItems = sqliteTable(
   "session_knowledge_items",
   {
@@ -13,8 +15,8 @@ export const sessionKnowledgeItems = sqliteTable(
     knowledgeItemId: text("knowledge_item_id")
       .notNull()
       .references(() => knowledgeItems.id),
-    /** Whose turn the item was extracted from: "user" = active production, "agent" = target language modelled. */
-    speaker: text("speaker", { enum: ["user", "agent"] }).notNull(),
+    /** Whose turn the item was extracted from: "user" = active production, "assistant" = target language modelled. */
+    speaker: text("speaker", { enum: speakerValues }).notNull(),
     count: integer("count").notNull(),
     /** string[] of utterance excerpts where the item appeared. */
     examples: text("examples", { mode: "json" }).notNull().$type<string[]>(),

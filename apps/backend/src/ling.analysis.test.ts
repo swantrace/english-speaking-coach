@@ -45,7 +45,7 @@ describe("lingAnalysis knowledge point occurrence persistence", () => {
       sessionHistoryId: sessionId,
       turns: [
         { speaker: "user", text: "I'd like a coffee.", timestampMs: 1_000 },
-        { speaker: "agent", text: "Of course.", timestampMs: 2_000 },
+        { speaker: "assistant", text: "Of course.", timestampMs: 2_000 },
         { speaker: "user", text: "I'd like a coffee.", timestampMs: 3_000 },
       ],
     });

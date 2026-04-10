@@ -35,7 +35,10 @@ function createHistorySearchCondition(search?: string) {
   );
 }
 
-function findMatchedTranscriptTurnIndex(turns: Array<{ speaker: "user" | "agent"; text: string }>, utterance: string) {
+function findMatchedTranscriptTurnIndex(
+  turns: Array<{ speaker: "user" | "assistant"; text: string }>,
+  utterance: string,
+) {
   return turns.findIndex(
     (turn) => turn.speaker === "user" && (turn.text.includes(utterance) || utterance.includes(turn.text)),
   );
@@ -251,7 +254,7 @@ export function registerHistoryRoutes(app: BackendApp) {
         transcriptCreatedAt: transcriptRow[0]?.createdAt ?? null,
         transcriptTurnAnchors: transcriptTurns.map((turn, index) => ({
           id: `turn-${index}`,
-          speaker: turn.speaker === "agent" ? "assistant" : "user",
+          speaker: turn.speaker,
           transcriptTurnIndex: index,
           turnLabel: `Turn ${index + 1}`,
         })),

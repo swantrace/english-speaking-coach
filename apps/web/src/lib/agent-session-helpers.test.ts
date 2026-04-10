@@ -122,7 +122,7 @@ describe("createTranscriptCueMap", () => {
   it("creates read-only history cues from completed goals and matched errors", () => {
     const entries = getTranscriptEntriesFromSessionTurns([
       { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
-      { speaker: "agent", text: "What happened there?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "What happened there?", timestampMs: 2_000 },
       { speaker: "user", text: "Then I bought fruit.", timestampMs: 3_000 },
     ]);
 
@@ -146,7 +146,7 @@ describe("createTranscriptCueMap", () => {
   it("maps persisted transcript annotations to exact turn anchors", () => {
     const entries = getTranscriptEntriesFromSessionTurns([
       { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
-      { speaker: "agent", text: "What happened there?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "What happened there?", timestampMs: 2_000 },
       { speaker: "user", text: "Then I bought fruit.", timestampMs: 3_000 },
     ]);
 
@@ -179,7 +179,7 @@ describe("createTranscriptCueMap", () => {
   it("replaces learner turns with rewritten transcript content when present", () => {
     const entries = getTranscriptEntriesFromSessionTurns([
       { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
-      { speaker: "agent", text: "What happened there?", timestampMs: 2_000 },
+      { speaker: "assistant", text: "What happened there?", timestampMs: 2_000 },
       { speaker: "user", text: "Then I buyed fruit.", timestampMs: 3_000 },
     ]);
 

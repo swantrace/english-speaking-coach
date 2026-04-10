@@ -210,7 +210,7 @@ describe("toSessionTurns", () => {
 
     expect(toSessionTurns(chatContext)).toEqual([
       { speaker: "user", text: "Hello coach.", timestampMs: 1 },
-      { speaker: "agent", text: "Hello learner.", timestampMs: 2 },
+      { speaker: "assistant", text: "Hello learner.", timestampMs: 2 },
     ]);
   });
 });
@@ -242,9 +242,9 @@ describe("Agent analysis", () => {
         transcriptStartIndex: 0,
         turns: [
           { speaker: "user", text: "Hi", timestampMs: 1 },
-          { speaker: "agent", text: "Hello", timestampMs: 2 },
+          { speaker: "assistant", text: "Hello", timestampMs: 2 },
           { speaker: "user", text: "I want pasta", timestampMs: 3 },
-          { speaker: "agent", text: "What kind of pasta?", timestampMs: 4 },
+          { speaker: "assistant", text: "What kind of pasta?", timestampMs: 4 },
         ],
       },
       {

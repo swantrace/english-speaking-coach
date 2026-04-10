@@ -1014,7 +1014,7 @@ describe("backend phase 2 integration", () => {
       rewrittenTurns: [{ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 }],
       sessionHistoryId: freeFormSessionId,
       turns: [
-        { speaker: "agent", text: "What would you like?", timestampMs: Date.now() },
+        { speaker: "assistant", text: "What would you like?", timestampMs: Date.now() },
         { speaker: "user", text: "I'd like a coffee.", timestampMs: Date.now() + 1_000 },
       ],
     });
@@ -1151,7 +1151,7 @@ describe("backend phase 2 integration", () => {
     );
     expect(historyDetailBody.transcript).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ speaker: "agent" }),
+        expect.objectContaining({ speaker: "assistant" }),
         expect.objectContaining({ speaker: "user" }),
       ]),
     );
@@ -1329,7 +1329,7 @@ describe("backend phase 2 integration", () => {
         id: crypto.randomUUID(),
         knowledgeItemId,
         sessionHistoryId: secondSessionId,
-        speaker: "agent",
+        speaker: "assistant",
       },
       {
         count: 4,
@@ -1366,7 +1366,7 @@ describe("backend phase 2 integration", () => {
         knowledgeItemId,
         occurrenceCount: 1,
         sessionHistoryId: secondSessionId,
-        speaker: "agent",
+        speaker: "assistant",
         transcriptTurnIndex: 0,
       },
       {
@@ -1434,7 +1434,7 @@ describe("backend phase 2 integration", () => {
             excerpt: "I'd like to help.",
             sessionHistoryId: secondSessionId,
             sessionTitle: "Free-form",
-            speaker: "agent",
+            speaker: "assistant",
             transcriptTurnIndex: 0,
           }),
         ]),
