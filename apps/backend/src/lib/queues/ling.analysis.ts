@@ -8,97 +8,16 @@ import {
   lingAnalysisQueueName,
   lingAnalysisResultSchema,
   syntaxRoles,
-  type TranscriptAnnotation,
-  transcriptAnnotationSchema,
 } from "@english-coach/contract";
 import { db } from "@english-coach/database";
-import {
-  knowledgeItems,
-  sessionErrors,
-  sessionHistory,
-  sessionKnowledgePointOccurrences,
-  sessionTranscripts,
-} from "@english-coach/database/schema";
+import { knowledgeItems, sessionErrors, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { producerRedis, workerRedis } from "../redis";
-import {
-  persistRewrittenTranscriptTurnsForSession,
-  persistTranscriptAnnotationsForSession,
-} from "./in-conversation.analysis";
+import { persistRewrittenTranscriptTurnsForSession } from "./in-conversation.analysis";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
-
-function normalizeTextForMatching(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function buildErrorFollowUpPrompt(suggestion: string) {
-  const normalizedSuggestion = suggestion.trim().replace(/[.?!]+$/u, "");
-  return `Ask the agent why ${normalizedSuggestion} fits better here.`;
-}
-
-function buildKnowledgeFollowUpPrompt(pattern: string) {
-  return `Ask the agent when to use the pattern "${pattern}" naturally.`;
-}
-
-function findMatchedTranscriptTurnIndex(turns: TranscriptTurns, utterance: string) {
-  return turns.findIndex(
-    (turn) => turn.speaker === "user" && (turn.text.includes(utterance) || utterance.includes(turn.text)),
-  );
-}
-
-function buildPostSessionTranscriptAnnotations({
-  analysis,
-  occurrencePromptCandidates,
-  sessionHistoryId,
-  turns,
-}: {
-  analysis: LingAnalysisResult;
-  occurrencePromptCandidates: Array<{
-    proposedPattern: string;
-    transcriptTurnIndex: number;
-  }>;
-  sessionHistoryId: string;
-  turns: TranscriptTurns;
-}) {
-  const annotations: TranscriptAnnotation[] = [];
-
-  for (const error of analysis.errors) {
-    const transcriptTurnIndex = findMatchedTranscriptTurnIndex(turns, error.utterance);
-
-    if (transcriptTurnIndex < 0) {
-      continue;
-    }
-
-    annotations.push(
-      transcriptAnnotationSchema.parse({
-        coachingKind: "error_hint",
-        id: `post-session:error:${sessionHistoryId}:${transcriptTurnIndex}:${normalizeTextForMatching(error.utterance)}`,
-        kind: "coaching",
-        source: "post-session-review",
-        text: buildErrorFollowUpPrompt(error.suggestion),
-        transcriptTurnIndex,
-      }),
-    );
-  }
-
-  for (const candidate of occurrencePromptCandidates) {
-    annotations.push(
-      transcriptAnnotationSchema.parse({
-        coachingKind: "knowledge_hint",
-        id: `post-session:knowledge:${sessionHistoryId}:${candidate.proposedPattern}:${candidate.transcriptTurnIndex}`,
-        kind: "coaching",
-        source: "post-session-review",
-        text: buildKnowledgeFollowUpPrompt(candidate.proposedPattern),
-        transcriptTurnIndex: candidate.transcriptTurnIndex,
-      }),
-    );
-  }
-
-  return annotations;
-}
 
 export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAnalysisQueueName, {
   connection: producerRedis,
@@ -181,8 +100,6 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   }
 
   const analysis = await generateLingAnalysis(transcriptRecord.turns);
-  const occurrencePromptCandidates: Array<{ proposedPattern: string; transcriptTurnIndex: number }> = [];
-
   await db.transaction(async (transaction) => {
     await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));
 
@@ -207,31 +124,7 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
       .where(eq(sessionHistory.id, sessionHistoryId));
   });
 
-  const unresolvedOccurrences = await db
-    .select({
-      proposedPattern: sessionKnowledgePointOccurrences.proposedPattern,
-      transcriptTurnIndex: sessionKnowledgePointOccurrences.transcriptTurnIndex,
-    })
-    .from(sessionKnowledgePointOccurrences)
-    .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId));
-
-  for (const occurrence of unresolvedOccurrences) {
-    occurrencePromptCandidates.push({
-      proposedPattern: occurrence.proposedPattern,
-      transcriptTurnIndex: occurrence.transcriptTurnIndex,
-    });
-  }
-
   await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
-  await persistTranscriptAnnotationsForSession(
-    sessionHistoryId,
-    buildPostSessionTranscriptAnnotations({
-      analysis,
-      occurrencePromptCandidates,
-      sessionHistoryId,
-      turns: transcriptRecord.turns,
-    }),
-  );
 
   return analysis;
 }

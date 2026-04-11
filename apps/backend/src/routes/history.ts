@@ -318,7 +318,6 @@ export function registerHistoryRoutes(app: BackendApp) {
           userId: record.userId,
         },
         transcript: transcriptTurns,
-        transcriptAnnotations: transcriptRow[0]?.annotations ?? [],
         transcriptCreatedAt: transcriptRow[0]?.createdAt ?? null,
         transcriptTurnAnchors: transcriptTurns.map((turn, index) => ({
           id: `turn-${index}`,

@@ -10,8 +10,6 @@ import {
   type RewrittenTranscriptTurn,
   rewrittenTranscriptTurnSchema,
   type SessionTurn,
-  type TranscriptAnnotation,
-  transcriptAnnotationSchema,
   uiUpdatePacketSchema,
   workerFeedbackPacketSchema,
 } from "@english-coach/contract";
@@ -46,7 +44,6 @@ let inConversationAnalysisGeneratorOverride:
     }>)
   | null = null;
 
-type TranscriptAnnotations = NonNullable<typeof sessionTranscripts.$inferSelect.annotations>;
 type TranscriptRewrittenTurns = NonNullable<typeof sessionTranscripts.$inferSelect.rewrittenTurns>;
 
 export function mergeTranscriptTurns(existingTurns: SessionTurn[], incomingTurns: SessionTurn[]) {
@@ -65,19 +62,6 @@ export function mergeTranscriptTurns(existingTurns: SessionTurn[], incomingTurns
   }
 
   return mergedTurns.sort((left, right) => left.timestampMs - right.timestampMs);
-}
-
-function mergeTranscriptAnnotations(
-  existingAnnotations: TranscriptAnnotations,
-  incomingAnnotations: TranscriptAnnotation[],
-) {
-  const mergedById = new Map(existingAnnotations.map((annotation) => [annotation.id, annotation]));
-
-  for (const annotation of incomingAnnotations) {
-    mergedById.set(annotation.id, transcriptAnnotationSchema.parse(annotation));
-  }
-
-  return [...mergedById.values()].sort((left, right) => left.transcriptTurnIndex - right.transcriptTurnIndex);
 }
 
 function mergeRewrittenTranscriptTurns(
@@ -104,21 +88,16 @@ async function readExistingTranscriptRecord(sessionHistoryId: string) {
 }
 
 async function upsertTranscriptRecord({
-  annotations,
   rewrittenTurns,
   sessionHistoryId,
   turns,
 }: {
-  annotations?: TranscriptAnnotation[];
   rewrittenTurns?: RewrittenTranscriptTurn[];
   sessionHistoryId: string;
   turns?: SessionTurn[];
 }) {
   const existingTranscript = await readExistingTranscriptRecord(sessionHistoryId);
   const nextTurns = turns ?? existingTranscript?.turns ?? [];
-  const nextAnnotations = annotations
-    ? mergeTranscriptAnnotations(existingTranscript?.annotations ?? [], annotations)
-    : (existingTranscript?.annotations ?? []);
   const nextRewrittenTurns = rewrittenTurns
     ? mergeRewrittenTranscriptTurns(existingTranscript?.rewrittenTurns ?? [], rewrittenTurns)
     : (existingTranscript?.rewrittenTurns ?? []);
@@ -126,7 +105,6 @@ async function upsertTranscriptRecord({
   await db
     .insert(sessionTranscripts)
     .values({
-      annotations: nextAnnotations,
       createdAt: existingTranscript?.createdAt ?? new Date().toISOString(),
       id: existingTranscript?.id ?? crypto.randomUUID(),
       rewrittenTurns: nextRewrittenTurns,
@@ -135,7 +113,6 @@ async function upsertTranscriptRecord({
     })
     .onConflictDoUpdate({
       set: {
-        annotations: nextAnnotations,
         rewrittenTurns: nextRewrittenTurns,
         turns: nextTurns,
       },
@@ -148,17 +125,6 @@ export async function persistTranscriptBatchForSession(sessionHistoryId: string,
   const nextTurns = existingTranscript ? mergeTranscriptTurns(existingTranscript.turns, turns) : turns;
 
   await upsertTranscriptRecord({ sessionHistoryId, turns: nextTurns });
-}
-
-export async function persistTranscriptAnnotationsForSession(
-  sessionHistoryId: string,
-  annotations: TranscriptAnnotation[],
-) {
-  if (!annotations.length) {
-    return;
-  }
-
-  await upsertTranscriptRecord({ annotations, sessionHistoryId });
 }
 
 export async function persistRewrittenTranscriptTurnsForSession(
@@ -303,26 +269,6 @@ export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob
         type: "ui-update",
       }),
     );
-    const transcriptAnnotations = uiUpdatePackets.flatMap((packet, index) => {
-      if (packet.transcriptTurnIndex === undefined) {
-        return [];
-      }
-
-      return [
-        transcriptAnnotationSchema.parse({
-          coachingKind: packet.promptKind,
-          id: `ui-update:${parsedJob.sessionHistoryId}:${packet.transcriptTurnIndex}:${index}:${packet.prompt}`,
-          kind: "coaching",
-          source: "free-form-live",
-          text: packet.prompt,
-          transcriptTurnIndex: packet.transcriptTurnIndex,
-        }),
-      ];
-    });
-
-    if (transcriptAnnotations.length > 0) {
-      await persistTranscriptAnnotationsForSession(parsedJob.sessionHistoryId, transcriptAnnotations);
-    }
 
     await Promise.all([
       roomServiceClient.sendData(

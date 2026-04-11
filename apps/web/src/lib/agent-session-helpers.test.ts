@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   createHistoryTranscriptCueMap,
   createTranscriptCueMap,
-  createTranscriptCueMapFromAnnotations,
   formatAgentStateLabel,
   getRewrittenTranscriptEntries,
   getTranscriptEntries,
@@ -141,39 +140,6 @@ describe("createTranscriptCueMap", () => {
 
     expect(cueMap["turn-0"]?.[0]?.text).toBe("Irregular past tense Ask about: why 'went' fits better than 'goed'");
     expect(cueMap["turn-2"]?.[0]?.text).toBe("Completed goals: Describe where you went");
-  });
-
-  it("maps persisted transcript annotations to exact turn anchors", () => {
-    const entries = getTranscriptEntriesFromSessionTurns([
-      { speaker: "user", text: "I goed to the store.", timestampMs: 1_000 },
-      { speaker: "assistant", text: "What happened there?", timestampMs: 2_000 },
-      { speaker: "user", text: "Then I bought fruit.", timestampMs: 3_000 },
-    ]);
-
-    const cueMap = createTranscriptCueMapFromAnnotations({
-      annotations: [
-        {
-          coachingKind: "error_hint",
-          id: "annotation-1",
-          kind: "coaching",
-          source: "post-session-review",
-          text: "Ask why the irregular past tense changes here.",
-          transcriptTurnIndex: 0,
-        },
-        {
-          id: "annotation-2",
-          kind: "goal-progress",
-          source: "role-play-live",
-          text: "Completed goal: Describe what happened.",
-          transcriptTurnIndex: 2,
-        },
-      ],
-      entries,
-    });
-
-    expect(cueMap["turn-0"]?.[0]?.text).toBe("Ask why the irregular past tense changes here.");
-    expect(cueMap["turn-2"]?.[0]?.text).toBe("Completed goal: Describe what happened.");
-    expect(cueMap["turn-0"]?.[0]?.coachingKind).toBe("error_hint");
   });
 
   it("replaces learner turns with rewritten transcript content when present", () => {

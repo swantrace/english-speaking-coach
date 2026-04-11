@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   createHistoryTranscriptCueMap,
-  createTranscriptCueMapFromAnnotations,
   getRewrittenTranscriptEntries,
   getTranscriptEntriesFromSessionTurns,
 } from "../../lib/agent-session-helpers";
@@ -38,17 +37,12 @@ export function HistoryDetailPage() {
   const transcriptCueMap = useMemo(
     () =>
       detail.data
-        ? detail.data.transcriptAnnotations.length > 0
-          ? createTranscriptCueMapFromAnnotations({
-              annotations: detail.data.transcriptAnnotations,
-              entries: transcriptEntries,
-            })
-          : createHistoryTranscriptCueMap({
-              completedGoals: detail.data.session.completedGoals,
-              entries: transcriptEntries,
-              errors: detail.data.errors,
-              scenarioGoals: detail.data.session.scenario?.goals.goals,
-            })
+        ? createHistoryTranscriptCueMap({
+            completedGoals: detail.data.session.completedGoals,
+            entries: transcriptEntries,
+            errors: detail.data.errors,
+            scenarioGoals: detail.data.session.scenario?.goals.goals,
+          })
         : {},
     [detail.data, transcriptEntries],
   );

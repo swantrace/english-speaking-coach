@@ -31,7 +31,7 @@ export const sessionHistory = sqliteTable(
   },
   (table) => [
     index("session_history_user_id_idx").on(table.userId),
-    check("session_history_session_type_check", sql`${table.sessionType} in (${sessionTypeValues.map((v) => `'${v}'`).join(", ")})`),
+    check("session_history_session_type_check", sql`${table.sessionType} in ('role-play', 'free-form')`),
     check(
       "session_history_role_play_check",
       sql`${table.sessionType} != 'role-play' OR ${table.scenarioId} IS NOT NULL`,

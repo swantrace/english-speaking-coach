@@ -1,15 +1,18 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import { db } from "@english-coach/database";
+import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { db, migrateDatabase } from "@english-coach/database";
 import { freeFormContexts, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
 import {
   mergeTranscriptTurns,
   persistRewrittenTranscriptTurnsForSession,
-  persistTranscriptAnnotationsForSession,
   persistTranscriptBatchForSession,
 } from "./lib/queues/in-conversation.analysis";
 
 describe("inConversationAnalysis transcript persistence", () => {
+  beforeAll(() => {
+    migrateDatabase();
+  });
+
   beforeEach(async () => {
     const sessionId = `test-freeform-${Date.now()}`;
     await db.delete(sessionTranscripts).where(eq(sessionTranscripts.sessionHistoryId, sessionId));
@@ -72,7 +75,7 @@ describe("inConversationAnalysis transcript persistence", () => {
     ]);
   });
 
-  test("preserves transcript annotations and rewritten turns when later transcript batches arrive", async () => {
+  test("preserves rewritten turns when later transcript batches arrive", async () => {
     const now = new Date().toISOString();
     const freeFormContextId = crypto.randomUUID();
     const sessionId = crypto.randomUUID();
@@ -90,15 +93,6 @@ describe("inConversationAnalysis transcript persistence", () => {
       startedAt: now,
       userId: "system",
     });
-
-    await persistTranscriptAnnotationsForSession(sessionId, [
-      {
-        id: "annotation-1",
-        kind: "coaching",
-        text: "Ask why the past tense changes here.",
-        transcriptTurnIndex: 0,
-      },
-    ]);
 
     await persistRewrittenTranscriptTurnsForSession(sessionId, [
       {
@@ -118,14 +112,6 @@ describe("inConversationAnalysis transcript persistence", () => {
       .where(eq(sessionTranscripts.sessionHistoryId, sessionId))
       .limit(1);
 
-    expect(transcriptRecord?.annotations).toEqual([
-      {
-        id: "annotation-1",
-        kind: "coaching",
-        text: "Ask why the past tense changes here.",
-        transcriptTurnIndex: 0,
-      },
-    ]);
     expect(transcriptRecord?.rewrittenTurns).toEqual([
       {
         text: "I went to the cafe yesterday.",

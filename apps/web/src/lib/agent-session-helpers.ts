@@ -1,10 +1,4 @@
-import type {
-  GoalProgressPacket,
-  RewrittenTranscriptTurn,
-  SessionTurn,
-  TranscriptAnnotation,
-  UiUpdatePacket,
-} from "@english-coach/contract";
+import type { GoalProgressPacket, RewrittenTranscriptTurn, SessionTurn, UiUpdatePacket } from "@english-coach/contract";
 
 export interface TranscriptMessageLike {
   from?: {
@@ -171,35 +165,6 @@ export function createTranscriptCueMap({
         },
       ];
     });
-  }
-
-  return cuesById;
-}
-
-export function createTranscriptCueMapFromAnnotations({
-  annotations,
-  entries,
-}: {
-  annotations: TranscriptAnnotation[];
-  entries: TranscriptEntry[];
-}) {
-  const cuesById: Record<string, TranscriptCue[]> = {};
-
-  for (const annotation of annotations) {
-    const anchor = getEntryByTurnIndex(entries, annotation.transcriptTurnIndex);
-
-    if (!anchor) {
-      continue;
-    }
-
-    cuesById[anchor.id] = [
-      ...(cuesById[anchor.id] ?? []),
-      {
-        coachingKind: annotation.coachingKind,
-        kind: annotation.kind,
-        text: annotation.text,
-      },
-    ];
   }
 
   return cuesById;

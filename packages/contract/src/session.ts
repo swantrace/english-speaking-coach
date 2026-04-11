@@ -15,16 +15,6 @@ export const sessionTurnSchema = z.object({
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 
 export const coachingPromptKindSchema = z.enum(["error_hint", "knowledge_hint", "fluency_hint"]);
-export const transcriptAnnotationSourceSchema = z.enum(["role-play-live", "free-form-live", "post-session-review"]);
-export const transcriptAnnotationKindSchema = z.enum(["goal-progress", "coaching"]);
-export const transcriptAnnotationSchema = z.object({
-  coachingKind: coachingPromptKindSchema.optional(),
-  id: z.string(),
-  kind: transcriptAnnotationKindSchema,
-  source: transcriptAnnotationSourceSchema.optional(),
-  text: z.string().trim().min(1),
-  transcriptTurnIndex: z.number().int().min(0),
-});
 export const rewrittenTranscriptTurnSchema = z.object({
   text: z.string().trim().min(1),
   transcriptTurnIndex: z.number().int().min(0),
@@ -39,7 +29,6 @@ export const inConversationKnowledgeOccurrenceSchema = z.object({
   transcriptTurnIndex: z.number().int().min(0),
   utterance: z.string().trim().min(1),
 });
-export type TranscriptAnnotation = z.infer<typeof transcriptAnnotationSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
 export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;
 export type InConversationKnowledgeOccurrence = z.infer<typeof inConversationKnowledgeOccurrenceSchema>;
@@ -142,10 +131,6 @@ export const sessionCompletionRequestSchema = z.object({
   transcript: z.array(sessionTurnSchema),
 });
 
-export const transcriptAnnotationUpsertRequestSchema = z.object({
-  annotations: z.array(transcriptAnnotationSchema).min(1),
-});
-
 export const lingAnalysisKnowledgeItemSchema = z.object({
   pattern: z.string().trim().min(1),
   syntaxRole: z.enum(syntaxRoles),
@@ -195,8 +180,6 @@ export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSche
 export type SessionAgentBootstrap = z.infer<typeof sessionAgentBootstrapSchema>;
 export type SessionCompletionRequest = z.infer<typeof sessionCompletionRequestSchema>;
 export type SessionCompletionJob = SessionCompletionRequest;
-export type TranscriptAnnotationUpsertRequest = z.infer<typeof transcriptAnnotationUpsertRequestSchema>;
 export type CoachingPromptKind = z.infer<typeof coachingPromptKindSchema>;
-export type TranscriptAnnotationSource = z.infer<typeof transcriptAnnotationSourceSchema>;
 export type LingAnalysisResult = z.infer<typeof lingAnalysisResultSchema>;
 export type InConversationAnalysisResult = z.infer<typeof inConversationAnalysisResultSchema>;

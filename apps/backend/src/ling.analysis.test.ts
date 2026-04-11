@@ -9,7 +9,7 @@ import {
 import { eq } from "drizzle-orm";
 import { processLingAnalysisSession, setLingAnalysisGeneratorForTests } from "./lib/queues/ling.analysis";
 
-describe("lingAnalysis post-session annotations from occurrences", () => {
+describe("lingAnalysis post-session processing", () => {
   beforeAll(async () => {
     migrateDatabase();
   });
@@ -18,7 +18,7 @@ describe("lingAnalysis post-session annotations from occurrences", () => {
     setLingAnalysisGeneratorForTests(null);
   });
 
-  test("uses unresolved occurrences to write transcript-aligned knowledge hints", async () => {
+  test("keeps unresolved occurrences transcript-linked without writing annotations", async () => {
     const now = new Date().toISOString();
     const freeFormContextId = crypto.randomUUID();
     const sessionId = crypto.randomUUID();
@@ -91,15 +91,6 @@ describe("lingAnalysis post-session annotations from occurrences", () => {
     expect(occurrenceRows).toHaveLength(1);
     expect(occurrenceRows[0]?.transcriptTurnIndex).toBe(0);
     expect(occurrenceRows[0]?.utterance).toBe("I'd like a coffee.");
-    expect(transcriptRecord?.annotations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          coachingKind: "knowledge_hint",
-          kind: "coaching",
-          source: "post-session-review",
-          transcriptTurnIndex: 0,
-        }),
-      ]),
-    );
+    expect(transcriptRecord?.sessionHistoryId).toBe(sessionId);
   });
 });

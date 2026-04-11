@@ -148,7 +148,7 @@ export const knowledgePointsQueryKey = ["knowledge-points"] as const;
 export const knowledgeGenerateHistoryQueryKey = ["knowledge-generate-history"] as const;
 export { knowledgeItemSchema };
 
-function appendSearchParam(searchParams: URLSearchParams, key: string, value: string | number | undefined) {
+function appendSearchParam(searchParams: URLSearchParams, key: string, value: string | number | boolean | undefined) {
   if (value === undefined || value === "") {
     return;
   }
@@ -156,7 +156,7 @@ function appendSearchParam(searchParams: URLSearchParams, key: string, value: st
   searchParams.set(key, String(value));
 }
 
-function createSearchParams(values: Record<string, string | number | undefined>) {
+function createSearchParams(values: Record<string, string | number | boolean | undefined>) {
   const searchParams = new URLSearchParams();
 
   Object.entries(values).forEach(([key, value]) => {
@@ -374,7 +374,7 @@ export function useLearnerScenarios(query: {
 
 export function useAdminScenarios(query: z.infer<typeof adminScenariosSearchSchema>) {
   const searchParams = createSearchParams({
-    isPendingReview: query.isPendingReview,
+    isPendingReview: query.isPendingReview ?? true,
     page: query.page,
     pageSize: query.pageSize,
     search: query.search,

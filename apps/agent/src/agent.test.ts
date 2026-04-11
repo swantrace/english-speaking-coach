@@ -6,7 +6,6 @@ const dependencyMocks = vi.hoisted(() => ({
   addInConversationAnalysisJob: vi.fn(),
   addSessionCompletionJob: vi.fn(),
   fetchSessionBootstrapFromBackend: vi.fn(),
-  persistTranscriptAnnotations: vi.fn(),
 }));
 
 vi.mock("./agent/runtime-services", () => ({
@@ -15,7 +14,6 @@ vi.mock("./agent/runtime-services", () => ({
   inConversationAnalysisQueue: {
     add: dependencyMocks.addInConversationAnalysisJob,
   },
-  persistTranscriptAnnotations: dependencyMocks.persistTranscriptAnnotations,
   sessionCompletionQueue: {
     add: dependencyMocks.addSessionCompletionJob,
   },
@@ -24,11 +22,7 @@ vi.mock("./agent/runtime-services", () => ({
 import { Agent } from "./agent";
 import { withLatestWorkerFeedback } from "./agent/free-form";
 import { prepareAgent } from "./agent/prepare-agent";
-import {
-  createRolePlayInstructions,
-  goalProgressPacketToTranscriptAnnotations,
-  SessionTracker,
-} from "./agent/role-play";
+import { createRolePlayInstructions, SessionTracker } from "./agent/role-play";
 import { toSessionTurns } from "./agent/session-turns";
 
 const scenario: Scenario = {
@@ -96,7 +90,6 @@ beforeEach(() => {
   dependencyMocks.addInConversationAnalysisJob.mockReset();
   dependencyMocks.addSessionCompletionJob.mockReset();
   dependencyMocks.fetchSessionBootstrapFromBackend.mockReset();
-  dependencyMocks.persistTranscriptAnnotations.mockReset();
 });
 
 describe("SessionTracker", () => {
@@ -123,29 +116,6 @@ describe("SessionTracker", () => {
     tracker.advance("request_bill", {});
 
     expect(tracker.createHint("request_bill", {})).toContain("All scenario goals are complete");
-  });
-
-  it("derives persisted transcript annotations from goal progress packets", () => {
-    const tracker = new SessionTracker(scenario);
-
-    tracker.advance("order_food", { dish_name: "pasta" });
-
-    expect(goalProgressPacketToTranscriptAnnotations(tracker.toGoalProgressPacket(4))).toEqual([
-      {
-        id: "goal-progress:completed:order-dish:4",
-        kind: "goal-progress",
-        source: "role-play-live",
-        text: "Completed goal: Order a dish",
-        transcriptTurnIndex: 4,
-      },
-      {
-        id: "goal-progress:current:ask-for-bill:4:none",
-        kind: "goal-progress",
-        source: "role-play-live",
-        text: "Current goal: Ask for the bill. Keep steering the conversation there.",
-        transcriptTurnIndex: 4,
-      },
-    ]);
   });
 
   it("includes explicit slot extraction guidance in role-play instructions", () => {
@@ -304,6 +274,5 @@ describe("prepareAgent", () => {
       expect.any(Uint8Array),
       expect.objectContaining({ reliable: true, topic: "goal-progress" }),
     );
-    expect(dependencyMocks.persistTranscriptAnnotations).not.toHaveBeenCalled();
   });
 });

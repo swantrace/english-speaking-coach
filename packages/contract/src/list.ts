@@ -16,7 +16,6 @@ import {
   scenarioSchema,
   sessionTurnSchema,
   sessionTypeSchema,
-  transcriptAnnotationSchema,
 } from "./session";
 
 export const defaultListPage = 1;
@@ -171,7 +170,6 @@ export const historyDetailResponseSchema = z.object({
   knowledgeItems: z.array(historyKnowledgeItemSchema),
   rewrittenTranscript: z.array(rewrittenTranscriptTurnSchema),
   session: historyDetailSessionSchema,
-  transcriptAnnotations: z.array(transcriptAnnotationSchema),
   transcript: z.array(sessionTurnSchema),
   transcriptCreatedAt: z.string().nullable(),
   transcriptTurnAnchors: z.array(historyTranscriptTurnAnchorSchema),

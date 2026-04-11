@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { transcriptAnnotationUpsertRequestSchema } from "@english-coach/contract";
 import {
   type KnowledgeGenerateJobUpdate,
   type KnowledgeGenerateSubmissionResponse,
@@ -991,14 +990,6 @@ describe("backend phase 2 integration", () => {
     });
 
     await db.insert(sessionTranscripts).values({
-      annotations: [
-        {
-          id: `history-annotation-${freeFormSessionId}`,
-          kind: "coaching",
-          text: "Ask why the verb changes in the past tense.",
-          transcriptTurnIndex: 1,
-        },
-      ],
       createdAt: now,
       id: crypto.randomUUID(),
       rewrittenTurns: [{ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 }],
@@ -1099,7 +1090,6 @@ describe("backend phase 2 integration", () => {
       rewrittenTranscript: Array<{ text: string; transcriptTurnIndex: number }>;
       session: { canReopen: boolean; id: string; title: string };
       transcript: Array<{ speaker: string }>;
-      transcriptAnnotations: Array<{ kind: string; text: string; transcriptTurnIndex: number }>;
       transcriptTurnAnchors: Array<{ id: string; turnLabel: string }>;
     };
 
@@ -1125,16 +1115,6 @@ describe("backend phase 2 integration", () => {
         expect.objectContaining({ text: "I went to the cafe yesterday.", transcriptTurnIndex: 1 }),
       ]),
     );
-    expect(historyDetailBody.transcriptAnnotations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: `history-annotation-${freeFormSessionId}`,
-          kind: "coaching",
-          text: "Ask why the verb changes in the past tense.",
-          transcriptTurnIndex: 1,
-        }),
-      ]),
-    );
     expect(historyDetailBody.transcriptTurnAnchors).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "turn-0", turnLabel: "Turn 1" })]),
     );
@@ -1144,32 +1124,6 @@ describe("backend phase 2 integration", () => {
         expect.objectContaining({ speaker: "user" }),
       ]),
     );
-
-    const rolePlayAnnotationResponse = await app.request(
-      `http://localhost/api/internal/agent/sessions/${agentMetadata.sessionHistoryId}/transcript-annotations`,
-      {
-        body: JSON.stringify(
-          transcriptAnnotationUpsertRequestSchema.parse({
-            annotations: [
-              {
-                id: `role-play-annotation-${agentMetadata.sessionHistoryId}`,
-                kind: "goal-progress",
-                source: "role-play-live",
-                text: "Completed goal: Order a drink",
-                transcriptTurnIndex: 0,
-              },
-            ],
-          }),
-        ),
-        headers: {
-          Authorization: "Bearer english-coach-local-api-token",
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      },
-    );
-
-    expect(rolePlayAnnotationResponse.status).toBe(200);
 
     const rolePlayHistoryDetailResponse = await app.request(
       `http://localhost/api/history/${agentMetadata.sessionHistoryId}`,
@@ -1187,14 +1141,6 @@ describe("backend phase 2 integration", () => {
         id: agentMetadata.sessionHistoryId,
         sessionType: "role-play",
       },
-      transcriptAnnotations: [
-        expect.objectContaining({
-          kind: "goal-progress",
-          source: "role-play-live",
-          text: "Completed goal: Order a drink",
-          transcriptTurnIndex: 0,
-        }),
-      ],
     });
 
     process.env.SCENARIO_GENERATE_SSE_MAX_DURATION_MS = "25";
