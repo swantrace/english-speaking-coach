@@ -40,6 +40,7 @@ export const knowledgeItems = sqliteTable(
         example_zh: string;
       }>
     >(),
+    deletedAt: text("deleted_at"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },

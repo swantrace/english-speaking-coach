@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "db:clear:app": "bun run ./src/clear-app.ts",
-    "db:clear": "bun run ./src/clear.ts",
+    "db:clear": "bun run ./src/clear.ts && drizzle-kit generate && bun run db:migrate",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun -e \"import { migrateDatabase } from './src/index.ts'; migrateDatabase(); console.log('migrations applied');\"",
     "db:push": "drizzle-kit push"

@@ -4,5 +4,6 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const freeFormContexts = sqliteTable("free_form_contexts", {
   id: text("id").primaryKey(),
   content: text("content").notNull(),
+  summary: text("summary").notNull(),
   createdAt: text("created_at").notNull(),
 });

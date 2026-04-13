@@ -9,279 +9,760 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as KnowledgePointsRouteImport } from './routes/knowledge-points'
-import { Route as FreeFormRouteImport } from './routes/free-form'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ScenariosIndexRouteImport } from './routes/scenarios/index'
-import { Route as HistoryIndexRouteImport } from './routes/history/index'
-import { Route as SessionRoomNameRouteImport } from './routes/session/$roomName'
-import { Route as HistorySessionIdRouteImport } from './routes/history/$sessionId'
-import { Route as AdminScenariosRouteImport } from './routes/admin/scenarios'
-import { Route as AdminKnowledgeItemsRouteImport } from './routes/admin/knowledge-items'
-import { Route as ScenariosScenarioIdIndexRouteImport } from './routes/scenarios/$scenarioId/index'
+import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as publicRouteRouteImport } from './routes/(public)/route'
+import { Route as authRouteRouteImport } from './routes/(auth)/route'
+import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as publicIndexRouteImport } from './routes/(public)/index'
+import { Route as AppProfileRouteImport } from './routes/app/profile'
+import { Route as authSignupRouteImport } from './routes/(auth)/signup'
+import { Route as authRejectedRouteImport } from './routes/(auth)/rejected'
+import { Route as authPendingRouteImport } from './routes/(auth)/pending'
+import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as AppSessionsIndexRouteImport } from './routes/app/sessions/index'
+import { Route as AppScenariosIndexRouteImport } from './routes/app/scenarios/index'
+import { Route as AppKnowledgeIndexRouteImport } from './routes/app/knowledge/index'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin/users/index'
+import { Route as AdminSubmissionsIndexRouteImport } from './routes/admin/submissions/index'
+import { Route as AdminScenariosIndexRouteImport } from './routes/admin/scenarios/index'
+import { Route as AdminOccurrencesIndexRouteImport } from './routes/admin/occurrences/index'
+import { Route as AdminKnowledgeIndexRouteImport } from './routes/admin/knowledge/index'
+import { Route as AppScenariosScenarioIdRouteImport } from './routes/app/scenarios/$scenarioId'
+import { Route as AppKnowledgeKnowledgeIdRouteImport } from './routes/app/knowledge/$knowledgeId'
+import { Route as AppFreeFormNewRouteImport } from './routes/app/free-form/new'
+import { Route as AdminScenariosNewRouteImport } from './routes/admin/scenarios/new'
+import { Route as AdminScenariosBulkRouteImport } from './routes/admin/scenarios/bulk'
+import { Route as AdminKnowledgeNewRouteImport } from './routes/admin/knowledge/new'
+import { Route as AdminKnowledgeBulkRouteImport } from './routes/admin/knowledge/bulk'
+import { Route as AppSessionsSessionIdIndexRouteImport } from './routes/app/sessions/$sessionId/index'
+import { Route as AdminSubmissionsSubmissionIdIndexRouteImport } from './routes/admin/submissions/$submissionId/index'
+import { Route as AppSessionsSessionIdLiveRouteImport } from './routes/app/sessions/$sessionId/live'
+import { Route as AdminScenariosScenarioIdEditRouteImport } from './routes/admin/scenarios/$scenarioId/edit'
+import { Route as AdminKnowledgeKnowledgeIdEditRouteImport } from './routes/admin/knowledge/$knowledgeId/edit'
+import { Route as AdminSubmissionsSubmissionIdJobsJobIdRouteImport } from './routes/admin/submissions/$submissionId/jobs/$jobId'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/login.lazy').then((d) => d.Route))
-const KnowledgePointsRoute = KnowledgePointsRouteImport.update({
-  id: '/knowledge-points',
-  path: '/knowledge-points',
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/knowledge-points.lazy').then((d) => d.Route),
-)
-const FreeFormRoute = FreeFormRouteImport.update({
-  id: '/free-form',
-  path: '/free-form',
+} as any)
+const publicRouteRoute = publicRouteRouteImport.update({
+  id: '/(public)',
   getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/free-form.lazy').then((d) => d.Route))
-const IndexRoute = IndexRouteImport.update({
+} as any)
+const authRouteRoute = authRouteRouteImport.update({
+  id: '/(auth)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
-const ScenariosIndexRoute = ScenariosIndexRouteImport.update({
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const publicIndexRoute = publicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => publicRouteRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const authSignupRoute = authSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authRejectedRoute = authRejectedRouteImport.update({
+  id: '/rejected',
+  path: '/rejected',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authPendingRoute = authPendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authLoginRoute = authLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const AppSessionsIndexRoute = AppSessionsIndexRouteImport.update({
+  id: '/sessions/',
+  path: '/sessions/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppScenariosIndexRoute = AppScenariosIndexRouteImport.update({
   id: '/scenarios/',
   path: '/scenarios/',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/scenarios/index.lazy').then((d) => d.Route),
-)
-const HistoryIndexRoute = HistoryIndexRouteImport.update({
-  id: '/history/',
-  path: '/history/',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/history/index.lazy').then((d) => d.Route))
-const SessionRoomNameRoute = SessionRoomNameRouteImport.update({
-  id: '/session/$roomName',
-  path: '/session/$roomName',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/session/$roomName.lazy').then((d) => d.Route),
-)
-const HistorySessionIdRoute = HistorySessionIdRouteImport.update({
-  id: '/history/$sessionId',
-  path: '/history/$sessionId',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/history/$sessionId.lazy').then((d) => d.Route),
-)
-const AdminScenariosRoute = AdminScenariosRouteImport.update({
-  id: '/admin/scenarios',
-  path: '/admin/scenarios',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/admin/scenarios.lazy').then((d) => d.Route),
-)
-const AdminKnowledgeItemsRoute = AdminKnowledgeItemsRouteImport.update({
-  id: '/admin/knowledge-items',
-  path: '/admin/knowledge-items',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() =>
-  import('./routes/admin/knowledge-items.lazy').then((d) => d.Route),
-)
-const ScenariosScenarioIdIndexRoute =
-  ScenariosScenarioIdIndexRouteImport.update({
-    id: '/scenarios/$scenarioId/',
-    path: '/scenarios/$scenarioId/',
-    getParentRoute: () => rootRouteImport,
-  } as any).lazy(() =>
-    import('./routes/scenarios/$scenarioId/index.lazy').then((d) => d.Route),
-  )
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppKnowledgeIndexRoute = AppKnowledgeIndexRouteImport.update({
+  id: '/knowledge/',
+  path: '/knowledge/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSubmissionsIndexRoute = AdminSubmissionsIndexRouteImport.update({
+  id: '/submissions/',
+  path: '/submissions/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminScenariosIndexRoute = AdminScenariosIndexRouteImport.update({
+  id: '/scenarios/',
+  path: '/scenarios/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOccurrencesIndexRoute = AdminOccurrencesIndexRouteImport.update({
+  id: '/occurrences/',
+  path: '/occurrences/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminKnowledgeIndexRoute = AdminKnowledgeIndexRouteImport.update({
+  id: '/knowledge/',
+  path: '/knowledge/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AppScenariosScenarioIdRoute = AppScenariosScenarioIdRouteImport.update({
+  id: '/scenarios/$scenarioId',
+  path: '/scenarios/$scenarioId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppKnowledgeKnowledgeIdRoute = AppKnowledgeKnowledgeIdRouteImport.update({
+  id: '/knowledge/$knowledgeId',
+  path: '/knowledge/$knowledgeId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppFreeFormNewRoute = AppFreeFormNewRouteImport.update({
+  id: '/free-form/new',
+  path: '/free-form/new',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AdminScenariosNewRoute = AdminScenariosNewRouteImport.update({
+  id: '/scenarios/new',
+  path: '/scenarios/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminScenariosBulkRoute = AdminScenariosBulkRouteImport.update({
+  id: '/scenarios/bulk',
+  path: '/scenarios/bulk',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminKnowledgeNewRoute = AdminKnowledgeNewRouteImport.update({
+  id: '/knowledge/new',
+  path: '/knowledge/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminKnowledgeBulkRoute = AdminKnowledgeBulkRouteImport.update({
+  id: '/knowledge/bulk',
+  path: '/knowledge/bulk',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AppSessionsSessionIdIndexRoute =
+  AppSessionsSessionIdIndexRouteImport.update({
+    id: '/sessions/$sessionId/',
+    path: '/sessions/$sessionId/',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AdminSubmissionsSubmissionIdIndexRoute =
+  AdminSubmissionsSubmissionIdIndexRouteImport.update({
+    id: '/submissions/$submissionId/',
+    path: '/submissions/$submissionId/',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
+const AppSessionsSessionIdLiveRoute =
+  AppSessionsSessionIdLiveRouteImport.update({
+    id: '/sessions/$sessionId/live',
+    path: '/sessions/$sessionId/live',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AdminScenariosScenarioIdEditRoute =
+  AdminScenariosScenarioIdEditRouteImport.update({
+    id: '/scenarios/$scenarioId/edit',
+    path: '/scenarios/$scenarioId/edit',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
+const AdminKnowledgeKnowledgeIdEditRoute =
+  AdminKnowledgeKnowledgeIdEditRouteImport.update({
+    id: '/knowledge/$knowledgeId/edit',
+    path: '/knowledge/$knowledgeId/edit',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
+const AdminSubmissionsSubmissionIdJobsJobIdRoute =
+  AdminSubmissionsSubmissionIdJobsJobIdRouteImport.update({
+    id: '/submissions/$submissionId/jobs/$jobId',
+    path: '/submissions/$submissionId/jobs/$jobId',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/free-form': typeof FreeFormRoute
-  '/knowledge-points': typeof KnowledgePointsRoute
-  '/login': typeof LoginRoute
-  '/admin/knowledge-items': typeof AdminKnowledgeItemsRoute
-  '/admin/scenarios': typeof AdminScenariosRoute
-  '/history/$sessionId': typeof HistorySessionIdRoute
-  '/session/$roomName': typeof SessionRoomNameRoute
-  '/history/': typeof HistoryIndexRoute
-  '/scenarios/': typeof ScenariosIndexRoute
-  '/scenarios/$scenarioId/': typeof ScenariosScenarioIdIndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/app': typeof AppRouteRouteWithChildren
+  '/login': typeof authLoginRoute
+  '/pending': typeof authPendingRoute
+  '/rejected': typeof authRejectedRoute
+  '/signup': typeof authSignupRoute
+  '/app/profile': typeof AppProfileRoute
+  '/': typeof publicIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/admin/knowledge/bulk': typeof AdminKnowledgeBulkRoute
+  '/admin/knowledge/new': typeof AdminKnowledgeNewRoute
+  '/admin/scenarios/bulk': typeof AdminScenariosBulkRoute
+  '/admin/scenarios/new': typeof AdminScenariosNewRoute
+  '/app/free-form/new': typeof AppFreeFormNewRoute
+  '/app/knowledge/$knowledgeId': typeof AppKnowledgeKnowledgeIdRoute
+  '/app/scenarios/$scenarioId': typeof AppScenariosScenarioIdRoute
+  '/admin/knowledge/': typeof AdminKnowledgeIndexRoute
+  '/admin/occurrences/': typeof AdminOccurrencesIndexRoute
+  '/admin/scenarios/': typeof AdminScenariosIndexRoute
+  '/admin/submissions/': typeof AdminSubmissionsIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/app/knowledge/': typeof AppKnowledgeIndexRoute
+  '/app/scenarios/': typeof AppScenariosIndexRoute
+  '/app/sessions/': typeof AppSessionsIndexRoute
+  '/admin/knowledge/$knowledgeId/edit': typeof AdminKnowledgeKnowledgeIdEditRoute
+  '/admin/scenarios/$scenarioId/edit': typeof AdminScenariosScenarioIdEditRoute
+  '/app/sessions/$sessionId/live': typeof AppSessionsSessionIdLiveRoute
+  '/admin/submissions/$submissionId/': typeof AdminSubmissionsSubmissionIdIndexRoute
+  '/app/sessions/$sessionId/': typeof AppSessionsSessionIdIndexRoute
+  '/admin/submissions/$submissionId/jobs/$jobId': typeof AdminSubmissionsSubmissionIdJobsJobIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/free-form': typeof FreeFormRoute
-  '/knowledge-points': typeof KnowledgePointsRoute
-  '/login': typeof LoginRoute
-  '/admin/knowledge-items': typeof AdminKnowledgeItemsRoute
-  '/admin/scenarios': typeof AdminScenariosRoute
-  '/history/$sessionId': typeof HistorySessionIdRoute
-  '/session/$roomName': typeof SessionRoomNameRoute
-  '/history': typeof HistoryIndexRoute
-  '/scenarios': typeof ScenariosIndexRoute
-  '/scenarios/$scenarioId': typeof ScenariosScenarioIdIndexRoute
+  '/login': typeof authLoginRoute
+  '/pending': typeof authPendingRoute
+  '/rejected': typeof authRejectedRoute
+  '/signup': typeof authSignupRoute
+  '/app/profile': typeof AppProfileRoute
+  '/': typeof publicIndexRoute
+  '/admin': typeof AdminIndexRoute
+  '/app': typeof AppIndexRoute
+  '/admin/knowledge/bulk': typeof AdminKnowledgeBulkRoute
+  '/admin/knowledge/new': typeof AdminKnowledgeNewRoute
+  '/admin/scenarios/bulk': typeof AdminScenariosBulkRoute
+  '/admin/scenarios/new': typeof AdminScenariosNewRoute
+  '/app/free-form/new': typeof AppFreeFormNewRoute
+  '/app/knowledge/$knowledgeId': typeof AppKnowledgeKnowledgeIdRoute
+  '/app/scenarios/$scenarioId': typeof AppScenariosScenarioIdRoute
+  '/admin/knowledge': typeof AdminKnowledgeIndexRoute
+  '/admin/occurrences': typeof AdminOccurrencesIndexRoute
+  '/admin/scenarios': typeof AdminScenariosIndexRoute
+  '/admin/submissions': typeof AdminSubmissionsIndexRoute
+  '/admin/users': typeof AdminUsersIndexRoute
+  '/app/knowledge': typeof AppKnowledgeIndexRoute
+  '/app/scenarios': typeof AppScenariosIndexRoute
+  '/app/sessions': typeof AppSessionsIndexRoute
+  '/admin/knowledge/$knowledgeId/edit': typeof AdminKnowledgeKnowledgeIdEditRoute
+  '/admin/scenarios/$scenarioId/edit': typeof AdminScenariosScenarioIdEditRoute
+  '/app/sessions/$sessionId/live': typeof AppSessionsSessionIdLiveRoute
+  '/admin/submissions/$submissionId': typeof AdminSubmissionsSubmissionIdIndexRoute
+  '/app/sessions/$sessionId': typeof AppSessionsSessionIdIndexRoute
+  '/admin/submissions/$submissionId/jobs/$jobId': typeof AdminSubmissionsSubmissionIdJobsJobIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/free-form': typeof FreeFormRoute
-  '/knowledge-points': typeof KnowledgePointsRoute
-  '/login': typeof LoginRoute
-  '/admin/knowledge-items': typeof AdminKnowledgeItemsRoute
-  '/admin/scenarios': typeof AdminScenariosRoute
-  '/history/$sessionId': typeof HistorySessionIdRoute
-  '/session/$roomName': typeof SessionRoomNameRoute
-  '/history/': typeof HistoryIndexRoute
-  '/scenarios/': typeof ScenariosIndexRoute
-  '/scenarios/$scenarioId/': typeof ScenariosScenarioIdIndexRoute
+  '/(auth)': typeof authRouteRouteWithChildren
+  '/(public)': typeof publicRouteRouteWithChildren
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/app': typeof AppRouteRouteWithChildren
+  '/(auth)/login': typeof authLoginRoute
+  '/(auth)/pending': typeof authPendingRoute
+  '/(auth)/rejected': typeof authRejectedRoute
+  '/(auth)/signup': typeof authSignupRoute
+  '/app/profile': typeof AppProfileRoute
+  '/(public)/': typeof publicIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/admin/knowledge/bulk': typeof AdminKnowledgeBulkRoute
+  '/admin/knowledge/new': typeof AdminKnowledgeNewRoute
+  '/admin/scenarios/bulk': typeof AdminScenariosBulkRoute
+  '/admin/scenarios/new': typeof AdminScenariosNewRoute
+  '/app/free-form/new': typeof AppFreeFormNewRoute
+  '/app/knowledge/$knowledgeId': typeof AppKnowledgeKnowledgeIdRoute
+  '/app/scenarios/$scenarioId': typeof AppScenariosScenarioIdRoute
+  '/admin/knowledge/': typeof AdminKnowledgeIndexRoute
+  '/admin/occurrences/': typeof AdminOccurrencesIndexRoute
+  '/admin/scenarios/': typeof AdminScenariosIndexRoute
+  '/admin/submissions/': typeof AdminSubmissionsIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/app/knowledge/': typeof AppKnowledgeIndexRoute
+  '/app/scenarios/': typeof AppScenariosIndexRoute
+  '/app/sessions/': typeof AppSessionsIndexRoute
+  '/admin/knowledge/$knowledgeId/edit': typeof AdminKnowledgeKnowledgeIdEditRoute
+  '/admin/scenarios/$scenarioId/edit': typeof AdminScenariosScenarioIdEditRoute
+  '/app/sessions/$sessionId/live': typeof AppSessionsSessionIdLiveRoute
+  '/admin/submissions/$submissionId/': typeof AdminSubmissionsSubmissionIdIndexRoute
+  '/app/sessions/$sessionId/': typeof AppSessionsSessionIdIndexRoute
+  '/admin/submissions/$submissionId/jobs/$jobId': typeof AdminSubmissionsSubmissionIdJobsJobIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/free-form'
-    | '/knowledge-points'
+    | '/admin'
+    | '/app'
     | '/login'
-    | '/admin/knowledge-items'
-    | '/admin/scenarios'
-    | '/history/$sessionId'
-    | '/session/$roomName'
-    | '/history/'
-    | '/scenarios/'
-    | '/scenarios/$scenarioId/'
+    | '/pending'
+    | '/rejected'
+    | '/signup'
+    | '/app/profile'
+    | '/'
+    | '/admin/'
+    | '/app/'
+    | '/admin/knowledge/bulk'
+    | '/admin/knowledge/new'
+    | '/admin/scenarios/bulk'
+    | '/admin/scenarios/new'
+    | '/app/free-form/new'
+    | '/app/knowledge/$knowledgeId'
+    | '/app/scenarios/$scenarioId'
+    | '/admin/knowledge/'
+    | '/admin/occurrences/'
+    | '/admin/scenarios/'
+    | '/admin/submissions/'
+    | '/admin/users/'
+    | '/app/knowledge/'
+    | '/app/scenarios/'
+    | '/app/sessions/'
+    | '/admin/knowledge/$knowledgeId/edit'
+    | '/admin/scenarios/$scenarioId/edit'
+    | '/app/sessions/$sessionId/live'
+    | '/admin/submissions/$submissionId/'
+    | '/app/sessions/$sessionId/'
+    | '/admin/submissions/$submissionId/jobs/$jobId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/free-form'
-    | '/knowledge-points'
     | '/login'
-    | '/admin/knowledge-items'
+    | '/pending'
+    | '/rejected'
+    | '/signup'
+    | '/app/profile'
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/admin/knowledge/bulk'
+    | '/admin/knowledge/new'
+    | '/admin/scenarios/bulk'
+    | '/admin/scenarios/new'
+    | '/app/free-form/new'
+    | '/app/knowledge/$knowledgeId'
+    | '/app/scenarios/$scenarioId'
+    | '/admin/knowledge'
+    | '/admin/occurrences'
     | '/admin/scenarios'
-    | '/history/$sessionId'
-    | '/session/$roomName'
-    | '/history'
-    | '/scenarios'
-    | '/scenarios/$scenarioId'
+    | '/admin/submissions'
+    | '/admin/users'
+    | '/app/knowledge'
+    | '/app/scenarios'
+    | '/app/sessions'
+    | '/admin/knowledge/$knowledgeId/edit'
+    | '/admin/scenarios/$scenarioId/edit'
+    | '/app/sessions/$sessionId/live'
+    | '/admin/submissions/$submissionId'
+    | '/app/sessions/$sessionId'
+    | '/admin/submissions/$submissionId/jobs/$jobId'
   id:
     | '__root__'
-    | '/'
-    | '/free-form'
-    | '/knowledge-points'
-    | '/login'
-    | '/admin/knowledge-items'
-    | '/admin/scenarios'
-    | '/history/$sessionId'
-    | '/session/$roomName'
-    | '/history/'
-    | '/scenarios/'
-    | '/scenarios/$scenarioId/'
+    | '/(auth)'
+    | '/(public)'
+    | '/admin'
+    | '/app'
+    | '/(auth)/login'
+    | '/(auth)/pending'
+    | '/(auth)/rejected'
+    | '/(auth)/signup'
+    | '/app/profile'
+    | '/(public)/'
+    | '/admin/'
+    | '/app/'
+    | '/admin/knowledge/bulk'
+    | '/admin/knowledge/new'
+    | '/admin/scenarios/bulk'
+    | '/admin/scenarios/new'
+    | '/app/free-form/new'
+    | '/app/knowledge/$knowledgeId'
+    | '/app/scenarios/$scenarioId'
+    | '/admin/knowledge/'
+    | '/admin/occurrences/'
+    | '/admin/scenarios/'
+    | '/admin/submissions/'
+    | '/admin/users/'
+    | '/app/knowledge/'
+    | '/app/scenarios/'
+    | '/app/sessions/'
+    | '/admin/knowledge/$knowledgeId/edit'
+    | '/admin/scenarios/$scenarioId/edit'
+    | '/app/sessions/$sessionId/live'
+    | '/admin/submissions/$submissionId/'
+    | '/app/sessions/$sessionId/'
+    | '/admin/submissions/$submissionId/jobs/$jobId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  FreeFormRoute: typeof FreeFormRoute
-  KnowledgePointsRoute: typeof KnowledgePointsRoute
-  LoginRoute: typeof LoginRoute
-  AdminKnowledgeItemsRoute: typeof AdminKnowledgeItemsRoute
-  AdminScenariosRoute: typeof AdminScenariosRoute
-  HistorySessionIdRoute: typeof HistorySessionIdRoute
-  SessionRoomNameRoute: typeof SessionRoomNameRoute
-  HistoryIndexRoute: typeof HistoryIndexRoute
-  ScenariosIndexRoute: typeof ScenariosIndexRoute
-  ScenariosScenarioIdIndexRoute: typeof ScenariosScenarioIdIndexRoute
+  authRouteRoute: typeof authRouteRouteWithChildren
+  publicRouteRoute: typeof publicRouteRouteWithChildren
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  AppRouteRoute: typeof AppRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/knowledge-points': {
-      id: '/knowledge-points'
-      path: '/knowledge-points'
-      fullPath: '/knowledge-points'
-      preLoaderRoute: typeof KnowledgePointsRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/free-form': {
-      id: '/free-form'
-      path: '/free-form'
-      fullPath: '/free-form'
-      preLoaderRoute: typeof FreeFormRouteImport
+    '/(public)': {
+      id: '/(public)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof publicRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/(auth)': {
+      id: '/(auth)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof authRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/(public)/': {
+      id: '/(public)/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof publicIndexRouteImport
+      parentRoute: typeof publicRouteRoute
     }
-    '/scenarios/': {
-      id: '/scenarios/'
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/(auth)/signup': {
+      id: '/(auth)/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof authSignupRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/rejected': {
+      id: '/(auth)/rejected'
+      path: '/rejected'
+      fullPath: '/rejected'
+      preLoaderRoute: typeof authRejectedRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/pending': {
+      id: '/(auth)/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof authPendingRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/login': {
+      id: '/(auth)/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof authLoginRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/app/sessions/': {
+      id: '/app/sessions/'
+      path: '/sessions'
+      fullPath: '/app/sessions/'
+      preLoaderRoute: typeof AppSessionsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/scenarios/': {
+      id: '/app/scenarios/'
       path: '/scenarios'
-      fullPath: '/scenarios/'
-      preLoaderRoute: typeof ScenariosIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/app/scenarios/'
+      preLoaderRoute: typeof AppScenariosIndexRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/history/': {
-      id: '/history/'
-      path: '/history'
-      fullPath: '/history/'
-      preLoaderRoute: typeof HistoryIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/app/knowledge/': {
+      id: '/app/knowledge/'
+      path: '/knowledge'
+      fullPath: '/app/knowledge/'
+      preLoaderRoute: typeof AppKnowledgeIndexRouteImport
+      parentRoute: typeof AppRouteRoute
     }
-    '/session/$roomName': {
-      id: '/session/$roomName'
-      path: '/session/$roomName'
-      fullPath: '/session/$roomName'
-      preLoaderRoute: typeof SessionRoomNameRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/history/$sessionId': {
-      id: '/history/$sessionId'
-      path: '/history/$sessionId'
-      fullPath: '/history/$sessionId'
-      preLoaderRoute: typeof HistorySessionIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/submissions/': {
+      id: '/admin/submissions/'
+      path: '/submissions'
+      fullPath: '/admin/submissions/'
+      preLoaderRoute: typeof AdminSubmissionsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/admin/scenarios': {
-      id: '/admin/scenarios'
-      path: '/admin/scenarios'
-      fullPath: '/admin/scenarios'
-      preLoaderRoute: typeof AdminScenariosRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/scenarios/': {
+      id: '/admin/scenarios/'
+      path: '/scenarios'
+      fullPath: '/admin/scenarios/'
+      preLoaderRoute: typeof AdminScenariosIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/admin/knowledge-items': {
-      id: '/admin/knowledge-items'
-      path: '/admin/knowledge-items'
-      fullPath: '/admin/knowledge-items'
-      preLoaderRoute: typeof AdminKnowledgeItemsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/occurrences/': {
+      id: '/admin/occurrences/'
+      path: '/occurrences'
+      fullPath: '/admin/occurrences/'
+      preLoaderRoute: typeof AdminOccurrencesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/scenarios/$scenarioId/': {
-      id: '/scenarios/$scenarioId/'
+    '/admin/knowledge/': {
+      id: '/admin/knowledge/'
+      path: '/knowledge'
+      fullPath: '/admin/knowledge/'
+      preLoaderRoute: typeof AdminKnowledgeIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/app/scenarios/$scenarioId': {
+      id: '/app/scenarios/$scenarioId'
       path: '/scenarios/$scenarioId'
-      fullPath: '/scenarios/$scenarioId/'
-      preLoaderRoute: typeof ScenariosScenarioIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/app/scenarios/$scenarioId'
+      preLoaderRoute: typeof AppScenariosScenarioIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/knowledge/$knowledgeId': {
+      id: '/app/knowledge/$knowledgeId'
+      path: '/knowledge/$knowledgeId'
+      fullPath: '/app/knowledge/$knowledgeId'
+      preLoaderRoute: typeof AppKnowledgeKnowledgeIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/free-form/new': {
+      id: '/app/free-form/new'
+      path: '/free-form/new'
+      fullPath: '/app/free-form/new'
+      preLoaderRoute: typeof AppFreeFormNewRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/admin/scenarios/new': {
+      id: '/admin/scenarios/new'
+      path: '/scenarios/new'
+      fullPath: '/admin/scenarios/new'
+      preLoaderRoute: typeof AdminScenariosNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/scenarios/bulk': {
+      id: '/admin/scenarios/bulk'
+      path: '/scenarios/bulk'
+      fullPath: '/admin/scenarios/bulk'
+      preLoaderRoute: typeof AdminScenariosBulkRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/knowledge/new': {
+      id: '/admin/knowledge/new'
+      path: '/knowledge/new'
+      fullPath: '/admin/knowledge/new'
+      preLoaderRoute: typeof AdminKnowledgeNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/knowledge/bulk': {
+      id: '/admin/knowledge/bulk'
+      path: '/knowledge/bulk'
+      fullPath: '/admin/knowledge/bulk'
+      preLoaderRoute: typeof AdminKnowledgeBulkRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/app/sessions/$sessionId/': {
+      id: '/app/sessions/$sessionId/'
+      path: '/sessions/$sessionId'
+      fullPath: '/app/sessions/$sessionId/'
+      preLoaderRoute: typeof AppSessionsSessionIdIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/admin/submissions/$submissionId/': {
+      id: '/admin/submissions/$submissionId/'
+      path: '/submissions/$submissionId'
+      fullPath: '/admin/submissions/$submissionId/'
+      preLoaderRoute: typeof AdminSubmissionsSubmissionIdIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/app/sessions/$sessionId/live': {
+      id: '/app/sessions/$sessionId/live'
+      path: '/sessions/$sessionId/live'
+      fullPath: '/app/sessions/$sessionId/live'
+      preLoaderRoute: typeof AppSessionsSessionIdLiveRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/admin/scenarios/$scenarioId/edit': {
+      id: '/admin/scenarios/$scenarioId/edit'
+      path: '/scenarios/$scenarioId/edit'
+      fullPath: '/admin/scenarios/$scenarioId/edit'
+      preLoaderRoute: typeof AdminScenariosScenarioIdEditRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/knowledge/$knowledgeId/edit': {
+      id: '/admin/knowledge/$knowledgeId/edit'
+      path: '/knowledge/$knowledgeId/edit'
+      fullPath: '/admin/knowledge/$knowledgeId/edit'
+      preLoaderRoute: typeof AdminKnowledgeKnowledgeIdEditRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/submissions/$submissionId/jobs/$jobId': {
+      id: '/admin/submissions/$submissionId/jobs/$jobId'
+      path: '/submissions/$submissionId/jobs/$jobId'
+      fullPath: '/admin/submissions/$submissionId/jobs/$jobId'
+      preLoaderRoute: typeof AdminSubmissionsSubmissionIdJobsJobIdRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
   }
 }
 
+interface authRouteRouteChildren {
+  authLoginRoute: typeof authLoginRoute
+  authPendingRoute: typeof authPendingRoute
+  authRejectedRoute: typeof authRejectedRoute
+  authSignupRoute: typeof authSignupRoute
+}
+
+const authRouteRouteChildren: authRouteRouteChildren = {
+  authLoginRoute: authLoginRoute,
+  authPendingRoute: authPendingRoute,
+  authRejectedRoute: authRejectedRoute,
+  authSignupRoute: authSignupRoute,
+}
+
+const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
+  authRouteRouteChildren,
+)
+
+interface publicRouteRouteChildren {
+  publicIndexRoute: typeof publicIndexRoute
+}
+
+const publicRouteRouteChildren: publicRouteRouteChildren = {
+  publicIndexRoute: publicIndexRoute,
+}
+
+const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
+  publicRouteRouteChildren,
+)
+
+interface AdminRouteRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminKnowledgeBulkRoute: typeof AdminKnowledgeBulkRoute
+  AdminKnowledgeNewRoute: typeof AdminKnowledgeNewRoute
+  AdminScenariosBulkRoute: typeof AdminScenariosBulkRoute
+  AdminScenariosNewRoute: typeof AdminScenariosNewRoute
+  AdminKnowledgeIndexRoute: typeof AdminKnowledgeIndexRoute
+  AdminOccurrencesIndexRoute: typeof AdminOccurrencesIndexRoute
+  AdminScenariosIndexRoute: typeof AdminScenariosIndexRoute
+  AdminSubmissionsIndexRoute: typeof AdminSubmissionsIndexRoute
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+  AdminKnowledgeKnowledgeIdEditRoute: typeof AdminKnowledgeKnowledgeIdEditRoute
+  AdminScenariosScenarioIdEditRoute: typeof AdminScenariosScenarioIdEditRoute
+  AdminSubmissionsSubmissionIdIndexRoute: typeof AdminSubmissionsSubmissionIdIndexRoute
+  AdminSubmissionsSubmissionIdJobsJobIdRoute: typeof AdminSubmissionsSubmissionIdJobsJobIdRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminKnowledgeBulkRoute: AdminKnowledgeBulkRoute,
+  AdminKnowledgeNewRoute: AdminKnowledgeNewRoute,
+  AdminScenariosBulkRoute: AdminScenariosBulkRoute,
+  AdminScenariosNewRoute: AdminScenariosNewRoute,
+  AdminKnowledgeIndexRoute: AdminKnowledgeIndexRoute,
+  AdminOccurrencesIndexRoute: AdminOccurrencesIndexRoute,
+  AdminScenariosIndexRoute: AdminScenariosIndexRoute,
+  AdminSubmissionsIndexRoute: AdminSubmissionsIndexRoute,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
+  AdminKnowledgeKnowledgeIdEditRoute: AdminKnowledgeKnowledgeIdEditRoute,
+  AdminScenariosScenarioIdEditRoute: AdminScenariosScenarioIdEditRoute,
+  AdminSubmissionsSubmissionIdIndexRoute:
+    AdminSubmissionsSubmissionIdIndexRoute,
+  AdminSubmissionsSubmissionIdJobsJobIdRoute:
+    AdminSubmissionsSubmissionIdJobsJobIdRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
+interface AppRouteRouteChildren {
+  AppProfileRoute: typeof AppProfileRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppFreeFormNewRoute: typeof AppFreeFormNewRoute
+  AppKnowledgeKnowledgeIdRoute: typeof AppKnowledgeKnowledgeIdRoute
+  AppScenariosScenarioIdRoute: typeof AppScenariosScenarioIdRoute
+  AppKnowledgeIndexRoute: typeof AppKnowledgeIndexRoute
+  AppScenariosIndexRoute: typeof AppScenariosIndexRoute
+  AppSessionsIndexRoute: typeof AppSessionsIndexRoute
+  AppSessionsSessionIdLiveRoute: typeof AppSessionsSessionIdLiveRoute
+  AppSessionsSessionIdIndexRoute: typeof AppSessionsSessionIdIndexRoute
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppProfileRoute: AppProfileRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppFreeFormNewRoute: AppFreeFormNewRoute,
+  AppKnowledgeKnowledgeIdRoute: AppKnowledgeKnowledgeIdRoute,
+  AppScenariosScenarioIdRoute: AppScenariosScenarioIdRoute,
+  AppKnowledgeIndexRoute: AppKnowledgeIndexRoute,
+  AppScenariosIndexRoute: AppScenariosIndexRoute,
+  AppSessionsIndexRoute: AppSessionsIndexRoute,
+  AppSessionsSessionIdLiveRoute: AppSessionsSessionIdLiveRoute,
+  AppSessionsSessionIdIndexRoute: AppSessionsSessionIdIndexRoute,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  FreeFormRoute: FreeFormRoute,
-  KnowledgePointsRoute: KnowledgePointsRoute,
-  LoginRoute: LoginRoute,
-  AdminKnowledgeItemsRoute: AdminKnowledgeItemsRoute,
-  AdminScenariosRoute: AdminScenariosRoute,
-  HistorySessionIdRoute: HistorySessionIdRoute,
-  SessionRoomNameRoute: SessionRoomNameRoute,
-  HistoryIndexRoute: HistoryIndexRoute,
-  ScenariosIndexRoute: ScenariosIndexRoute,
-  ScenariosScenarioIdIndexRoute: ScenariosScenarioIdIndexRoute,
+  authRouteRoute: authRouteRouteWithChildren,
+  publicRouteRoute: publicRouteRouteWithChildren,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  AppRouteRoute: AppRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

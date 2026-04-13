@@ -18,6 +18,11 @@ export const sessionHistory = sqliteTable(
     endedAt: text("ended_at"),
     /** LLM-generated markdown review; null until the lingAnalysis worker completes. */
     review: text("review"),
+    summary: text("summary", { mode: "json" }).$type<{
+      strengths?: string[];
+      opportunities?: string[];
+      overallComment?: string;
+    }>(),
 
     // ── role-play only (null for free-form) ──────────────────────────────────
     scenarioId: text("scenario_id").references(() => scenarios.id),
@@ -30,15 +35,36 @@ export const sessionHistory = sqliteTable(
     freeFormContextId: text("free_form_context_id").references(() => freeFormContexts.id),
   },
   (table) => [
+    index("session_history_started_at_idx").on(table.startedAt),
     index("session_history_user_id_idx").on(table.userId),
+    index("session_history_user_started_at_idx").on(table.userId, table.startedAt),
+    index("session_history_scenario_id_idx").on(table.scenarioId),
+    index("session_history_free_form_context_id_idx").on(table.freeFormContextId),
+    index("session_history_session_type_idx").on(table.sessionType),
     check("session_history_session_type_check", sql`${table.sessionType} in ('role-play', 'free-form')`),
     check(
-      "session_history_role_play_check",
+      "session_history_role_play_scenario_required_check",
       sql`${table.sessionType} != 'role-play' OR ${table.scenarioId} IS NOT NULL`,
     ),
     check(
-      "session_history_free_form_check",
+      "session_history_free_form_context_required_check",
       sql`${table.sessionType} != 'free-form' OR ${table.freeFormContextId} IS NOT NULL`,
+    ),
+    check(
+      "session_history_role_play_selected_character_check",
+      sql`${table.sessionType} != 'role-play' OR (${table.selectedCharacterIndex} IS NOT NULL AND ${table.selectedCharacterIndex} in (0, 1))`,
+    ),
+    check(
+      "session_history_free_form_selected_character_null_check",
+      sql`${table.sessionType} != 'free-form' OR ${table.selectedCharacterIndex} IS NULL`,
+    ),
+    check(
+      "session_history_role_play_free_form_context_null_check",
+      sql`${table.sessionType} != 'role-play' OR ${table.freeFormContextId} IS NULL`,
+    ),
+    check(
+      "session_history_free_form_scenario_null_check",
+      sql`${table.sessionType} != 'free-form' OR ${table.scenarioId} IS NULL`,
     ),
   ],
 );

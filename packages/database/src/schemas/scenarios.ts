@@ -30,12 +30,19 @@ export const scenarios = sqliteTable(
     exampleDialogue: text("example_dialogue", { mode: "json" })
       .notNull()
       .$type<Array<{ characterIndex: 0 | 1; text: string }>>(),
+    /** Lightweight labels used for browsing/filtering scenarios in the UI. */
+    tags: text("tags", { mode: "json" }).notNull().$type<string[]>().default(sql`'[]'`),
+    /** Optional card/detail image URL for the scenario. */
+    imageUrl: text("image_url"),
+    /** Soft-delete marker; null means visible. */
+    deletedAt: text("deleted_at"),
     isPendingReview: integer("is_pending_review", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
   (table) => [
     check("scenarios_is_pending_review_check", sql`${table.isPendingReview} in (0, 1)`),
+    index("scenarios_deleted_at_idx").on(table.deletedAt),
     index("scenarios_is_pending_review_idx").on(table.isPendingReview),
   ],
 );

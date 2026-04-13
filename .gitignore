@@ -17,3 +17,4 @@ data/*.sqlite-wal
 .vscode
 .github
 apps/ui-reference
+apps/web-archive

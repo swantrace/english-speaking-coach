@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6d60a8a5-543c-4d58-a203-21cd7fcb59e1",
+  "id": "4523cda2-1aa8-4085-a7e6-88ae8011356c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -270,6 +270,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'student'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
         },
         "created_at": {
           "name": "created_at",

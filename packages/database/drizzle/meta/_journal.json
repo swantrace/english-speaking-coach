@@ -5,8 +5,57 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1775910435613,
-      "tag": "0000_premium_caretaker",
+      "when": 1775972801907,
+      "tag": "0000_dark_kat_farrell",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1776052348071,
+      "tag": "0001_tricky_the_captain",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1776056190474,
+      "tag": "0002_freezing_tempest",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776057353283,
+      "tag": "0003_slippery_emma_frost",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1776057801024,
+      "tag": "0004_true_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1776058042557,
+      "tag": "0005_loose_crystal",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1776058362970,
+      "tag": "0006_careful_expediter",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1776058595794,
+      "tag": "0007_typical_hydra",
       "breakpoints": true
     }
   ]

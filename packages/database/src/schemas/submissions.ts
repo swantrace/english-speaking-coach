@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { user } from "./auth";
 
-export const submissionKindValues = ["scenario.generate", "knowledge.generate"] as const;
+export const submissionKindValues = ["scenario.generate", "knowledge.generate", "session.analysis"] as const;
 
 export const submissions = sqliteTable(
   "submissions",
@@ -16,6 +16,9 @@ export const submissions = sqliteTable(
   },
   (table) => [
     index("submissions_kind_idx").on(table.kind),
-    check("submissions_kind_check", sql`${table.kind} in ('scenario.generate', 'knowledge.generate')`),
+    check(
+      "submissions_kind_check",
+      sql`${table.kind} in ('scenario.generate', 'knowledge.generate', 'session.analysis')`,
+    ),
   ],
 );
