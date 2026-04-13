@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@english-coach/backend": "workspace:*",
     "@english-coach/contract": "workspace:*",
     "@english-coach/ui": "workspace:*",
     "@livekit/components-react": "^2.9.20",

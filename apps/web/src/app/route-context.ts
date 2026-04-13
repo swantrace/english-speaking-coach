@@ -1,13 +1,12 @@
+import type { Session } from "@english-coach/backend/auth";
 import type { QueryClient } from "@tanstack/react-query";
 import type { authClient } from "@/lib/auth-client";
 
 type SessionHookResult = ReturnType<typeof authClient.useSession>;
-
-type SessionData = SessionHookResult["data"];
 type SessionRefetch = SessionHookResult["refetch"];
 
-type AuthSession = NonNullable<SessionData>["session"] | null;
-type AuthUser = NonNullable<SessionData>["user"] | null;
+type AuthSession = Session["session"] | null;
+type AuthUser = Session["user"] | null;
 
 export interface AuthBootstrapResult {
   session: AuthSession;

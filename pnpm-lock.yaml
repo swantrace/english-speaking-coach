@@ -130,6 +130,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@english-coach/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@english-coach/contract':
         specifier: workspace:*
         version: link:../../packages/contract

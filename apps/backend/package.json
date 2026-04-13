@@ -1,8 +1,11 @@
 {
-  "name": "backend",
+  "name": "@english-coach/backend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./auth": "./src/lib/auth.ts"
+  },
   "scripts": {
     "build": "tsc --noEmit && bun build ./src/api.ts ./src/worker.ts --outdir ./dist --target bun",
     "dev:api": "bun run --hot ./src/api.ts",
