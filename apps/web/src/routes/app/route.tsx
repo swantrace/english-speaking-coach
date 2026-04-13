@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { StudentShell } from "@/components/app/student-shell";
 
 export const Route = createFileRoute("/app")({
   component: RouteComponent,
@@ -6,9 +7,8 @@ export const Route = createFileRoute("/app")({
 
 function RouteComponent() {
   return (
-    <div>
-      app layout
+    <StudentShell>
       <Outlet />
-    </div>
+    </StudentShell>
   );
 }

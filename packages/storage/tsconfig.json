@@ -1,12 +1,5 @@
 {
-	"extends": "@english-coach/typescript-config/base",
-	"compilerOptions": {
-		"outDir": "./dist",
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
-		"emitDeclarationOnly": false
-	},
-	"include": ["src"],
-	"exclude": ["node_modules", "dist"]
+  "extends": "@english-coach/typescript-config/base",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

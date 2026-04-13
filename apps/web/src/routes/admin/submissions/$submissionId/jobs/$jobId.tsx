@@ -1,11 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { RoutePlaceholder } from "@/components/app/route-placeholder";
 
-export const Route = createFileRoute(
-  '/admin/submissions/$submissionId/jobs/$jobId',
-)({
+export const Route = createFileRoute("/admin/submissions/$submissionId/jobs/$jobId")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/admin/submissions/$submissionId/jobs/$jobId"!</div>
+  return <RoutePlaceholder title="Submission Job" />;
 }

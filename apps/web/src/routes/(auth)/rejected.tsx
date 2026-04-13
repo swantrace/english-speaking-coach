@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { RoutePlaceholder } from "@/components/app/route-placeholder";
 
-export const Route = createFileRoute('/(auth)/rejected')({
+export const Route = createFileRoute("/(auth)/rejected")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/(auth)/rejected"!</div>
+  return <RoutePlaceholder title="Auth Rejected" />;
 }

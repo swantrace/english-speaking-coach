@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { RoutePlaceholder } from "@/components/app/route-placeholder";
 
-export const Route = createFileRoute('/admin/knowledge/bulk')({
+export const Route = createFileRoute("/admin/knowledge/bulk")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/admin/knowledge/bulk"!</div>
+  return <RoutePlaceholder title="Bulk Knowledge" />;
 }

@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { RoutePlaceholder } from "@/components/app/route-placeholder";
 
-export const Route = createFileRoute('/admin/knowledge/')({
+export const Route = createFileRoute("/admin/knowledge/")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/admin/knowledge/"!</div>
+  return <RoutePlaceholder title="Admin Knowledge" />;
 }

@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { RoutePlaceholder } from "@/components/app/route-placeholder";
 
-export const Route = createFileRoute('/app/free-form/new')({
+export const Route = createFileRoute("/app/free-form/new")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/app/free-form/new"!</div>
+  return <RoutePlaceholder title="New Free-Form Session" />;
 }

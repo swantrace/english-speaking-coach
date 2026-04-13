@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import { RoutePlaceholder } from "@/components/app/route-placeholder";
 
-export const Route = createFileRoute('/app/sessions/$sessionId/')({
+export const Route = createFileRoute("/app/sessions/$sessionId/")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/app/sessions/$sessionId/"!</div>
+  return <RoutePlaceholder title="Session Detail" />;
 }
