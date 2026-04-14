@@ -21,9 +21,6 @@ export const sessionErrors = sqliteTable(
   },
   (table) => [
     index("session_errors_session_history_id_idx").on(table.sessionHistoryId),
-    check(
-      "session_errors_dimension_check",
-      sql`${table.dimension} in (${errorDimensionValuesSql})`,
-    ),
+    check("session_errors_dimension_check", sql`${table.dimension} in (${errorDimensionValuesSql})`),
   ],
 );

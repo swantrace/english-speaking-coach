@@ -17,6 +17,6 @@ import { S3StorageProvider } from "./s3-client";
  * Uses environment variables to determine configuration
  */
 export function getStorageProvider(): S3StorageProvider {
-	const config = getStorageConfig();
-	return new S3StorageProvider(config);
+  const config = getStorageConfig();
+  return new S3StorageProvider(config);
 }

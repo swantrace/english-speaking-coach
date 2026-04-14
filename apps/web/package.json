@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@english-coach/backend": "workspace:*",
@@ -29,6 +30,7 @@
     "livekit-client": "^2.18.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.72.1",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "zod": "^4.3.6",

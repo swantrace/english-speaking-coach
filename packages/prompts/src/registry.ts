@@ -12,7 +12,7 @@ import {
   buildScenarioGoalsGeneratePrompt,
   buildScenarioStoryGeneratePrompt,
 } from "./scenario";
-import { buildInConversationAnalysisPrompt, buildSessionReviewPrompt } from './session';
+import { buildInConversationAnalysisPrompt, buildSessionReviewPrompt } from "./session";
 
 export type PromptRegistry = {
   knowledgeItemGenerate: () => {

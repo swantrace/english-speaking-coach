@@ -11,13 +11,4 @@ export const defaultAuthBootstrapResult: AuthBootstrapResult = {
   ...createAnonymousAuthBootstrapState(),
   isLoading: true,
   isReady: false,
-  refetch: async () =>
-    ({
-      data: null,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      status: "success",
-    }) as never,
 };

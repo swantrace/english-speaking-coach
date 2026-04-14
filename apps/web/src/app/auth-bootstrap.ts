@@ -1,16 +1,15 @@
-import type { QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { resolveAccessState } from "@/features/auth/guards";
-import { useCurrentUserQuery } from "@/features/auth/queries";
-import type { AuthBootstrapState, AuthUser } from "@/features/auth/types";
+import type { AuthBootstrapState } from "@/features/auth/types";
+import { normalizeAuthUser } from "@/features/auth/utils";
+import { authClient } from "@/lib/auth-client";
 
-export interface AuthBootstrapResult extends AuthBootstrapState {
-  refetch: (options?: RefetchOptions) => Promise<QueryObserverResult<AuthUser | null, unknown>>;
-}
+export type AuthBootstrapResult = AuthBootstrapState;
 
 function createAuthBootstrapState(params: {
   isError: boolean;
   isLoading: boolean;
-  user: AuthUser | null;
+  user: AuthBootstrapState["user"];
 }): AuthBootstrapState {
   const { isError, isLoading, user } = params;
 
@@ -24,17 +23,21 @@ function createAuthBootstrapState(params: {
 }
 
 export function useAuthBootstrap(): AuthBootstrapResult {
-  const currentUserQuery = useCurrentUserQuery();
-  const user = currentUserQuery.isError ? null : (currentUserQuery.data ?? null);
+  const sessionQuery = authClient.useSession();
+  const sessionUser = sessionQuery.data?.user ?? null;
+  const isError = sessionQuery.error !== null;
+  const isLoading = sessionQuery.isPending;
+  const user = useMemo(() => (isError ? null : normalizeAuthUser(sessionUser)), [isError, sessionUser]);
 
-  return {
-    ...createAuthBootstrapState({
-      isError: currentUserQuery.isError,
-      isLoading: currentUserQuery.isPending,
-      user,
-    }),
-    refetch: currentUserQuery.refetch,
-  };
+  return useMemo(
+    () =>
+      createAuthBootstrapState({
+        isError,
+        isLoading,
+        user,
+      }),
+    [isError, isLoading, user],
+  );
 }
 
 export function createAnonymousAuthBootstrapState(): AuthBootstrapState {

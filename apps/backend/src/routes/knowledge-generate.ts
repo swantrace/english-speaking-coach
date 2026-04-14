@@ -127,8 +127,7 @@ export function registerKnowledgeGenerateRoutes(app: BackendApp) {
         if (!payload) {
           return {
             cursor: index,
-            error:
-              "Each item requires a non-empty string message, optional string queuedAt",
+            error: "Each item requires a non-empty string message, optional string queuedAt",
             index,
             status: "invalid_input",
             submissionId,

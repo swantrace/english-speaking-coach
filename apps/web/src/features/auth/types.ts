@@ -2,7 +2,7 @@ import type { UserRole, UserStatus } from "@english-coach/domain";
 
 export type AccessState = "anonymous" | "student_pending" | "student_rejected" | "student_approved" | "admin_approved";
 
-export type AccessArea = "public" | "auth" | "pending" | "rejected" | "student_app" | "admin_app";
+export type AccessArea = "public" | "auth" | "pending" | "rejected" | "app" | "admin";
 
 export interface AuthUser {
   id: string;
@@ -19,9 +19,4 @@ export interface AuthBootstrapState {
   isError: boolean;
   isLoading: boolean;
   isReady: boolean;
-}
-
-export interface CurrentUserResponse {
-  session?: unknown;
-  user?: unknown;
 }

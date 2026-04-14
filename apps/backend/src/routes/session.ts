@@ -23,13 +23,6 @@ const sessionTokenRequestSchema = z.discriminatedUnion("sessionType", [
 ]);
 
 export function registerSessionRoutes(app: BackendApp) {
-  app.get("/api/session", (context) => {
-    return context.json({
-      session: context.get("session"),
-      user: context.get("user"),
-    });
-  });
-
   app.post("/api/sessions/token", async (context) => {
     const parsedBody = await parseJsonBody(context, sessionTokenRequestSchema);
 

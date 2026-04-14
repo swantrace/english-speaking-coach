@@ -40,48 +40,91 @@ export function resolveHomeRoute(accessState: AccessState) {
   }
 }
 
-export function canAccessAuthPages(accessState: AccessState) {
-  return accessState === "anonymous";
+export function getAuthAreaRedirect(accessState: AccessState) {
+  return accessState === "anonymous" ? null : resolveHomeRoute(accessState);
 }
 
-export function canAccessPendingPage(accessState: AccessState) {
-  return accessState === "student_pending";
+export function getPendingPageRedirect(accessState: AccessState) {
+  switch (accessState) {
+    case "student_pending":
+      return null;
+    case "anonymous":
+      return "/signup";
+    case "student_rejected":
+      return "/rejected";
+    case "student_approved":
+      return "/app";
+    case "admin_approved":
+      return "/admin";
+    default:
+      return "/signup";
+  }
 }
 
-export function canAccessRejectedPage(accessState: AccessState) {
-  return accessState === "student_rejected";
+export function getRejectedPageRedirect(accessState: AccessState) {
+  switch (accessState) {
+    case "student_rejected":
+      return null;
+    case "anonymous":
+      return "/signup";
+    case "student_pending":
+      return "/pending";
+    case "student_approved":
+      return "/app";
+    case "admin_approved":
+      return "/admin";
+    default:
+      return "/signup";
+  }
 }
 
-export function canAccessStudentApp(accessState: AccessState) {
-  return accessState === "student_approved";
+export function getAppAreaRedirect(accessState: AccessState) {
+  switch (accessState) {
+    case "student_approved":
+    case "admin_approved":
+      return null;
+    case "anonymous":
+      return "/signup";
+    case "student_pending":
+      return "/pending";
+    case "student_rejected":
+      return "/rejected";
+    default:
+      return "/signup";
+  }
 }
 
-export function canAccessAdminApp(accessState: AccessState) {
-  return accessState === "admin_approved";
+export function getAdminAreaRedirect(accessState: AccessState) {
+  switch (accessState) {
+    case "admin_approved":
+      return null;
+    case "student_approved":
+      return "/app";
+    case "anonymous":
+      return "/signup";
+    case "student_pending":
+      return "/pending";
+    case "student_rejected":
+      return "/rejected";
+    default:
+      return "/signup";
+  }
 }
 
-export function getAccessDeniedRedirect(accessState: AccessState, area: AccessArea) {
+export function getAccessAreaRedirect(accessState: AccessState, area: AccessArea) {
   switch (area) {
     case "public":
       return null;
     case "auth":
-      return canAccessAuthPages(accessState) ? null : resolveHomeRoute(accessState);
+      return getAuthAreaRedirect(accessState);
     case "pending":
-      return canAccessPendingPage(accessState) ? null : resolveHomeRoute(accessState);
+      return getPendingPageRedirect(accessState);
     case "rejected":
-      return canAccessRejectedPage(accessState) ? null : resolveHomeRoute(accessState);
-    case "student_app":
-      if (canAccessStudentApp(accessState)) {
-        return null;
-      }
-
-      return accessState === "anonymous" ? "/login" : resolveHomeRoute(accessState);
-    case "admin_app":
-      if (canAccessAdminApp(accessState)) {
-        return null;
-      }
-
-      return accessState === "anonymous" ? "/login" : resolveHomeRoute(accessState);
+      return getRejectedPageRedirect(accessState);
+    case "app":
+      return getAppAreaRedirect(accessState);
+    case "admin":
+      return getAdminAreaRedirect(accessState);
     default:
       return resolveHomeRoute(accessState);
   }

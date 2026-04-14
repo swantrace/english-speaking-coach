@@ -1,21 +1,22 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect } from "react";
 import { useAuthBootstrap } from "./auth-bootstrap";
 import { queryClient } from "./query-client";
-import type { AppRouterContext } from "./route-context";
 import { router } from "./router";
 
 function AuthAwareRouterProvider() {
   const auth = useAuthBootstrap();
+  const routerContext = {
+    queryClient,
+    auth,
+  };
+  const authContextVersion = `${auth.accessState}:${auth.isError ? "1" : "0"}:${auth.isLoading ? "1" : "0"}:${auth.user?.id ?? ""}`;
 
-  const routerContext: AppRouterContext = useMemo(
-    () => ({
-      queryClient,
-      auth,
-    }),
-    [auth],
-  );
+  useEffect(() => {
+    void authContextVersion;
+    void router.invalidate();
+  }, [authContextVersion]);
 
   if (auth.isLoading) {
     return (

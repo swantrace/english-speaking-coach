@@ -35,10 +35,7 @@ export const submissionJobs = sqliteTable(
   (table) => [
     uniqueIndex("submission_jobs_submission_cursor_idx").on(table.submissionId, table.cursor),
     uniqueIndex("submission_jobs_job_id_idx").on(table.jobId),
-    check(
-      "submission_jobs_status_check",
-      sql`${table.status} in (${submissionJobStatusValuesSql})`,
-    ),
+    check("submission_jobs_status_check", sql`${table.status} in (${submissionJobStatusValuesSql})`),
     index("submission_jobs_submission_idx").on(table.submissionId),
     index("submission_jobs_session_history_idx").on(table.sessionHistoryId),
     index("submission_jobs_scenario_idx").on(table.scenarioId),
