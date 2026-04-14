@@ -3,7 +3,7 @@ import { routeTree } from "../routeTree.gen";
 import { queryClient } from "./query-client";
 import { type AppRouterContext, defaultAuthBootstrapResult } from "./route-context";
 
-const initialRouterContext: AppRouterContext = {
+export const initialRouterContext: AppRouterContext = {
   queryClient,
   auth: defaultAuthBootstrapResult,
 };

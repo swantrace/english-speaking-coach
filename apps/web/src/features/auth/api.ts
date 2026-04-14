@@ -1,1 +1,20 @@
-// 登录、注册、登出、获取当前用户等 axios 请求
+import axios from "axios";
+import { apiClient } from "@/lib/axios";
+import type { CurrentUserResponse } from "./types";
+import { normalizeAuthUser } from "./utils";
+
+export const currentUserPath = "/api/session";
+
+export async function getCurrentUser() {
+  try {
+    const response = await apiClient.get<CurrentUserResponse>(currentUserPath);
+
+    return normalizeAuthUser(response.data?.user ?? null);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return null;
+    }
+
+    throw error;
+  }
+}

@@ -1,10 +1,13 @@
+import { knowledgeOccurrenceStatusValues } from "@english-coach/domain";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { user } from "./auth";
 import { knowledgeItems } from "./knowledge-items";
 import { sessionHistory } from "./session-history";
 
-export const knowledgeOccurrenceStatusValues = ["proposed", "approved", "rejected"] as const;
+const knowledgeOccurrenceStatusValuesSql = sql.raw(
+  knowledgeOccurrenceStatusValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+);
 
 export const sessionKnowledgePointOccurrences = sqliteTable(
   "session_knowledge_point_occurrences",
@@ -38,7 +41,7 @@ export const sessionKnowledgePointOccurrences = sqliteTable(
     check("session_knowledge_point_occurrences_turn_index_check", sql`${table.transcriptTurnIndex} >= 0`),
     check(
       "session_knowledge_point_occurrences_status_check",
-      sql`${table.status} in ('proposed', 'approved', 'rejected')`,
+      sql`${table.status} in (${knowledgeOccurrenceStatusValuesSql})`,
     ),
   ],
 );

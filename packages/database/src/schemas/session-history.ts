@@ -1,10 +1,13 @@
+import { sessionTypeValues } from "@english-coach/domain";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { user } from "./auth";
 import { freeFormContexts } from "./free-form-contexts";
 import { scenarios } from "./scenarios";
 
-export const sessionTypeValues = ["role-play", "free-form"] as const;
+const sessionTypeValuesSql = sql.raw(
+  sessionTypeValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+);
 
 export const sessionHistory = sqliteTable(
   "session_history",
@@ -41,7 +44,10 @@ export const sessionHistory = sqliteTable(
     index("session_history_scenario_id_idx").on(table.scenarioId),
     index("session_history_free_form_context_id_idx").on(table.freeFormContextId),
     index("session_history_session_type_idx").on(table.sessionType),
-    check("session_history_session_type_check", sql`${table.sessionType} in ('role-play', 'free-form')`),
+    check(
+      "session_history_session_type_check",
+      sql`${table.sessionType} in (${sessionTypeValuesSql})`,
+    ),
     check(
       "session_history_role_play_scenario_required_check",
       sql`${table.sessionType} != 'role-play' OR ${table.scenarioId} IS NOT NULL`,

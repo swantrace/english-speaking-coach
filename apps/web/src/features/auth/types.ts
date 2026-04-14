@@ -1,1 +1,25 @@
-// auth 领域前端类型，通常从 shared 再收口导出
+import type { UserRole, UserStatus } from "@english-coach/domain";
+
+export type AccessState = "anonymous" | "student_pending" | "student_rejected" | "student_approved" | "admin_approved";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  role: UserRole;
+  status: UserStatus;
+}
+
+export interface AuthBootstrapState {
+  user: AuthUser | null;
+  accessState: AccessState;
+  isError: boolean;
+  isLoading: boolean;
+  isReady: boolean;
+}
+
+export interface CurrentUserResponse {
+  session?: unknown;
+  user?: unknown;
+}

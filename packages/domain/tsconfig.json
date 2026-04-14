@@ -1,0 +1,5 @@
+{
+  "extends": "@english-coach/typescript-config/base",
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

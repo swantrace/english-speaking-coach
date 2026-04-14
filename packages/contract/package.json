@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@english-coach/database": "workspace:*",
+    "@english-coach/domain": "workspace:*",
     "drizzle-zod": "^0.8.3",
     "zod": "^4.3.6"
   },

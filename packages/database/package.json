@@ -19,6 +19,7 @@
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
+    "@english-coach/domain": "workspace:*",
     "@english-coach/typescript-config": "workspace:*",
     "@types/bun": "^1.2.21",
     "@types/node": "^24.12.0",

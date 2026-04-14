@@ -12,16 +12,19 @@ CREATE TABLE `account` (
 	`password` text,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
 	`updated_at` integer NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "account_credential_provider_password_check" CHECK(("account"."provider_id" = 'credential' AND "account"."password" IS NOT NULL) OR ("account"."provider_id" != 'credential' AND "account"."password" IS NULL))
 );
 --> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`user_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `account_provider_account_unique_idx` ON `account` (`provider_id`,`account_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `account_user_provider_unique_idx` ON `account` (`user_id`,`provider_id`);--> statement-breakpoint
 CREATE TABLE `session` (
 	`id` text PRIMARY KEY NOT NULL,
 	`expires_at` integer NOT NULL,
 	`token` text NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
-	`updated_at` integer NOT NULL,
+	`updated_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
 	`ip_address` text,
 	`user_agent` text,
 	`user_id` text NOT NULL,
@@ -32,30 +35,50 @@ CREATE UNIQUE INDEX `session_token_unique` ON `session` (`token`);--> statement-
 CREATE INDEX `session_userId_idx` ON `session` (`user_id`);--> statement-breakpoint
 CREATE TABLE `user` (
 	`id` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
+	`name` text,
 	`email` text NOT NULL,
 	`email_verified` integer DEFAULT false NOT NULL,
 	`image` text,
 	`role` text DEFAULT 'student' NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
+	`approved_at` integer,
+	`approved_by_user_id` text,
+	`rejected_at` integer,
+	`rejected_by_user_id` text,
+	`rejection_reason` text,
+	`deleted_at` integer,
+	`deleted_by_user_id` text,
+	`deletion_reason` text,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
-	`updated_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
+	`updated_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
+	`last_login_at` integer,
+	FOREIGN KEY (`approved_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`rejected_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`deleted_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null,
+	CONSTRAINT "user_admin_status_check" CHECK("user"."role" != 'admin' OR "user"."status" = 'approved')
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_email_unique` ON `user` (`email`);--> statement-breakpoint
+CREATE INDEX `user_approved_by_user_id_idx` ON `user` (`approved_by_user_id`);--> statement-breakpoint
+CREATE INDEX `user_rejected_by_user_id_idx` ON `user` (`rejected_by_user_id`);--> statement-breakpoint
+CREATE INDEX `user_deleted_by_user_id_idx` ON `user` (`deleted_by_user_id`);--> statement-breakpoint
 CREATE TABLE `verification` (
 	`id` text PRIMARY KEY NOT NULL,
+	`type` text NOT NULL,
 	`identifier` text NOT NULL,
 	`value` text NOT NULL,
 	`expires_at` integer NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
-	`updated_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
+	`updated_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
+	CONSTRAINT "verification_type_check" CHECK("verification"."type" in ('email_verification', 'password_reset', 'magic_link'))
 );
 --> statement-breakpoint
 CREATE INDEX `verification_identifier_idx` ON `verification` (`identifier`);--> statement-breakpoint
+CREATE INDEX `verification_type_identifier_idx` ON `verification` (`type`,`identifier`);--> statement-breakpoint
 CREATE TABLE `free_form_contexts` (
 	`id` text PRIMARY KEY NOT NULL,
 	`content` text NOT NULL,
+	`summary` text NOT NULL,
 	`created_at` text NOT NULL
 );
 --> statement-breakpoint
@@ -67,6 +90,7 @@ CREATE TABLE `knowledge_items` (
 	`communicative_function` text,
 	`is_pending_review` integer DEFAULT false NOT NULL,
 	`senses` text NOT NULL,
+	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	CONSTRAINT "knowledge_items_syntax_role_check" CHECK("knowledge_items"."syntax_role" IS NULL OR "knowledge_items"."syntax_role" in ('predicate_verb', 'predicate_adjective', 'adverbial_modifier', 'noun_phrase', 'discourse_linker', 'clause_pattern')),
@@ -84,12 +108,16 @@ CREATE TABLE `scenarios` (
 	`characters` text NOT NULL,
 	`goals` text NOT NULL,
 	`example_dialogue` text NOT NULL,
+	`tags` text DEFAULT '[]' NOT NULL,
+	`image_url` text,
+	`deleted_at` text,
 	`is_pending_review` integer DEFAULT false NOT NULL,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	CONSTRAINT "scenarios_is_pending_review_check" CHECK("scenarios"."is_pending_review" in (0, 1))
 );
 --> statement-breakpoint
+CREATE INDEX `scenarios_deleted_at_idx` ON `scenarios` (`deleted_at`);--> statement-breakpoint
 CREATE INDEX `scenarios_is_pending_review_idx` ON `scenarios` (`is_pending_review`);--> statement-breakpoint
 CREATE TABLE `session_errors` (
 	`id` text PRIMARY KEY NOT NULL,
@@ -110,6 +138,7 @@ CREATE TABLE `session_history` (
 	`started_at` text NOT NULL,
 	`ended_at` text,
 	`review` text,
+	`summary` text,
 	`scenario_id` text,
 	`selected_character_index` integer,
 	`completed_goals` text,
@@ -118,11 +147,20 @@ CREATE TABLE `session_history` (
 	FOREIGN KEY (`scenario_id`) REFERENCES `scenarios`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`free_form_context_id`) REFERENCES `free_form_contexts`(`id`) ON UPDATE no action ON DELETE no action,
 	CONSTRAINT "session_history_session_type_check" CHECK("session_history"."session_type" in ('role-play', 'free-form')),
-	CONSTRAINT "session_history_role_play_check" CHECK("session_history"."session_type" != 'role-play' OR "session_history"."scenario_id" IS NOT NULL),
-	CONSTRAINT "session_history_free_form_check" CHECK("session_history"."session_type" != 'free-form' OR "session_history"."free_form_context_id" IS NOT NULL)
+	CONSTRAINT "session_history_role_play_scenario_required_check" CHECK("session_history"."session_type" != 'role-play' OR "session_history"."scenario_id" IS NOT NULL),
+	CONSTRAINT "session_history_free_form_context_required_check" CHECK("session_history"."session_type" != 'free-form' OR "session_history"."free_form_context_id" IS NOT NULL),
+	CONSTRAINT "session_history_role_play_selected_character_check" CHECK("session_history"."session_type" != 'role-play' OR ("session_history"."selected_character_index" IS NOT NULL AND "session_history"."selected_character_index" in (0, 1))),
+	CONSTRAINT "session_history_free_form_selected_character_null_check" CHECK("session_history"."session_type" != 'free-form' OR "session_history"."selected_character_index" IS NULL),
+	CONSTRAINT "session_history_role_play_free_form_context_null_check" CHECK("session_history"."session_type" != 'role-play' OR "session_history"."free_form_context_id" IS NULL),
+	CONSTRAINT "session_history_free_form_scenario_null_check" CHECK("session_history"."session_type" != 'free-form' OR "session_history"."scenario_id" IS NULL)
 );
 --> statement-breakpoint
+CREATE INDEX `session_history_started_at_idx` ON `session_history` (`started_at`);--> statement-breakpoint
 CREATE INDEX `session_history_user_id_idx` ON `session_history` (`user_id`);--> statement-breakpoint
+CREATE INDEX `session_history_user_started_at_idx` ON `session_history` (`user_id`,`started_at`);--> statement-breakpoint
+CREATE INDEX `session_history_scenario_id_idx` ON `session_history` (`scenario_id`);--> statement-breakpoint
+CREATE INDEX `session_history_free_form_context_id_idx` ON `session_history` (`free_form_context_id`);--> statement-breakpoint
+CREATE INDEX `session_history_session_type_idx` ON `session_history` (`session_type`);--> statement-breakpoint
 CREATE TABLE `session_knowledge_point_occurrences` (
 	`id` text PRIMARY KEY NOT NULL,
 	`session_history_id` text NOT NULL,
@@ -130,11 +168,17 @@ CREATE TABLE `session_knowledge_point_occurrences` (
 	`transcript_turn_index` integer NOT NULL,
 	`proposed_pattern` text NOT NULL,
 	`utterance` text NOT NULL,
+	`status` text DEFAULT 'proposed' NOT NULL,
+	`reviewed_at` text,
+	`reviewed_by_user_id` text,
+	`rejection_reason` text,
 	FOREIGN KEY (`session_history_id`) REFERENCES `session_history`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`knowledge_item_id`) REFERENCES `knowledge_items`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`reviewed_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null,
 	CONSTRAINT "session_knowledge_point_occurrences_pattern_check" CHECK(length(trim("session_knowledge_point_occurrences"."proposed_pattern")) > 0),
 	CONSTRAINT "session_knowledge_point_occurrences_utterance_check" CHECK(length(trim("session_knowledge_point_occurrences"."utterance")) > 0),
-	CONSTRAINT "session_knowledge_point_occurrences_turn_index_check" CHECK("session_knowledge_point_occurrences"."transcript_turn_index" >= 0)
+	CONSTRAINT "session_knowledge_point_occurrences_turn_index_check" CHECK("session_knowledge_point_occurrences"."transcript_turn_index" >= 0),
+	CONSTRAINT "session_knowledge_point_occurrences_status_check" CHECK("session_knowledge_point_occurrences"."status" in ('proposed', 'approved', 'rejected'))
 );
 --> statement-breakpoint
 CREATE INDEX `session_knowledge_point_occurrences_session_history_idx` ON `session_knowledge_point_occurrences` (`session_history_id`);--> statement-breakpoint
@@ -157,12 +201,21 @@ CREATE TABLE `submission_jobs` (
 	`error` text,
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`job_id` text NOT NULL,
+	`kind` text NOT NULL,
+	`input` text,
+	`output` text,
 	`message` text NOT NULL,
 	`processed_at` text,
 	`progress` integer NOT NULL,
 	`queued_at` text NOT NULL,
+	`session_history_id` text,
+	`scenario_id` text,
+	`knowledge_item_id` text,
 	`status` text NOT NULL,
 	`submission_id` text NOT NULL,
+	FOREIGN KEY (`session_history_id`) REFERENCES `session_history`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`scenario_id`) REFERENCES `scenarios`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`knowledge_item_id`) REFERENCES `knowledge_items`(`id`) ON UPDATE no action ON DELETE set null,
 	FOREIGN KEY (`submission_id`) REFERENCES `submissions`(`id`) ON UPDATE no action ON DELETE cascade,
 	CONSTRAINT "submission_jobs_status_check" CHECK("submission_jobs"."status" in ('queued', 'started', 'completed', 'failed'))
 );
@@ -170,6 +223,9 @@ CREATE TABLE `submission_jobs` (
 CREATE UNIQUE INDEX `submission_jobs_submission_cursor_idx` ON `submission_jobs` (`submission_id`,`cursor`);--> statement-breakpoint
 CREATE UNIQUE INDEX `submission_jobs_job_id_idx` ON `submission_jobs` (`job_id`);--> statement-breakpoint
 CREATE INDEX `submission_jobs_submission_idx` ON `submission_jobs` (`submission_id`);--> statement-breakpoint
+CREATE INDEX `submission_jobs_session_history_idx` ON `submission_jobs` (`session_history_id`);--> statement-breakpoint
+CREATE INDEX `submission_jobs_scenario_idx` ON `submission_jobs` (`scenario_id`);--> statement-breakpoint
+CREATE INDEX `submission_jobs_knowledge_item_idx` ON `submission_jobs` (`knowledge_item_id`);--> statement-breakpoint
 CREATE TABLE `submissions` (
 	`created_at` text NOT NULL,
 	`id` text PRIMARY KEY NOT NULL,
@@ -178,7 +234,7 @@ CREATE TABLE `submissions` (
 	`updated_at` text NOT NULL,
 	`user_id` text,
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null,
-	CONSTRAINT "submissions_kind_check" CHECK("submissions"."kind" in ('scenario.generate', 'knowledge.generate'))
+	CONSTRAINT "submissions_kind_check" CHECK("submissions"."kind" in ('scenario.generate', 'knowledge.generate', 'session.analysis'))
 );
 --> statement-breakpoint
 CREATE INDEX `submissions_kind_idx` ON `submissions` (`kind`);

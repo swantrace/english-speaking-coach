@@ -1,8 +1,11 @@
+import { submissionJobStatusValues, submissionKindValues } from "@english-coach/domain";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { user } from "./auth";
 
-export const submissionKindValues = ["scenario.generate", "knowledge.generate", "session.analysis"] as const;
+const submissionKindValuesSql = sql.raw(
+  submissionKindValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+);
 
 export const submissions = sqliteTable(
   "submissions",
@@ -18,7 +21,7 @@ export const submissions = sqliteTable(
     index("submissions_kind_idx").on(table.kind),
     check(
       "submissions_kind_check",
-      sql`${table.kind} in ('scenario.generate', 'knowledge.generate', 'session.analysis')`,
+      sql`${table.kind} in (${submissionKindValuesSql})`,
     ),
   ],
 );

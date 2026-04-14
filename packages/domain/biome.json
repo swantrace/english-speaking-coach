@@ -1,0 +1,13 @@
+{
+  "extends": "//",
+  "files": {
+    "includes": [
+      "**",
+      "!dist",
+      "!src/index.ts",
+      "!src/auth/constants.ts",
+      "!src/knowledge/constants.ts",
+      "!src/session/constants.ts"
+    ]
+  }
+}

@@ -1,8 +1,11 @@
+import { errorDimensionValues } from "@english-coach/domain";
 import { sql } from "drizzle-orm";
 import { check, index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sessionHistory } from "./session-history";
 
-export const errorDimensionValues = ["lexical", "syntactic", "pragmatic", "discourse", "phonological"] as const;
+const errorDimensionValuesSql = sql.raw(
+  errorDimensionValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+);
 
 export const sessionErrors = sqliteTable(
   "session_errors",
@@ -11,7 +14,7 @@ export const sessionErrors = sqliteTable(
     sessionHistoryId: text("session_history_id")
       .notNull()
       .references(() => sessionHistory.id, { onDelete: "cascade" }),
-    dimension: text("dimension").notNull(),
+    dimension: text("dimension", { enum: errorDimensionValues }).notNull(),
     errorDescription: text("error_description").notNull(),
     utterance: text("utterance").notNull(),
     suggestion: text("suggestion").notNull(),
@@ -20,7 +23,7 @@ export const sessionErrors = sqliteTable(
     index("session_errors_session_history_id_idx").on(table.sessionHistoryId),
     check(
       "session_errors_dimension_check",
-      sql`${table.dimension} in ('lexical', 'syntactic', 'pragmatic', 'discourse', 'phonological')`,
+      sql`${table.dimension} in (${errorDimensionValuesSql})`,
     ),
   ],
 );

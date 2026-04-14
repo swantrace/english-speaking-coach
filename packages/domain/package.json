@@ -1,0 +1,21 @@
+{
+  "name": "@english-coach/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth/constants": "./src/auth/constants.ts",
+    "./knowledge/constants": "./src/knowledge/constants.ts",
+    "./session/constants": "./src/session/constants.ts",
+    "./submission/constants": "./src/submission/constants.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "@english-coach/typescript-config": "workspace:*",
+    "typescript": "5.9.3"
+  }
+}

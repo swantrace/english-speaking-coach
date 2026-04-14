@@ -1,9 +1,6 @@
+import { userRoleValues, userStatusValues, verificationTypeValues } from "@english-coach/domain";
 import { sql } from "drizzle-orm";
 import { type AnySQLiteColumn, check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-
-export const userRoleValues = ["student", "admin"] as const;
-export const userStatusValues = ["pending", "approved", "rejected", "deleted"] as const;
-export const verificationTypeValues = ["email_verification", "password_reset", "magic_link"] as const;
 
 export const user = sqliteTable(
   "user",
