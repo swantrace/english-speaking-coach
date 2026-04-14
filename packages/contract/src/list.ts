@@ -1,10 +1,5 @@
-import {
-  knowledgeItems,
-  scenarios,
-  sessionErrors,
-  sessionHistory,
-  speakerValues,
-} from "@english-coach/database/schema";
+import { knowledgeItems, scenarios, sessionErrors, sessionHistory } from "@english-coach/database/schema";
+import { speakerValues } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";

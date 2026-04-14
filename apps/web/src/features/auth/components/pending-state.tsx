@@ -14,11 +14,16 @@ export function PendingState() {
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-slate-950">We&apos;re reviewing your access</h2>
           <p className="text-sm leading-6 text-slate-600">
-            You&apos;re signed in successfully. Once your student status moves from pending to approved, the shared access guards
-            will route you into the app automatically on your next visit.
+            You&apos;re signed in successfully. Once your student status moves from pending to approved, the shared
+            access guards will route you into the app automatically on your next visit.
           </p>
         </div>
-        <Button disabled={signOutMutation.isPending} onClick={() => signOutMutation.mutate()} type="button" variant="outline">
+        <Button
+          disabled={signOutMutation.isPending}
+          onClick={() => signOutMutation.mutate()}
+          type="button"
+          variant="outline"
+        >
           {signOutMutation.isPending ? "Signing out..." : "Sign out"}
         </Button>
         {signOutMutation.error ? (

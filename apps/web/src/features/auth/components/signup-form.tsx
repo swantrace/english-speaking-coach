@@ -1,6 +1,17 @@
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
+} from "@english-coach/ui";
 import { Link } from "@tanstack/react-router";
-import { Alert, AlertDescription, Button, Form, FormControl, FormField, FormItem, FormLabel, FormMessage, Input } from "@english-coach/ui";
-import { useForm, type FieldError, type FieldErrors, type Resolver } from "react-hook-form";
+import { type FieldError, type FieldErrors, type Resolver, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useSignUpMutation } from "../mutations";
 import { AuthShell } from "./auth-shell";

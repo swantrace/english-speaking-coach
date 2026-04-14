@@ -4,7 +4,7 @@ import {
   fixednessLevelValues,
   syntaxRoleValues,
   userRoleValues,
-} from "@english-coach/database/schema";
+} from "@english-coach/domain";
 
 /**
  * Single source of truth for all linguistic taxonomy enums.

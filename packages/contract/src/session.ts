@@ -1,4 +1,5 @@
-import { scenarios, sessionTypeValues, speakerValues } from "@english-coach/database/schema";
+import { scenarios } from "@english-coach/database/schema";
+import { sessionTypeValues, speakerValues } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
