@@ -1,6 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { createFreeFormSession, createRolePlaySession } from "./api";
+import { queryKeys } from "@/lib/query-keys";
+import { createFreeFormSession, createRolePlaySession, endSession } from "./api";
 import {
   mapFreeFormSessionFormInputToRequest,
   mapFreeFormSessionResult,
@@ -10,12 +11,17 @@ import {
 import type {
   CreateFreeFormSessionFormInput,
   CreateRolePlaySessionFormInput,
+  SessionEndMutationResult,
   SessionMutationError,
   SessionStartResult,
 } from "./types";
 
 interface SessionMutationOptions {
   onSuccess?: (result: SessionStartResult) => void | Promise<void>;
+}
+
+interface EndSessionMutationOptions {
+  onSuccess?: (result: SessionEndMutationResult) => void | Promise<void>;
 }
 
 function mapSessionMutationError(error: unknown): SessionMutationError {
@@ -51,7 +57,7 @@ function mapSessionMutationError(error: unknown): SessionMutationError {
     }
 
     return {
-      message: apiMessage ?? "We couldn't start the session right now. Please try again.",
+      message: apiMessage ?? "We couldn't complete that session action right now. Please try again.",
       status,
     };
   }
@@ -64,7 +70,7 @@ function mapSessionMutationError(error: unknown): SessionMutationError {
   }
 
   return {
-    message: "We couldn't start the session right now. Please try again.",
+    message: "We couldn't complete that session action right now. Please try again.",
     status: null,
   };
 }
@@ -94,5 +100,29 @@ export function useCreateFreeFormSessionMutation(options: SessionMutationOptions
       }
     },
     onSuccess: options.onSuccess,
+  });
+}
+
+export function useEndSessionMutation(sessionId: string, options: EndSessionMutationOptions = {}) {
+  const queryClient = useQueryClient();
+
+  return useMutation<SessionEndMutationResult, SessionMutationError, void>({
+    mutationFn: async () => {
+      try {
+        return await endSession(sessionId);
+      } catch (error) {
+        throw mapSessionMutationError(error);
+      }
+    },
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.history.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.history.detail(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.history.list() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.liveBootstrap(sessionId) }),
+      ]);
+
+      await options.onSuccess?.(result);
+    },
   });
 }

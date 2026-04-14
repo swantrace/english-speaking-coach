@@ -1,1 +1,8 @@
-// live session 的 Zustand store：turns、hints、roomState、agentState
+import { create } from "zustand";
+import type { SessionRuntimeStore } from "../types";
+import { createInitialSessionRuntimeState, createSessionRuntimeActions } from "./actions";
+
+export const useSessionRuntimeStore = create<SessionRuntimeStore>()((...args) => ({
+  ...createInitialSessionRuntimeState(),
+  ...createSessionRuntimeActions(...args),
+}));

@@ -34,6 +34,20 @@ export const uiUpdatePacketSchema = z.object({
   transcriptTurnIndex: z.number().int().min(0).optional(),
 });
 
+export const sessionStatusPacketSchema = z.object({
+  sessionHistoryId: z.string().trim().min(1),
+  status: z.enum(["ending", "ended"]),
+  type: z.literal("session-status"),
+});
+
+export const liveSessionIncomingPacketSchema = z.discriminatedUnion("type", [
+  goalProgressPacketSchema,
+  sessionStatusPacketSchema,
+  uiUpdatePacketSchema,
+]);
+
 export type GoalProgressPacket = z.infer<typeof goalProgressPacketSchema>;
 export type WorkerFeedbackPacket = z.infer<typeof workerFeedbackPacketSchema>;
 export type UiUpdatePacket = z.infer<typeof uiUpdatePacketSchema>;
+export type SessionStatusPacket = z.infer<typeof sessionStatusPacketSchema>;
+export type LiveSessionIncomingPacket = z.infer<typeof liveSessionIncomingPacketSchema>;

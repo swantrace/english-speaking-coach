@@ -6,6 +6,10 @@ import type {
 import type {
   CreateFreeFormSessionFormInput,
   CreateRolePlaySessionFormInput,
+  LiveSessionBootstrap,
+  LiveSessionBootstrapContract,
+  LiveSessionPageViewModel,
+  SessionGoalProgress,
   SessionLiveRouteTarget,
   SessionStartResult,
 } from "./types";
@@ -42,6 +46,13 @@ export function getSessionLiveRouteTarget(sessionId: string): SessionLiveRouteTa
   return {
     params: { sessionId },
     to: "/app/sessions/$sessionId/live",
+  };
+}
+
+export function getSessionDetailRouteTarget(sessionId: string) {
+  return {
+    params: { sessionId },
+    to: "/app/sessions/$sessionId" as const,
   };
 }
 
@@ -102,5 +113,59 @@ export function mapFreeFormSessionResult(
     },
     sessionId: response.sessionId,
     sessionType: response.sessionType,
+  };
+}
+
+export function mapLiveSessionBootstrap(response: LiveSessionBootstrapContract): LiveSessionBootstrap {
+  if (response.sessionType === "role-play") {
+    return {
+      endedAt: response.endedAt,
+      room: response.room,
+      scenario: response.scenario,
+      sessionId: response.sessionId,
+      sessionType: response.sessionType,
+      startedAt: response.startedAt,
+    };
+  }
+
+  return {
+    context: response.context,
+    endedAt: response.endedAt,
+    room: response.room,
+    sessionId: response.sessionId,
+    sessionType: response.sessionType,
+    startedAt: response.startedAt,
+  };
+}
+
+export function mapLiveSessionPageViewModel(bootstrap: LiveSessionBootstrap): LiveSessionPageViewModel {
+  return {
+    bootstrap,
+    detailRoute: getSessionDetailRouteTarget(bootstrap.sessionId),
+    title: bootstrap.sessionType === "role-play" ? bootstrap.scenario.title : bootstrap.context.summary,
+  };
+}
+
+export function mapGoalProgressPacketToViewModel(packet: {
+  currentGoalId: string;
+  filledSlots: Record<string, string>;
+  goals: Array<{
+    description: string;
+    id: string;
+    optional?: boolean;
+    status: "incomplete" | "complete";
+  }>;
+  transcriptTurnIndex?: number;
+}): SessionGoalProgress {
+  return {
+    currentGoalId: packet.currentGoalId ?? null,
+    filledSlots: packet.filledSlots,
+    goals: packet.goals.map((goal) => ({
+      description: goal.description,
+      id: goal.id,
+      optional: goal.optional ?? false,
+      status: goal.status,
+    })),
+    transcriptTurnIndex: packet.transcriptTurnIndex ?? null,
   };
 }

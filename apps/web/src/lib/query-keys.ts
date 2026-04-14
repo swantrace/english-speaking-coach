@@ -23,9 +23,17 @@ export const queryKeys = {
   dashboard: {
     student: () => ["dashboard", "student"] as const,
   },
+  history: {
+    all: () => ["history"] as const,
+    detail: (sessionId: string) => ["history", "detail", sessionId] as const,
+    list: () => ["history", "list"] as const,
+  },
   scenarios: {
     detail: (scenarioId: string) => ["scenarios", "detail", scenarioId] as const,
     studentList: (input: ScenarioListQueryKeyInput = {}) =>
       ["scenarios", "student-list", normalizeScenarioListQueryKeyInput(input)] as const,
+  },
+  sessions: {
+    liveBootstrap: (sessionId: string) => ["sessions", "live-bootstrap", sessionId] as const,
   },
 };

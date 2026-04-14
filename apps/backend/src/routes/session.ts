@@ -1,6 +1,8 @@
 import {
   createSessionRequestSchema,
   createSessionResultSchema,
+  endSessionResultSchema,
+  liveSessionBootstrapSchema,
   sessionDispatchMetadataSchema,
 } from "@english-coach/contract";
 import { db } from "@english-coach/database";
@@ -9,6 +11,43 @@ import { eq } from "drizzle-orm";
 import { AccessToken, RoomAgentDispatch, RoomConfiguration } from "livekit-server-sdk";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser, parseJsonBody } from "../http/context";
+
+function createSessionToken(params: {
+  roomName: string;
+  sessionHistoryId: string;
+  userId: string;
+  userName: string | null;
+}) {
+  const token = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
+    identity: `${params.userId}:${params.sessionHistoryId}`,
+    metadata: JSON.stringify({ sessionHistoryId: params.sessionHistoryId, userId: params.userId }),
+    name: params.userName ?? params.userId,
+    ttl: process.env.LIVEKIT_TOKEN_TTL ?? "6h",
+  });
+
+  token.addGrant({
+    canPublish: true,
+    canPublishData: true,
+    canSubscribe: true,
+    room: params.roomName,
+    roomJoin: true,
+  });
+
+  const roomConfig = new RoomConfiguration({
+    name: params.roomName,
+  });
+
+  roomConfig.agents = [
+    new RoomAgentDispatch({
+      agentName: "english-speaking-coach-agent",
+      metadata: JSON.stringify(sessionDispatchMetadataSchema.parse({ sessionHistoryId: params.sessionHistoryId })),
+    }),
+  ];
+
+  token.roomConfig = roomConfig;
+
+  return token;
+}
 
 export function registerSessionRoutes(app: BackendApp) {
   app.post("/api/sessions/token", async (context) => {
@@ -69,33 +108,12 @@ export function registerSessionRoutes(app: BackendApp) {
     }
 
     try {
-      const token = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
-        identity: `${currentUser.id}:${sessionHistoryId}`,
-        metadata: JSON.stringify({ sessionHistoryId, userId: currentUser.id }),
-        name: currentUser.name,
-        ttl: process.env.LIVEKIT_TOKEN_TTL ?? "6h",
+      const token = createSessionToken({
+        roomName,
+        sessionHistoryId,
+        userId: currentUser.id,
+        userName: currentUser.name,
       });
-
-      token.addGrant({
-        canPublish: true,
-        canPublishData: true,
-        canSubscribe: true,
-        room: roomName,
-        roomJoin: true,
-      });
-
-      const roomConfig = new RoomConfiguration({
-        name: roomName,
-      });
-
-      roomConfig.agents = [
-        new RoomAgentDispatch({
-          agentName: "english-speaking-coach-agent",
-          metadata: JSON.stringify(sessionDispatchMetadataSchema.parse({ sessionHistoryId })),
-        }),
-      ];
-
-      token.roomConfig = roomConfig;
 
       return context.json(
         createSessionResultSchema.parse({
@@ -113,5 +131,147 @@ export function registerSessionRoutes(app: BackendApp) {
         500,
       );
     }
+  });
+
+  app.get("/api/sessions/:sessionId/live", async (context) => {
+    const currentUser = getAuthenticatedUser(context);
+
+    if (!currentUser) {
+      return context.json({ error: "Authentication required" }, 401);
+    }
+
+    const sessionId = context.req.param("sessionId");
+    const [sessionRecord] = await db.select().from(sessionHistory).where(eq(sessionHistory.id, sessionId)).limit(1);
+
+    if (!sessionRecord || sessionRecord.userId !== currentUser.id) {
+      return context.json({ error: "Session not found" }, 404);
+    }
+
+    try {
+      const token = createSessionToken({
+        roomName: `session-${sessionRecord.id}`,
+        sessionHistoryId: sessionRecord.id,
+        userId: currentUser.id,
+        userName: currentUser.name,
+      });
+
+      if (sessionRecord.sessionType === "role-play") {
+        if (!sessionRecord.scenarioId || sessionRecord.selectedCharacterIndex === null) {
+          return context.json({ error: "Role-play session is incomplete" }, 500);
+        }
+
+        const [scenarioRecord] = await db
+          .select()
+          .from(scenarios)
+          .where(eq(scenarios.id, sessionRecord.scenarioId))
+          .limit(1);
+
+        if (!scenarioRecord) {
+          return context.json({ error: "Scenario not found" }, 404);
+        }
+
+        return context.json(
+          liveSessionBootstrapSchema.parse({
+            endedAt: sessionRecord.endedAt,
+            room: {
+              roomName: `session-${sessionRecord.id}`,
+              serverUrl: process.env.LIVEKIT_URL,
+              token: await token.toJwt(),
+            },
+            scenario: {
+              characters: scenarioRecord.characters,
+              goals: scenarioRecord.goals.goals.map((goal) => ({
+                description: goal.description,
+                id: goal.id,
+                optional: goal.optional ?? false,
+              })),
+              id: scenarioRecord.id,
+              imageUrl: scenarioRecord.imageUrl,
+              selectedCharacterIndex: sessionRecord.selectedCharacterIndex,
+              setting: scenarioRecord.setting,
+              title: scenarioRecord.title,
+            },
+            sessionId: sessionRecord.id,
+            sessionType: sessionRecord.sessionType,
+            startedAt: sessionRecord.startedAt,
+          }),
+        );
+      }
+
+      if (!sessionRecord.freeFormContextId) {
+        return context.json({ error: "Free-form session is incomplete" }, 500);
+      }
+
+      const [freeFormContextRecord] = await db
+        .select()
+        .from(freeFormContexts)
+        .where(eq(freeFormContexts.id, sessionRecord.freeFormContextId))
+        .limit(1);
+
+      if (!freeFormContextRecord) {
+        return context.json({ error: "Free-form context not found" }, 404);
+      }
+
+      return context.json(
+        liveSessionBootstrapSchema.parse({
+          context: {
+            content: freeFormContextRecord.content,
+            summary: freeFormContextRecord.summary,
+          },
+          endedAt: sessionRecord.endedAt,
+          room: {
+            roomName: `session-${sessionRecord.id}`,
+            serverUrl: process.env.LIVEKIT_URL,
+            token: await token.toJwt(),
+          },
+          sessionId: sessionRecord.id,
+          sessionType: sessionRecord.sessionType,
+          startedAt: sessionRecord.startedAt,
+        }),
+      );
+    } catch (error) {
+      return context.json(
+        {
+          error: error instanceof Error ? error.message : "Failed to prepare live session bootstrap",
+        },
+        500,
+      );
+    }
+  });
+
+  app.post("/api/sessions/:sessionId/end", async (context) => {
+    const currentUser = getAuthenticatedUser(context);
+
+    if (!currentUser) {
+      return context.json({ error: "Authentication required" }, 401);
+    }
+
+    const sessionId = context.req.param("sessionId");
+    const [sessionRecord] = await db
+      .select({
+        endedAt: sessionHistory.endedAt,
+        id: sessionHistory.id,
+        userId: sessionHistory.userId,
+      })
+      .from(sessionHistory)
+      .where(eq(sessionHistory.id, sessionId))
+      .limit(1);
+
+    if (!sessionRecord || sessionRecord.userId !== currentUser.id) {
+      return context.json({ error: "Session not found" }, 404);
+    }
+
+    const endedAt = sessionRecord.endedAt ?? new Date().toISOString();
+
+    if (!sessionRecord.endedAt) {
+      await db.update(sessionHistory).set({ endedAt }).where(eq(sessionHistory.id, sessionRecord.id));
+    }
+
+    return context.json(
+      endSessionResultSchema.parse({
+        endedAt,
+        sessionId: sessionRecord.id,
+      }),
+    );
   });
 }
