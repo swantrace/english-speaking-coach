@@ -1,30 +1,18 @@
-import { sessionDispatchMetadataSchema, sessionTypeSchema } from "@english-coach/contract";
+import {
+  createSessionRequestSchema,
+  createSessionResultSchema,
+  sessionDispatchMetadataSchema,
+} from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import { freeFormContexts, scenarios, sessionHistory } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
 import { AccessToken, RoomAgentDispatch, RoomConfiguration } from "livekit-server-sdk";
-import { z } from "zod";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser, parseJsonBody } from "../http/context";
 
-const rolePlaySessionTokenRequestSchema = z.object({
-  scenarioId: z.string().min(1),
-  selectedCharacterIndex: z.number().int().min(0).max(1),
-  sessionType: z.literal("role-play"),
-});
-const freeFormSessionTokenRequestSchema = z.object({
-  contextDocument: z.string().trim().min(1),
-  summary: z.string().trim().min(1),
-  sessionType: z.literal("free-form"),
-});
-const sessionTokenRequestSchema = z.discriminatedUnion("sessionType", [
-  rolePlaySessionTokenRequestSchema,
-  freeFormSessionTokenRequestSchema,
-]);
-
 export function registerSessionRoutes(app: BackendApp) {
   app.post("/api/sessions/token", async (context) => {
-    const parsedBody = await parseJsonBody(context, sessionTokenRequestSchema);
+    const parsedBody = await parseJsonBody(context, createSessionRequestSchema);
 
     if (!parsedBody.success) {
       return parsedBody.response;
@@ -109,10 +97,14 @@ export function registerSessionRoutes(app: BackendApp) {
 
       token.roomConfig = roomConfig;
 
-      return context.json({
-        roomName,
-        token: await token.toJwt(),
-      });
+      return context.json(
+        createSessionResultSchema.parse({
+          roomName,
+          sessionId: sessionHistoryId,
+          sessionType: parsedBody.data.sessionType,
+          token: await token.toJwt(),
+        }),
+      );
     } catch (error) {
       return context.json(
         {

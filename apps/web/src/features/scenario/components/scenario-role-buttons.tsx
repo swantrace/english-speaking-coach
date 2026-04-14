@@ -1,5 +1,6 @@
 import { Alert, AlertDescription, Button } from "@english-coach/ui";
-import { startTransition, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useCreateRolePlaySessionMutation } from "@/features/session/mutations";
 import type { ScenarioCharacterView } from "../types";
 
 interface ScenarioRoleButtonsProps {
@@ -8,7 +9,16 @@ interface ScenarioRoleButtonsProps {
 }
 
 export function ScenarioRoleButtons({ characters, scenarioId }: ScenarioRoleButtonsProps) {
-  const [selectedRoleIndex, setSelectedRoleIndex] = useState<0 | 1 | null>(null);
+  const navigate = useNavigate();
+  const createRolePlaySessionMutation = useCreateRolePlaySessionMutation({
+    onSuccess: (result) =>
+      navigate({
+        params: result.liveRoute.params,
+        to: result.liveRoute.to,
+      }),
+  });
+
+  const activeRoleIndex = createRolePlaySessionMutation.variables?.selectedCharacterIndex ?? null;
 
   return (
     <div className="space-y-4">
@@ -21,29 +31,27 @@ export function ScenarioRoleButtons({ characters, scenarioId }: ScenarioRoleButt
             <h3 className="mt-3 text-xl text-slate-950">{character.name}</h3>
             <p className="mt-3 text-sm leading-6 text-slate-600">{character.description}</p>
             <Button
+              disabled={createRolePlaySessionMutation.isPending}
               className="mt-5 w-full"
               onClick={() =>
-                startTransition(() => {
-                  setSelectedRoleIndex(character.index);
+                createRolePlaySessionMutation.mutate({
+                  scenarioId,
+                  selectedCharacterIndex: character.index,
                 })
               }
               type="button"
             >
-              Practice as {character.name}
+              {createRolePlaySessionMutation.isPending && activeRoleIndex === character.index
+                ? `Starting ${character.name}...`
+                : `Practice as ${character.name}`}
             </Button>
           </article>
         ))}
       </div>
 
-      {selectedRoleIndex !== null ? (
-        <Alert>
-          <AlertDescription>
-            Temporary stub: this selection is ready to feed the future session-start payload with{" "}
-            <code>
-              {JSON.stringify({ scenarioId, selectedCharacterIndex: selectedRoleIndex, sessionType: "role-play" })}
-            </code>
-            . Live session creation will be wired in the next slice.
-          </AlertDescription>
+      {createRolePlaySessionMutation.error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{createRolePlaySessionMutation.error.message}</AlertDescription>
         </Alert>
       ) : null}
     </div>

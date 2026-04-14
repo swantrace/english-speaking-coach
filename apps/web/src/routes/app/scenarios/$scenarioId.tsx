@@ -26,7 +26,7 @@ function RouteComponent() {
             <Link to="/app/scenarios">Back to scenarios</Link>
           </Button>
         }
-        description="Review the setting, dialogue goals, and both roles before the live practice handoff is connected in the next round."
+        description="Review the setting, dialogue goals, and both roles, then start the role-play session directly from this page."
         eyebrow="Scenario Detail"
         title="Scenario detail"
       />
@@ -55,7 +55,7 @@ function RouteComponent() {
           <ScenarioHero scenario={scenarioDetailQuery.data} />
 
           <PageSection
-            description="These two roles come directly from the scenario contract and are the future input for live role-play session creation."
+            description="These two roles come directly from the scenario contract and now hand off into the shared role-play session creation flow."
             title="Choose your role"
           >
             <ScenarioRoleButtons

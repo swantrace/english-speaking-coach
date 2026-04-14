@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { knowledgePointDetailSchema } from "./list";
 
 export const jobEventsConnectedEvent = "connected";
 export const jobEventsHeartbeatEvent = "heartbeat";

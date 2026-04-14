@@ -4,6 +4,8 @@ import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
 
+export * from "./session/dto";
+
 /** Step 2: session type discriminator */
 export const sessionTypeSchema = z.enum(sessionTypeValues);
 export type SessionType = z.infer<typeof sessionTypeSchema>;
