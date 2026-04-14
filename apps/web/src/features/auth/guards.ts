@@ -1,6 +1,4 @@
-import type { AccessState, AuthUser } from "./types";
-
-export type AccessArea = "public" | "auth" | "pending" | "rejected" | "student_app" | "admin_app";
+import type { AccessArea, AccessState, AuthUser } from "./types";
 
 export function resolveAccessState(user: AuthUser | null | undefined): AccessState {
   if (!user) {

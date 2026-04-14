@@ -19,8 +19,8 @@ import {
 
 export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario-generate";
 
-import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
-import { scenarios } from "@english-coach/database/schema";
+import { db, migrateDatabase, sqlite } from "@english-coach/database";
+import { scenarios, submissionJobs, submissions } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { z } from "zod";
@@ -148,6 +148,7 @@ async function saveScenarioGenerateSnapshot(message: ScenarioGenerateProgressMes
   await db
     .insert(submissionJobs)
     .values({
+      kind: message.kind,
       cursor: message.cursor,
       error: message.error,
       jobId: message.jobId,

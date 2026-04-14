@@ -10,11 +10,12 @@ import { getAuthenticatedUser, parseJsonBody } from "../http/context";
 const rolePlaySessionTokenRequestSchema = z.object({
   scenarioId: z.string().min(1),
   selectedCharacterIndex: z.number().int().min(0).max(1),
-  sessionType: z.literal(sessionTypeSchema.enum["role-play"]),
+  sessionType: z.literal("role-play"),
 });
 const freeFormSessionTokenRequestSchema = z.object({
   contextDocument: z.string().trim().min(1),
-  sessionType: z.literal(sessionTypeSchema.enum["free-form"]),
+  summary: z.string().trim().min(1),
+  sessionType: z.literal("free-form"),
 });
 const sessionTokenRequestSchema = z.discriminatedUnion("sessionType", [
   rolePlaySessionTokenRequestSchema,
@@ -72,6 +73,7 @@ export function registerSessionRoutes(app: BackendApp) {
 
       await db.insert(freeFormContexts).values({
         content: parsedBody.data.contextDocument,
+        summary: parsedBody.data.summary,
         createdAt: startedAt,
         id: freeFormContextId,
       });

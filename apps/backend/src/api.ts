@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { AppVariables } from "./http/context";
 import { attachRequestSession, registerAccessPolicies } from "./http/guards";
-import { authTrustedOrigins } from "./lib/auth/options";
+import { authTrustedOrigins } from "./lib/auth";
 import { knowledgeGenerateWorker } from "./lib/queues/knowledge.generate";
 import { knowledgeOccurrenceResolveWorker } from "./lib/queues/knowledge-occurrence.resolve";
 import { scenarioGenerateWorker } from "./lib/queues/scenario.generate";

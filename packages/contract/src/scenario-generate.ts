@@ -45,7 +45,6 @@ const adminScenarioWriteBaseSchema = createInsertSchema(scenarios, {
 }).omit({
   createdAt: true,
   id: true,
-  isPendingReview: true,
   updatedAt: true,
 });
 

@@ -135,6 +135,7 @@ async function saveKnowledgeGenerateSnapshot(message: KnowledgeGenerateProgressM
   await db
     .insert(submissionJobs)
     .values({
+      kind: message.kind,
       cursor: message.cursor,
       error: message.error,
       jobId: message.jobId,

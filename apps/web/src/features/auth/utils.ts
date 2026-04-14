@@ -1,7 +1,5 @@
-import type { AccessState, AuthUser, UserRole, UserStatus } from "./types";
-
-const USER_ROLES = ["student", "admin"] as const satisfies readonly UserRole[];
-const USER_STATUSES = ["pending", "approved", "rejected", "deleted"] as const satisfies readonly UserStatus[];
+import { type UserRole, type UserStatus, userRoleValues, userStatusValues } from "@english-coach/domain";
+import type { AccessState, AuthUser } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -12,11 +10,11 @@ function getOptionalString(value: unknown) {
 }
 
 function isUserRole(value: unknown): value is UserRole {
-  return typeof value === "string" && USER_ROLES.includes(value as UserRole);
+  return typeof value === "string" && userRoleValues.includes(value as UserRole);
 }
 
 function isUserStatus(value: unknown): value is UserStatus {
-  return typeof value === "string" && USER_STATUSES.includes(value as UserStatus);
+  return typeof value === "string" && userStatusValues.includes(value as UserStatus);
 }
 
 export function normalizeAuthUser(input: unknown): AuthUser | null {

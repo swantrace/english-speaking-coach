@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { knowledgePointDetailSchema } from "./list";
 
 export const jobEventsConnectedEvent = "connected";
 export const jobEventsHeartbeatEvent = "heartbeat";
@@ -7,6 +8,7 @@ export const jobProgressStatuses = ["queued", "started", "completed", "failed"] 
 export const jobProgressStatusSchema = z.enum(jobProgressStatuses);
 
 export const jobProgressMessageSchema = z.object({
+  kind: z.string(),
   error: z.string().optional(),
   jobId: z.string(),
   message: z.string(),

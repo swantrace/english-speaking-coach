@@ -2,6 +2,8 @@ import type { UserRole, UserStatus } from "@english-coach/domain";
 
 export type AccessState = "anonymous" | "student_pending" | "student_rejected" | "student_approved" | "admin_approved";
 
+export type AccessArea = "public" | "auth" | "pending" | "rejected" | "student_app" | "admin_app";
+
 export interface AuthUser {
   id: string;
   email: string;
