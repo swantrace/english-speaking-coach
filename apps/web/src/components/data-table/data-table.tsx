@@ -8,6 +8,7 @@ interface DataTableProps<TData> {
   className?: string;
   getRowClassName?: (row: TData) => string | undefined;
   getRowAriaLabel?: (row: TData) => string | undefined;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData>({
@@ -16,6 +17,7 @@ export function DataTable<TData>({
   className,
   getRowAriaLabel,
   getRowClassName,
+  onRowClick,
 }: DataTableProps<TData>) {
   const visibleColumnCount = table.getVisibleLeafColumns().length;
 
@@ -40,8 +42,9 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   aria-label={getRowAriaLabel?.(row.original)}
-                  className={getRowClassName?.(row.original)}
+                  className={cn(onRowClick ? "cursor-pointer" : undefined, getRowClassName?.(row.original))}
                   key={row.id}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>

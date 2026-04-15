@@ -39,6 +39,17 @@ export interface AdminScenarioListQueryKeyInput {
   tags?: string[];
 }
 
+export interface AdminSubmissionListQueryKeyInput {
+  kind?: string;
+  search?: string;
+}
+
+export interface AdminJobListQueryKeyInput {
+  kind?: string;
+  search?: string;
+  status?: string;
+}
+
 function normalizeTextParam(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "";
@@ -103,6 +114,21 @@ export function normalizeAdminScenarioListQueryKeyInput(input: AdminScenarioList
   };
 }
 
+export function normalizeAdminSubmissionListQueryKeyInput(input: AdminSubmissionListQueryKeyInput = {}) {
+  return {
+    kind: normalizeTextParam(input.kind),
+    search: normalizeTextParam(input.search),
+  };
+}
+
+export function normalizeAdminJobListQueryKeyInput(input: AdminJobListQueryKeyInput = {}) {
+  return {
+    kind: normalizeTextParam(input.kind),
+    search: normalizeTextParam(input.search),
+    status: normalizeTextParam(input.status),
+  };
+}
+
 export const queryKeys = {
   admin: {
     dashboard: () => ["admin", "dashboard"] as const,
@@ -122,6 +148,19 @@ export const queryKeys = {
       detail: (scenarioId: string) => ["admin", "scenarios", "detail", scenarioId] as const,
       list: (input: AdminScenarioListQueryKeyInput = {}) =>
         ["admin", "scenarios", "list", normalizeAdminScenarioListQueryKeyInput(input)] as const,
+    },
+    submissions: {
+      all: () => ["admin", "submissions"] as const,
+      detail: (submissionId: string) => ["admin", "submissions", "detail", submissionId] as const,
+      list: (input: AdminSubmissionListQueryKeyInput = {}) =>
+        ["admin", "submissions", "list", normalizeAdminSubmissionListQueryKeyInput(input)] as const,
+      jobs: {
+        all: (submissionId: string) => ["admin", "submissions", submissionId, "jobs"] as const,
+        detail: (submissionId: string, jobId: string) =>
+          ["admin", "submissions", submissionId, "jobs", "detail", jobId] as const,
+        list: (submissionId: string, input: AdminJobListQueryKeyInput = {}) =>
+          ["admin", "submissions", submissionId, "jobs", "list", normalizeAdminJobListQueryKeyInput(input)] as const,
+      },
     },
     users: {
       all: () => ["admin", "users"] as const,
