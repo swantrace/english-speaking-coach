@@ -6,7 +6,7 @@ interface DataTableSkeletonProps {
 
 export function DataTableSkeleton({ columnCount = 6, rowCount = 8 }: DataTableSkeletonProps) {
   return (
-    <div className="overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-[0.25rem] border border-stone-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <div className="min-w-full">
           <div

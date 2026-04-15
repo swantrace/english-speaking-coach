@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { ArrowLeft, Button } from "@english-coach/ui";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/app/empty-state";
@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageSection } from "@/components/app/page-section";
 import { normalizeSessionHistorySearch, type SessionHistorySearchParams } from "../history-search";
 import { useSessionHistoryListQuery } from "../queries";
-import { SessionHistoryFilters } from "./session-history-filters";
 import { SessionHistoryTable } from "./session-history-table";
 
 interface SessionHistoryPageProps {
@@ -60,25 +59,15 @@ export function SessionHistoryPage({ search }: SessionHistoryPageProps) {
       <PageHeader
         actions={
           <Button asChild variant="outline">
-            <Link to="/app">Back to dashboard</Link>
+            <Link to="/app">
+              <ArrowLeft />
+              Back to dashboard
+            </Link>
           </Button>
         }
         description="Review completed role-play and free-form practice sessions, then open a full post-session breakdown with transcript, feedback, and linked knowledge items."
         eyebrow="Session History"
         title="Past sessions"
-      />
-
-      <SessionHistoryFilters
-        onClear={() => updateSearch({})}
-        onSearchChange={setSearchValue}
-        onSessionTypeChange={(sessionType) =>
-          updateSearch({
-            search: deferredSearchValue.trim() || undefined,
-            sessionType,
-          })
-        }
-        searchValue={searchValue}
-        selectedSessionType={normalizedSearch.sessionType}
       />
 
       {sessionListQuery.isPending ? (
@@ -120,6 +109,15 @@ export function SessionHistoryPage({ search }: SessionHistoryPageProps) {
                 to: "/app/sessions/$sessionId",
               })
             }
+            onSearchChange={setSearchValue}
+            onSessionTypeChange={(sessionType) =>
+              updateSearch({
+                search: deferredSearchValue.trim() || undefined,
+                sessionType,
+              })
+            }
+            searchValue={searchValue}
+            selectedSessionType={normalizedSearch.sessionType}
           />
         </PageSection>
       ) : null}

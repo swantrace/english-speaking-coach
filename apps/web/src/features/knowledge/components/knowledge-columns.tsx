@@ -1,5 +1,6 @@
 import { Badge } from "@english-coach/ui";
 import type { ColumnDef } from "@tanstack/react-table";
+import { includesSelectedValues } from "@/components/data-table/filter-fns";
 import { formatDate } from "@/lib/dates";
 import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
 import type { KnowledgeListItemView } from "../types";
@@ -9,19 +10,22 @@ function renderNullableValue(value: string | null) {
 }
 
 export function createKnowledgeColumns(): ColumnDef<KnowledgeListItemView>[] {
+  const multiValueFilter = includesSelectedValues<KnowledgeListItemView>();
+
   return [
     {
       accessorKey: "pattern",
       header: "Pattern",
       cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="font-medium text-slate-950">{row.original.pattern}</p>
+        <div className="max-w-[20rem] space-y-1">
+          <p className="truncate font-medium text-slate-950">{row.original.pattern}</p>
           <p className="text-sm text-slate-500">{formatDate(row.original.firstLearnedAt)}</p>
         </div>
       ),
     },
     {
       accessorKey: "syntaxRole",
+      filterFn: multiValueFilter,
       header: "Syntax role",
       cell: ({ row }) => (
         <Badge variant="outline">
@@ -31,6 +35,7 @@ export function createKnowledgeColumns(): ColumnDef<KnowledgeListItemView>[] {
     },
     {
       accessorKey: "fixednessLevel",
+      filterFn: multiValueFilter,
       header: "Fixedness",
       cell: ({ row }) => (
         <span className="text-sm text-slate-700">
@@ -40,6 +45,7 @@ export function createKnowledgeColumns(): ColumnDef<KnowledgeListItemView>[] {
     },
     {
       accessorKey: "communicativeFunction",
+      filterFn: multiValueFilter,
       header: "Communicative function",
       cell: ({ row }) => (
         <span className="text-sm text-slate-700">

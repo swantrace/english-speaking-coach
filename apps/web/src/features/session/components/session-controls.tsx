@@ -11,7 +11,7 @@ export function SessionControls({ bootstrap }: SessionControlsProps) {
   const setSidePanelOpen = useSessionRuntimeStore((state) => state.setSidePanelOpen);
 
   return (
-    <section className="flex flex-col gap-3 rounded-[1.75rem] border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <section className="flex flex-col gap-3 rounded-[0.25rem] border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="text-sm font-medium text-slate-950">Live practice controls</p>
         <p className="mt-1 text-sm text-slate-600">

@@ -18,6 +18,7 @@ export interface RowAction<TData> {
 export interface BulkAction<TData> {
   label: string;
   action: (selectedRows: TData[]) => void | Promise<void>;
+  disabled?: boolean;
   isDestructive?: boolean;
   confirmation?: ActionConfirmation;
 }
@@ -45,13 +46,16 @@ export type DataTablePaginationMeta = {
 export type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  emptyState?: React.ReactNode;
   facetedFilters?: DataTableFacetedFilterConfig[];
   rowActions?: RowAction<TData>[];
   bulkActions?: BulkAction<TData>[];
   initialColumnVisibility?: VisibilityState;
   isPending?: boolean;
   paginationMeta?: DataTablePaginationMeta;
+  pageSizeOptions?: number[];
   searchPlaceholder?: string;
+  selectionLabel?: string;
   globalFilter?: string;
   onGlobalFilterChange?: (value: string) => void;
   sorting?: SortingState;

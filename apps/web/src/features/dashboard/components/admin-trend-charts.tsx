@@ -21,7 +21,7 @@ interface AdminTrendChartsProps {
 
 function ChartCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <article className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+    <article className="rounded-[0.25rem] border border-stone-200 bg-white p-5 shadow-sm">
       <div className="mb-5 space-y-1">
         <h3 className="text-lg text-slate-950">{title}</h3>
         <p className="text-sm leading-6 text-slate-600">{description}</p>
@@ -34,7 +34,7 @@ function ChartCard({ title, description, children }: { title: string; descriptio
 export function AdminTrendCharts({ usageTrend, contentTrend }: AdminTrendChartsProps) {
   if (usageTrend.length === 0 && contentTrend.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-stone-300 bg-stone-50/70">
+      <div className="rounded-[0.25rem] border border-dashed border-stone-300 bg-stone-50/70">
         <DataTableEmpty
           description="The admin dashboard summary is available, but the backend has not exposed trend series for this environment yet."
           title="No trend data available"

@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { ArrowUpRight, Button, Link2, OctagonX } from "@english-coach/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -22,15 +22,18 @@ export function OccurrenceActions({ occurrence }: OccurrenceActionsProps) {
     <>
       <div className="flex flex-wrap justify-end gap-2">
         <Button
+          className="shadow-none"
           disabled={isPending}
           onClick={() => setIsLinkDialogOpen(true)}
           size="sm"
           type="button"
-          variant="outline"
+          variant="default"
         >
+          <Link2 />
           Link existing
         </Button>
         <Button
+          className="shadow-none"
           disabled={isPending}
           onClick={() =>
             void navigate({
@@ -45,9 +48,11 @@ export function OccurrenceActions({ occurrence }: OccurrenceActionsProps) {
           type="button"
           variant="outline"
         >
+          <ArrowUpRight />
           Create new
         </Button>
         <Button disabled={isPending} onClick={() => setIsRejectOpen(true)} size="sm" type="button" variant="ghost">
+          <OctagonX />
           Reject
         </Button>
       </div>

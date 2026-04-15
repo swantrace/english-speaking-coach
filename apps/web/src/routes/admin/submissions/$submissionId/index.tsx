@@ -1,11 +1,10 @@
-import { Button } from "@english-coach/ui";
+import { ArrowLeft, Button } from "@english-coach/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ErrorState } from "@/components/app/error-state";
 import { PageHeader } from "@/components/app/page-header";
 import { PageSection } from "@/components/app/page-section";
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton";
-import { JobFilters } from "@/features/admin/jobs/job-filters";
 import { normalizeAdminJobSearch, parseAdminJobSearch } from "@/features/admin/jobs/job-search";
 import { JobsTable } from "@/features/admin/jobs/jobs-table";
 import { useAdminSubmissionJobsQuery } from "@/features/admin/jobs/queries";
@@ -85,30 +84,16 @@ function RouteComponent() {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline">
-              <Link to="/admin/submissions">Back to submissions</Link>
+              <Link to="/admin/submissions">
+                <ArrowLeft />
+                Back to submissions
+              </Link>
             </Button>
           </div>
         }
         description={`${submission?.kindLabel ?? "Submission"} jobs. Live stream status: ${connectionState}.`}
         eyebrow="Admin Monitoring"
         title={`Submission ${submissionTitle}`}
-      />
-
-      <JobFilters
-        kind={normalizedSearch.kind}
-        onClear={() => {
-          setSearchValue("");
-          updateSearch({
-            kind: undefined,
-            search: undefined,
-            status: undefined,
-          });
-        }}
-        onKindChange={(kind) => updateSearch({ kind })}
-        onSearchChange={setSearchValue}
-        onStatusChange={(status) => updateSearch({ status })}
-        searchValue={searchValue}
-        status={normalizedSearch.status}
       />
 
       {jobsQuery.isPending ? (
@@ -134,12 +119,18 @@ function RouteComponent() {
         >
           <JobsTable
             items={jobsQuery.data.items}
+            kind={normalizedSearch.kind}
+            onKindChange={(kind) => updateSearch({ kind })}
             onRowClick={(job) =>
               void navigate({
                 params: { jobId: job.jobId, submissionId },
                 to: "/admin/submissions/$submissionId/jobs/$jobId",
               })
             }
+            onSearchChange={setSearchValue}
+            onStatusChange={(status) => updateSearch({ status })}
+            searchValue={searchValue}
+            status={normalizedSearch.status}
           />
         </PageSection>
       ) : null}

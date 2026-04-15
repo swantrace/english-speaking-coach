@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { ArrowLeft, Button } from "@english-coach/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ErrorState } from "@/components/app/error-state";
@@ -8,7 +8,6 @@ import { PageSection } from "@/components/app/page-section";
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton";
 import { getAdminUsersPageSize } from "@/features/admin/users/api";
 import { useAdminUsersQuery } from "@/features/admin/users/queries";
-import { UserFilters } from "@/features/admin/users/user-filters";
 import { normalizeAdminUserSearch, parseAdminUserSearch } from "@/features/admin/users/user-search";
 import { UserTable } from "@/features/admin/users/user-table";
 
@@ -78,37 +77,15 @@ function RouteComponent() {
       <PageHeader
         actions={
           <Button asChild variant="outline">
-            <Link to="/admin">Back to overview</Link>
+            <Link to="/admin">
+              <ArrowLeft />
+              Back to overview
+            </Link>
           </Button>
         }
         description="Review account state, filter by role or status, and take conservative row-level admin actions."
         eyebrow="Admin Users"
         title="User management"
-      />
-
-      <UserFilters
-        onClear={() => {
-          setSearchValue("");
-          updateSearch({});
-        }}
-        onRoleChange={(role) =>
-          updateSearch({
-            role,
-            search: searchValue.trim() || undefined,
-            status: normalizedSearch.status,
-          })
-        }
-        onSearchChange={setSearchValue}
-        onStatusChange={(status) =>
-          updateSearch({
-            role: normalizedSearch.role,
-            search: searchValue.trim() || undefined,
-            status,
-          })
-        }
-        role={normalizedSearch.role}
-        searchValue={searchValue}
-        status={normalizedSearch.status}
       />
 
       {userQuery.isPending ? (
@@ -143,8 +120,26 @@ function RouteComponent() {
                 status: normalizedSearch.status,
               })
             }
+            onRoleChange={(role) =>
+              updateSearch({
+                role,
+                search: searchValue.trim() || undefined,
+                status: normalizedSearch.status,
+              })
+            }
+            onSearchChange={setSearchValue}
+            onStatusChange={(status) =>
+              updateSearch({
+                role: normalizedSearch.role,
+                search: searchValue.trim() || undefined,
+                status,
+              })
+            }
             page={userQuery.data.page}
             pageSize={userQuery.data.pageSize}
+            role={normalizedSearch.role}
+            searchValue={searchValue}
+            status={normalizedSearch.status}
             total={userQuery.data.total}
             totalPages={userQuery.data.totalPages}
           />

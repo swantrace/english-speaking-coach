@@ -22,7 +22,7 @@ export function DataTable<TData>({
   const visibleColumnCount = table.getVisibleLeafColumns().length;
 
   return (
-    <div className={cn("overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-sm", className)}>
+    <div className={cn("overflow-hidden rounded-[0.25rem] border border-stone-200 bg-white shadow-sm", className)}>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>

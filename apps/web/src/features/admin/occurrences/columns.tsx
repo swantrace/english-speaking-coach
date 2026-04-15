@@ -1,5 +1,6 @@
 import { Badge } from "@english-coach/ui";
 import type { ColumnDef } from "@tanstack/react-table";
+import { includesSelectedValues } from "@/components/data-table/filter-fns";
 import { OccurrenceActions } from "./occurrence-actions";
 import type { ProposedOccurrenceListItemView } from "./types";
 
@@ -19,13 +20,15 @@ function OccurrenceStatusBadge({ status }: { status: ProposedOccurrenceListItemV
 }
 
 export function createOccurrenceColumns(): ColumnDef<ProposedOccurrenceListItemView>[] {
+  const multiValueFilter = includesSelectedValues<ProposedOccurrenceListItemView>();
+
   return [
     {
       accessorKey: "proposedPattern",
       header: "Proposed pattern",
       cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="font-medium text-slate-950">{row.original.proposedPattern}</p>
+        <div className="max-w-[20rem] space-y-1">
+          <p className="truncate font-medium text-slate-950">{row.original.proposedPattern}</p>
           <p className="text-sm text-slate-500">{row.original.transcriptTurnLabel}</p>
         </div>
       ),
@@ -33,7 +36,9 @@ export function createOccurrenceColumns(): ColumnDef<ProposedOccurrenceListItemV
     {
       accessorKey: "transcriptExcerpt",
       header: "Transcript excerpt",
-      cell: ({ row }) => <p className="max-w-xl text-sm leading-6 text-slate-700">{row.original.transcriptExcerpt}</p>,
+      cell: ({ row }) => (
+        <p className="line-clamp-2 max-w-xl text-sm leading-6 text-slate-700">{row.original.transcriptExcerpt}</p>
+      ),
     },
     {
       accessorKey: "sessionReference",
@@ -47,11 +52,14 @@ export function createOccurrenceColumns(): ColumnDef<ProposedOccurrenceListItemV
     },
     {
       accessorKey: "status",
+      filterFn: multiValueFilter,
       header: "Status",
       cell: ({ row }) => <OccurrenceStatusBadge status={row.original.status} />,
     },
     {
       id: "actions",
+      enableHiding: false,
+      enableSorting: false,
       header: "",
       cell: ({ row }) => <OccurrenceActions occurrence={row.original} />,
     },

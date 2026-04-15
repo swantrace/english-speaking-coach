@@ -1,60 +1,102 @@
-import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@english-coach/ui";
-import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+  type CommunicativeFunction,
+  communicativeFunctionValues,
+  type FixednessLevel,
+  fixednessLevelValues,
+  type SyntaxRole,
+  syntaxRoleValues,
+} from "@english-coach/domain";
+import { DataTable } from "@english-coach/ui";
+import type { ColumnFiltersState } from "@tanstack/react-table";
+import { useMemo } from "react";
+import { buildColumnFilters, getSingleSelectFilterValue } from "@/components/data-table/column-filter-state";
+import { DataTableEmpty } from "@/components/data-table/data-table-empty";
+import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
 import type { KnowledgeListItemView } from "../types";
 import { createKnowledgeColumns } from "./knowledge-columns";
 
 interface KnowledgeTableProps {
+  communicativeFunction?: CommunicativeFunction;
+  fixednessLevel?: FixednessLevel;
   items: KnowledgeListItemView[];
+  searchValue: string;
+  syntaxRole?: SyntaxRole;
+  onCommunicativeFunctionChange: (value?: CommunicativeFunction) => void;
+  onFixednessLevelChange: (value?: FixednessLevel) => void;
   onRowClick: (item: KnowledgeListItemView) => void;
+  onSearchChange: (value: string) => void;
+  onSyntaxRoleChange: (value?: SyntaxRole) => void;
 }
 
-export function KnowledgeTable({ items, onRowClick }: KnowledgeTableProps) {
-  const table = useReactTable({
-    columns: createKnowledgeColumns(),
-    data: items,
-    getCoreRowModel: getCoreRowModel(),
-  });
+export function KnowledgeTable({
+  communicativeFunction,
+  fixednessLevel,
+  items,
+  searchValue,
+  syntaxRole,
+  onCommunicativeFunctionChange,
+  onFixednessLevelChange,
+  onRowClick,
+  onSearchChange,
+  onSyntaxRoleChange,
+}: KnowledgeTableProps) {
+  const columnFilters = useMemo(
+    () =>
+      buildColumnFilters([
+        { id: "syntaxRole", value: syntaxRole },
+        { id: "fixednessLevel", value: fixednessLevel },
+        { id: "communicativeFunction", value: communicativeFunction },
+      ]),
+    [communicativeFunction, fixednessLevel, syntaxRole],
+  );
+
+  function handleColumnFiltersChange(nextFilters: ColumnFiltersState) {
+    onSyntaxRoleChange(getSingleSelectFilterValue<SyntaxRole>(nextFilters, "syntaxRole"));
+    onFixednessLevelChange(getSingleSelectFilterValue<FixednessLevel>(nextFilters, "fixednessLevel"));
+    onCommunicativeFunctionChange(
+      getSingleSelectFilterValue<CommunicativeFunction>(nextFilters, "communicativeFunction"),
+    );
+  }
 
   return (
-    <div className="overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow
-                aria-label={`Open ${row.original.pattern}`}
-                className={cn("cursor-pointer transition-colors hover:bg-stone-50")}
-                key={row.id}
-                onClick={() => onRowClick(row.original)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onRowClick(row.original);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <DataTable
+      columnFilters={columnFilters}
+      columns={createKnowledgeColumns()}
+      data={items}
+      emptyState={
+        <DataTableEmpty
+          description="Try a broader search or clear one of the category filters. Only learner-visible knowledge items are shown here."
+          title="No knowledge items match these filters"
+        />
+      }
+      facetedFilters={[
+        {
+          columnId: "syntaxRole",
+          options: Object.fromEntries(syntaxRoleValues.map((value) => [value, { label: formatSyntaxRole(value) }])),
+          title: "Syntax role",
+        },
+        {
+          columnId: "fixednessLevel",
+          options: Object.fromEntries(
+            fixednessLevelValues.map((value) => [value, { label: formatFixednessLevel(value) }]),
+          ),
+          title: "Fixedness",
+        },
+        {
+          columnId: "communicativeFunction",
+          options: Object.fromEntries(
+            communicativeFunctionValues.map((value) => [value, { label: formatCommunicativeFunction(value) }]),
+          ),
+          title: "Function",
+        },
+      ]}
+      getRowAriaLabel={(row) => `Open ${row.pattern}`}
+      getRowClassName={() => "cursor-pointer transition-colors hover:bg-stone-50"}
+      globalFilter={searchValue}
+      onColumnFiltersChange={handleColumnFiltersChange}
+      onGlobalFilterChange={onSearchChange}
+      onRowClick={onRowClick}
+      searchPlaceholder="Search knowledge patterns"
+    />
   );
 }

@@ -20,7 +20,7 @@ export function OccurrenceFilters({
   const hasFilters = Boolean(searchValue.trim() || status);
 
   return (
-    <section className="space-y-4 rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+    <section className="space-y-4 rounded-[0.25rem] border border-stone-200 bg-white p-5 shadow-sm">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_14rem_auto]">
         <SearchInput onChange={onSearchChange} placeholder="Search by pattern or transcript" value={searchValue} />
 

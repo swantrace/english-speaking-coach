@@ -20,7 +20,7 @@ export function SessionHistoryFilters({
   const hasActiveFilters = searchValue.trim().length > 0 || Boolean(selectedSessionType);
 
   return (
-    <section className="rounded-[1.75rem] border border-stone-200 bg-white p-4 shadow-sm">
+    <section className="rounded-[0.25rem] border border-stone-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex-1">
           <SearchInput

@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { Button, Files, Plus } from "@english-coach/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ErrorState } from "@/components/app/error-state";
@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageSection } from "@/components/app/page-section";
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton";
 import { normalizeAdminKnowledgeSearch, parseAdminKnowledgeSearch } from "@/features/knowledge/admin-knowledge-search";
-import { AdminKnowledgeFilters } from "@/features/knowledge/components/admin-knowledge-filters";
 import { AdminKnowledgeTable } from "@/features/knowledge/components/admin-knowledge-table";
 import { useAdminKnowledgeListQuery } from "@/features/knowledge/queries";
 
@@ -82,58 +81,22 @@ function RouteComponent() {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline">
-              <Link to="/admin">Back to overview</Link>
+              <Link to="/admin/knowledge/bulk">
+                <Files />
+                Bulk generate
+              </Link>
             </Button>
-            <Button asChild variant="outline">
-              <Link to="/admin/knowledge/bulk">Bulk generate</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/admin/knowledge/new">New knowledge item</Link>
+            <Button asChild className="bg-slate-950 !text-white hover:bg-slate-800 [&_*]:!text-white">
+              <Link className="!text-white" to="/admin/knowledge/new">
+                <Plus />
+                New knowledge item
+              </Link>
             </Button>
           </div>
         }
         description="Browse admin-managed knowledge items, review pending content, and take row-level or bulk actions."
         eyebrow="Admin Knowledge"
         title="Knowledge management"
-      />
-
-      <AdminKnowledgeFilters
-        communicativeFunction={normalizedSearch.communicativeFunction}
-        fixednessLevel={normalizedSearch.fixednessLevel}
-        onClear={() => {
-          setSearchValue("");
-          updateSearch({
-            communicativeFunction: undefined,
-            fixednessLevel: undefined,
-            reviewStatus: undefined,
-            search: undefined,
-            syntaxRole: undefined,
-          });
-        }}
-        onCommunicativeFunctionChange={(communicativeFunction) =>
-          updateSearch({
-            communicativeFunction: communicativeFunction as typeof normalizedSearch.communicativeFunction,
-          })
-        }
-        onFixednessLevelChange={(fixednessLevel) =>
-          updateSearch({
-            fixednessLevel: fixednessLevel as typeof normalizedSearch.fixednessLevel,
-          })
-        }
-        onReviewStatusChange={(reviewStatus) =>
-          updateSearch({
-            reviewStatus,
-          })
-        }
-        onSearchChange={setSearchValue}
-        onSyntaxRoleChange={(syntaxRole) =>
-          updateSearch({
-            syntaxRole: syntaxRole as typeof normalizedSearch.syntaxRole,
-          })
-        }
-        reviewStatus={normalizedSearch.reviewStatus}
-        searchValue={searchValue}
-        syntaxRole={normalizedSearch.syntaxRole}
       />
 
       {knowledgeQuery.isPending ? (
@@ -164,7 +127,35 @@ function RouteComponent() {
           } found.`}
           title="Knowledge items"
         >
-          <AdminKnowledgeTable items={knowledgeQuery.data.items} />
+          <AdminKnowledgeTable
+            communicativeFunction={normalizedSearch.communicativeFunction}
+            fixednessLevel={normalizedSearch.fixednessLevel}
+            items={knowledgeQuery.data.items}
+            onCommunicativeFunctionChange={(communicativeFunction) =>
+              updateSearch({
+                communicativeFunction: communicativeFunction as typeof normalizedSearch.communicativeFunction,
+              })
+            }
+            onFixednessLevelChange={(fixednessLevel) =>
+              updateSearch({
+                fixednessLevel: fixednessLevel as typeof normalizedSearch.fixednessLevel,
+              })
+            }
+            onReviewStatusChange={(reviewStatus) =>
+              updateSearch({
+                reviewStatus,
+              })
+            }
+            onSearchChange={setSearchValue}
+            onSyntaxRoleChange={(syntaxRole) =>
+              updateSearch({
+                syntaxRole: syntaxRole as typeof normalizedSearch.syntaxRole,
+              })
+            }
+            reviewStatus={normalizedSearch.reviewStatus}
+            searchValue={searchValue}
+            syntaxRole={normalizedSearch.syntaxRole}
+          />
         </PageSection>
       ) : null}
     </div>

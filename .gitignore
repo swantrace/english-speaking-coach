@@ -18,3 +18,4 @@ data/*.sqlite-wal
 .github
 apps/ui-reference
 apps/web-archive
+apps/shadcn-admin

@@ -18,7 +18,7 @@ export function TranscriptTurn({ turn }: TranscriptTurnProps) {
       <div className={cn("max-w-[88%] space-y-2", isUser ? "items-end" : "items-start")}>
         <div
           className={cn(
-            "rounded-[1.75rem] border px-4 py-3 shadow-sm",
+            "rounded-[0.25rem] border px-4 py-3 shadow-sm",
             isUser ? "border-slate-900 bg-slate-950 text-white" : "border-stone-200 bg-white text-slate-900",
           )}
         >

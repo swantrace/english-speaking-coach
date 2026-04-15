@@ -15,18 +15,22 @@ function DataTableViewOptions<TData>({ table, disabled }: { table: Table<TData>;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="ml-auto hidden h-8 lg:flex" disabled={disabled} size="sm" variant="outline">
-          <Settings2 />
+        <Button className="ml-auto h-9 rounded-xl px-3 shadow-none" disabled={disabled} size="sm" variant="outline">
+          <Settings2 className="size-4" />
           View
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[150px]">
+      <DropdownMenuContent align="end" className="w-44 rounded-xl border-border/70 shadow-lg">
         <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
           .filter((column) => typeof column.accessorFn !== "undefined" && column.getCanHide())
-          .map((column) => (
+          .map((column) => {
+            const header = column.columnDef.header;
+            const label = typeof header === "string" ? header : column.id;
+
+            return (
             <DropdownMenuCheckboxItem
               key={column.id}
               checked={column.getIsVisible()}
@@ -34,9 +38,10 @@ function DataTableViewOptions<TData>({ table, disabled }: { table: Table<TData>;
               disabled={disabled}
               onCheckedChange={(value) => column.toggleVisibility(Boolean(value))}
             >
-              {column.id}
+              {label}
             </DropdownMenuCheckboxItem>
-          ))}
+            );
+          })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

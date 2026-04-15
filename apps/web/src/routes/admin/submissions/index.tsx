@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { ArrowLeft, Button } from "@english-coach/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ErrorState } from "@/components/app/error-state";
@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/app/page-header";
 import { PageSection } from "@/components/app/page-section";
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton";
 import { useAdminSubmissionsQuery } from "@/features/admin/submissions/queries";
-import { SubmissionFilters } from "@/features/admin/submissions/submission-filters";
 import {
   normalizeAdminSubmissionSearch,
   parseAdminSubmissionSearch,
@@ -71,27 +70,16 @@ function RouteComponent() {
         actions={
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline">
-              <Link to="/admin">Back to overview</Link>
+              <Link to="/admin">
+                <ArrowLeft />
+                Back to overview
+              </Link>
             </Button>
           </div>
         }
         description="Monitor bulk generation and session analysis submissions, then open each submission to inspect the jobs running underneath it."
         eyebrow="Admin Monitoring"
         title="Submissions"
-      />
-
-      <SubmissionFilters
-        kind={normalizedSearch.kind}
-        onClear={() => {
-          setSearchValue("");
-          updateSearch({
-            kind: undefined,
-            search: undefined,
-          });
-        }}
-        onKindChange={(kind) => updateSearch({ kind })}
-        onSearchChange={setSearchValue}
-        searchValue={searchValue}
       />
 
       {submissionsQuery.isPending ? (
@@ -121,12 +109,16 @@ function RouteComponent() {
         >
           <SubmissionsTable
             items={submissionsQuery.data.items}
+            kind={normalizedSearch.kind}
+            onKindChange={(kind) => updateSearch({ kind })}
             onRowClick={(submission) =>
               void navigate({
                 params: { submissionId: submission.id },
                 to: "/admin/submissions/$submissionId",
               })
             }
+            onSearchChange={setSearchValue}
+            searchValue={searchValue}
           />
         </PageSection>
       ) : null}

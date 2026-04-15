@@ -1,11 +1,10 @@
-import { Button } from "@english-coach/ui";
+import { ArrowLeft, Button } from "@english-coach/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ErrorState } from "@/components/app/error-state";
 import { PageHeader } from "@/components/app/page-header";
 import { PageSection } from "@/components/app/page-section";
 import { DataTableSkeleton } from "@/components/data-table/data-table-skeleton";
-import { OccurrenceFilters } from "@/features/admin/occurrences/occurrence-filters";
 import { normalizeOccurrenceSearch, parseOccurrenceSearch } from "@/features/admin/occurrences/occurrence-search";
 import { OccurrenceTable } from "@/features/admin/occurrences/occurrence-table";
 import { useAdminOccurrenceListQuery } from "@/features/admin/occurrences/queries";
@@ -67,26 +66,15 @@ function RouteComponent() {
       <PageHeader
         actions={
           <Button asChild variant="outline">
-            <Link to="/admin/knowledge">Back to knowledge</Link>
+            <Link to="/admin/knowledge">
+              <ArrowLeft />
+              Back to knowledge
+            </Link>
           </Button>
         }
         description="Review proposed knowledge occurrences from practice sessions and resolve each one by linking, drafting, or rejecting."
         eyebrow="Admin Occurrences"
         title="Occurrence review"
-      />
-
-      <OccurrenceFilters
-        onClear={() => {
-          setSearchValue("");
-          updateSearch({
-            search: undefined,
-            status: "proposed",
-          });
-        }}
-        onSearchChange={setSearchValue}
-        onStatusChange={(status) => updateSearch({ status })}
-        searchValue={searchValue}
-        status={normalizedSearch.status}
       />
 
       {occurrenceQuery.isPending ? (
@@ -117,7 +105,13 @@ function RouteComponent() {
           } found.`}
           title="Occurrences"
         >
-          <OccurrenceTable items={occurrenceQuery.data.items} />
+          <OccurrenceTable
+            items={occurrenceQuery.data.items}
+            onSearchChange={setSearchValue}
+            onStatusChange={(status) => updateSearch({ status })}
+            searchValue={searchValue}
+            status={normalizedSearch.status}
+          />
         </PageSection>
       ) : null}
     </div>

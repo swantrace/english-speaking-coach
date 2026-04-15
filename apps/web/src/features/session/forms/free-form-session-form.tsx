@@ -21,7 +21,7 @@ export function FreeFormSessionForm({ onSuccess }: FreeFormSessionFormProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_20rem]">
-      <PageSection className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm" title="Session context">
+      <PageSection className="rounded-[0.25rem] border border-stone-200 bg-white p-6 shadow-sm" title="Session context">
         <Form {...form}>
           <form className="space-y-5" onSubmit={handleSubmit}>
             {createSessionMutation.error ? (
@@ -57,7 +57,7 @@ export function FreeFormSessionForm({ onSuccess }: FreeFormSessionFormProps) {
       </PageSection>
 
       <PageSection
-        className="rounded-[1.75rem] border border-stone-200 bg-stone-50 p-6 shadow-sm"
+        className="rounded-[0.25rem] border border-stone-200 bg-stone-50 p-6 shadow-sm"
         description="Keep this lightweight. The goal here is to bridge setup into a live session, not to front-load configuration."
         title="Good inputs for this mode"
       >

@@ -1,27 +1,32 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import { includesSelectedValues } from "@/components/data-table/filter-fns";
 import { JobStatusBadge } from "@/components/status/job-status-badge";
 import { truncateText } from "@/lib/format";
 import type { AdminJobListItemView } from "./types";
 
 export function createAdminJobColumns(): ColumnDef<AdminJobListItemView>[] {
+  const multiValueFilter = includesSelectedValues<AdminJobListItemView>();
+
   return [
     {
       accessorKey: "jobId",
       header: "Job",
       cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="font-mono text-sm text-slate-950">{row.original.jobId}</p>
+        <div className="max-w-[17rem] space-y-1">
+          <p className="truncate font-mono text-sm text-slate-950">{row.original.jobId}</p>
           <p className="text-xs text-slate-500">{row.original.kindLabel}</p>
         </div>
       ),
     },
     {
       accessorKey: "kind",
+      filterFn: multiValueFilter,
       header: "Kind",
       cell: ({ row }) => <span className="text-sm text-slate-700">{row.original.kindLabel}</span>,
     },
     {
       accessorKey: "status",
+      filterFn: multiValueFilter,
       header: "Status",
       cell: ({ row }) => <JobStatusBadge status={row.original.status} />,
     },

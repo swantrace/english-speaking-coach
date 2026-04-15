@@ -36,7 +36,7 @@ export function AdminKnowledgeFilters({
   );
 
   return (
-    <section className="space-y-4 rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+    <section className="space-y-4 rounded-[0.25rem] border border-stone-200 bg-white p-5 shadow-sm">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_12rem_14rem_14rem_16rem_auto]">
         <SearchInput onChange={onSearchChange} placeholder="Search by pattern" value={searchValue} />
 

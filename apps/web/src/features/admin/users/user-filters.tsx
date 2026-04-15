@@ -24,7 +24,7 @@ export function UserFilters({
   const hasFilters = Boolean(searchValue.trim() || role || status);
 
   return (
-    <section className="rounded-[1.75rem] border border-stone-200 bg-white p-5 shadow-sm">
+    <section className="rounded-[0.25rem] border border-stone-200 bg-white p-5 shadow-sm">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_auto]">
         <SearchInput onChange={onSearchChange} placeholder="Search by email" value={searchValue} />
 

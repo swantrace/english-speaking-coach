@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { ArrowLeft, Button } from "@english-coach/ui";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/app/empty-state";
@@ -9,7 +9,6 @@ import { PageSection } from "@/components/app/page-section";
 import { type KnowledgeSearchParams, normalizeKnowledgeSearch } from "../knowledge-search";
 import { filterKnowledgeListItems } from "../mappers";
 import { useKnowledgeListQuery } from "../queries";
-import { KnowledgeFilters } from "./knowledge-filters";
 import { KnowledgeTable } from "./knowledge-table";
 
 interface KnowledgeListPageProps {
@@ -68,45 +67,15 @@ export function KnowledgeListPage({ search }: KnowledgeListPageProps) {
       <PageHeader
         actions={
           <Button asChild variant="outline">
-            <Link to="/app">Back to dashboard</Link>
+            <Link to="/app">
+              <ArrowLeft />
+              Back to dashboard
+            </Link>
           </Button>
         }
         description="Browse learner-visible knowledge items gathered from completed sessions, then open each item for senses and cross-session occurrences."
         eyebrow="Knowledge"
         title="Knowledge review"
-      />
-
-      <KnowledgeFilters
-        communicativeFunction={normalizedSearch.communicativeFunction}
-        fixednessLevel={normalizedSearch.fixednessLevel}
-        onClear={() => updateSearch({})}
-        onCommunicativeFunctionChange={(communicativeFunction) =>
-          updateSearch({
-            communicativeFunction,
-            fixednessLevel: normalizedSearch.fixednessLevel,
-            search: deferredSearchValue.trim() || undefined,
-            syntaxRole: normalizedSearch.syntaxRole,
-          })
-        }
-        onFixednessLevelChange={(fixednessLevel) =>
-          updateSearch({
-            communicativeFunction: normalizedSearch.communicativeFunction,
-            fixednessLevel,
-            search: deferredSearchValue.trim() || undefined,
-            syntaxRole: normalizedSearch.syntaxRole,
-          })
-        }
-        onSearchChange={setSearchValue}
-        onSyntaxRoleChange={(syntaxRole) =>
-          updateSearch({
-            communicativeFunction: normalizedSearch.communicativeFunction,
-            fixednessLevel: normalizedSearch.fixednessLevel,
-            search: deferredSearchValue.trim() || undefined,
-            syntaxRole,
-          })
-        }
-        searchValue={searchValue}
-        syntaxRole={normalizedSearch.syntaxRole}
       />
 
       {knowledgeListQuery.isPending ? (
@@ -141,13 +110,42 @@ export function KnowledgeListPage({ search }: KnowledgeListPageProps) {
           title="Learned patterns"
         >
           <KnowledgeTable
+            communicativeFunction={normalizedSearch.communicativeFunction}
+            fixednessLevel={normalizedSearch.fixednessLevel}
             items={filteredItems}
+            onCommunicativeFunctionChange={(communicativeFunction) =>
+              updateSearch({
+                communicativeFunction,
+                fixednessLevel: normalizedSearch.fixednessLevel,
+                search: deferredSearchValue.trim() || undefined,
+                syntaxRole: normalizedSearch.syntaxRole,
+              })
+            }
+            onFixednessLevelChange={(fixednessLevel) =>
+              updateSearch({
+                communicativeFunction: normalizedSearch.communicativeFunction,
+                fixednessLevel,
+                search: deferredSearchValue.trim() || undefined,
+                syntaxRole: normalizedSearch.syntaxRole,
+              })
+            }
             onRowClick={(item) =>
               void navigate({
                 params: { knowledgeId: item.id },
                 to: "/app/knowledge/$knowledgeId",
               })
             }
+            onSearchChange={setSearchValue}
+            onSyntaxRoleChange={(syntaxRole) =>
+              updateSearch({
+                communicativeFunction: normalizedSearch.communicativeFunction,
+                fixednessLevel: normalizedSearch.fixednessLevel,
+                search: deferredSearchValue.trim() || undefined,
+                syntaxRole,
+              })
+            }
+            searchValue={searchValue}
+            syntaxRole={normalizedSearch.syntaxRole}
           />
         </PageSection>
       ) : null}

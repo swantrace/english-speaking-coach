@@ -22,7 +22,7 @@ export function SessionSummaryCard({ session }: SessionSummaryCardProps) {
       </div>
 
       <PageSection
-        className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm"
+        className="rounded-[0.25rem] border border-stone-200 bg-white p-6 shadow-sm"
         description="This learner-facing summary comes from the completed session review payload and stays separate from raw persistence details."
         title="Performance summary"
       >
@@ -31,7 +31,7 @@ export function SessionSummaryCard({ session }: SessionSummaryCardProps) {
 
       {plainContext ? (
         <PageSection
-          className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm"
+          className="rounded-[0.25rem] border border-stone-200 bg-white p-6 shadow-sm"
           description="Free-form context is shown conservatively as plain text so the review page remains resilient to partial rich-text payloads."
           title="Practice context"
         >

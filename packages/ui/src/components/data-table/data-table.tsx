@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Checkbox } from "../checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table";
+import { DataTableBulkActions } from "./data-table-bulk-actions";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableRowActions } from "./data-table-row-actions";
@@ -34,13 +35,16 @@ const fuzzyFilter: FilterFn<unknown> = (row, columnId, value, addMeta) => {
 function DataTable<TData, TValue>({
   columns: baseColumns,
   data,
+  emptyState,
   facetedFilters,
   rowActions,
   bulkActions,
   initialColumnVisibility,
   isPending,
   paginationMeta,
+  pageSizeOptions,
   searchPlaceholder,
+  selectionLabel,
   globalFilter: controlledGlobalFilter,
   onGlobalFilterChange,
   sorting: controlledSorting,
@@ -140,7 +144,7 @@ function DataTable<TData, TValue>({
       columnFilters: localColumnFilters,
       globalFilter: localGlobalFilter,
     },
-    enableRowSelection: true,
+    enableRowSelection: Boolean(bulkActions?.length),
     onRowSelectionChange: setRowSelection,
     onSortingChange: (updater) => {
       const nextValue = typeof updater === "function" ? updater(localSorting) : updater;
@@ -166,12 +170,12 @@ function DataTable<TData, TValue>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: Boolean(paginationMeta),
+    pageCount: paginationMeta?.pages,
   });
 
   return (
     <div className="flex flex-col gap-4">
       <DataTableToolbar
-        bulkActions={bulkActions}
         facetedFilters={facetedFilters}
         globalFilter={localGlobalFilter}
         onGlobalFilterChange={(value) => {
@@ -185,7 +189,7 @@ function DataTable<TData, TValue>({
         searchPlaceholder={searchPlaceholder}
         table={table}
       />
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-background shadow-xs">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -227,15 +231,16 @@ function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell className="h-24 text-center" colSpan={columns.length}>
-                  {isPending ? "Loading..." : "No results."}
+                <TableCell className="p-0" colSpan={columns.length}>
+                  {emptyState ?? <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">{isPending ? "Loading..." : "No results."}</div>}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination isPending={isPending} paginationMeta={paginationMeta} table={table} />
+      <DataTablePagination isPending={isPending} pageSizeOptions={pageSizeOptions} paginationMeta={paginationMeta} table={table} />
+      {bulkActions?.length ? <DataTableBulkActions actions={bulkActions} selectionLabel={selectionLabel} table={table} /> : null}
     </div>
   );
 }

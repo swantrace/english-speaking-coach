@@ -64,6 +64,26 @@ export {
 	useFormField,
 } from "./src/components/form";
 export { Input } from "./src/components/input";
+export {
+	ArrowLeft,
+	ArrowUpRight,
+	BookOpen,
+	ChevronLeft,
+	ChevronRight,
+	ClipboardList,
+	Files,
+	FolderKanban,
+	History,
+	Home,
+	LayoutDashboard,
+	Link2,
+	MoreHorizontal,
+	OctagonX,
+	PanelLeft,
+	Plus,
+	Sparkles,
+	Users,
+} from "./src/components/icons";
 export { Label } from "./src/components/label";
 export {
 	Popover,

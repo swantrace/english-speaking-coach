@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  MoreHorizontal,
 } from "@english-coach/ui";
 import { Fragment, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -60,14 +61,18 @@ export function RowActionsDropdown({ actions, triggerLabel = "Open actions" }: R
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="size-8" disabled={isPending} size="icon" type="button" variant="ghost">
-            <span aria-hidden className="text-base leading-none text-slate-600">
-              ...
-            </span>
+          <Button
+            className="size-8 rounded-lg border border-transparent shadow-none hover:border-stone-200 hover:bg-stone-100"
+            disabled={isPending}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <MoreHorizontal className="size-4 text-slate-600" />
             <span className="sr-only">{triggerLabel}</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-52 rounded-xl border-stone-200 shadow-lg">
           {visibleActions.map((action, index) => (
             <Fragment key={action.key}>
               {action.separatorBefore && index > 0 ? <DropdownMenuSeparator /> : null}

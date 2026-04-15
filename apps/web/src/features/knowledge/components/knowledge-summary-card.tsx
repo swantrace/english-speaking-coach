@@ -15,7 +15,7 @@ function formatMetaValue(value: string | null) {
 export function KnowledgeSummaryCard({ knowledge }: KnowledgeSummaryCardProps) {
   return (
     <section className="space-y-5">
-      <article className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+      <article className="rounded-[0.25rem] border border-stone-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">

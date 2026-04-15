@@ -1,31 +1,20 @@
-import { Badge, Checkbox } from "@english-coach/ui";
+import { Badge } from "@english-coach/ui";
 import type { ColumnDef } from "@tanstack/react-table";
+import { includesSelectedValues } from "@/components/data-table/filter-fns";
 import { ReviewStatusBadge } from "@/components/status/review-status-badge";
 import type { AdminScenarioListItemView } from "../types";
 import { AdminScenarioActions } from "./admin-scenario-actions";
 
 export function createAdminScenarioColumns(): ColumnDef<AdminScenarioListItemView>[] {
+  const multiValueFilter = includesSelectedValues<AdminScenarioListItemView>();
+
   return [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() ? "indeterminate" : false)}
-          onCheckedChange={(checked) => table.toggleAllPageRowsSelected(Boolean(checked))}
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox checked={row.getIsSelected()} onCheckedChange={(checked) => row.toggleSelected(Boolean(checked))} />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
     {
       accessorKey: "title",
       header: "Scenario title",
       cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="font-medium text-slate-950">{row.original.title}</p>
+        <div className="max-w-[22rem] space-y-1">
+          <p className="truncate font-medium text-slate-950">{row.original.title}</p>
           <p className="text-sm text-slate-500">Updated {row.original.updatedAtLabel}</p>
         </div>
       ),
@@ -33,10 +22,13 @@ export function createAdminScenarioColumns(): ColumnDef<AdminScenarioListItemVie
     {
       accessorKey: "settingPreview",
       header: "Setting",
-      cell: ({ row }) => <p className="max-w-xl text-sm leading-6 text-slate-700">{row.original.settingPreview}</p>,
+      cell: ({ row }) => (
+        <p className="line-clamp-2 max-w-xl text-sm leading-6 text-slate-700">{row.original.settingPreview}</p>
+      ),
     },
     {
       accessorKey: "tags",
+      filterFn: multiValueFilter,
       header: "Tags",
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-2">
@@ -54,6 +46,7 @@ export function createAdminScenarioColumns(): ColumnDef<AdminScenarioListItemVie
     },
     {
       accessorKey: "reviewStatus",
+      filterFn: multiValueFilter,
       header: "Review status",
       cell: ({ row }) => <ReviewStatusBadge isPendingReview={row.original.isPendingReview} />,
     },
@@ -64,6 +57,8 @@ export function createAdminScenarioColumns(): ColumnDef<AdminScenarioListItemVie
     },
     {
       id: "actions",
+      enableHiding: false,
+      enableSorting: false,
       header: "",
       cell: ({ row }) => (
         <div className="flex justify-end">

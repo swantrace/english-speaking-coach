@@ -8,7 +8,7 @@ interface FormSectionProps extends PropsWithChildren {
 
 export function FormSection({ actions, children, description, title }: FormSectionProps) {
   return (
-    <section className="rounded-[1.75rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <section className="rounded-[0.25rem] border border-stone-200 bg-white p-6 shadow-sm">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-xl text-slate-950">{title}</h2>

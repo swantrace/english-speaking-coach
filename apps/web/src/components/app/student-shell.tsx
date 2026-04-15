@@ -1,30 +1,18 @@
-import { Link } from "@tanstack/react-router";
+import { BookOpen, History, Home, Sparkles } from "@english-coach/ui";
 import type { PropsWithChildren } from "react";
-import { AppShell } from "./app-shell";
+import { DashboardShell } from "./dashboard-shell";
 
 export function StudentShell({ children }: PropsWithChildren) {
   return (
-    <AppShell
-      title="Learning"
-      description="Foundation layout for learner-facing routes and future session flows."
-      navigation={
-        <nav className="flex flex-col gap-2 text-sm text-slate-700">
-          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/app">
-            Home
-          </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/app/sessions">
-            Sessions
-          </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/app/scenarios">
-            Scenarios
-          </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/app/knowledge">
-            Knowledge
-          </Link>
-        </nav>
-      }
+    <DashboardShell
+      items={[
+        { icon: Home, label: "Home", to: "/app" },
+        { icon: History, label: "Sessions", to: "/app/sessions" },
+        { icon: Sparkles, label: "Scenarios", to: "/app/scenarios" },
+        { icon: BookOpen, label: "Knowledge", to: "/app/knowledge" },
+      ]}
     >
       {children}
-    </AppShell>
+    </DashboardShell>
   );
 }

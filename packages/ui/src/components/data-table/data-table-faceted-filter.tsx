@@ -29,21 +29,27 @@ function DataTableFacetedFilter<TData, TValue>({ column, title, options }: DataT
   const header = column.columnDef.header;
   const filterTitle = title ?? (typeof header === "string" ? header : column.id);
 
-  const filterOptions = Array.from(facets.keys()).map((value: string) => {
-    const option = options?.[value];
-
-    return {
-      value,
-      label: option?.label ?? value,
-      icon: option?.icon,
-    };
-  });
+  const filterOptions = options
+    ? Object.entries(options).map(([value, option]) => ({
+        icon: option.icon,
+        label: option.label,
+        value,
+      }))
+    : Array.from(facets.keys()).map((value: string) => ({
+        icon: undefined,
+        label: value,
+        value,
+      }));
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button className="h-8 border-dashed" size="sm" variant="outline">
-          <PlusCircle className="mr-2 size-4" />
+        <Button
+          className="h-9 rounded-xl border-transparent bg-transparent px-3 text-foreground shadow-none hover:border-border/70 hover:bg-accent"
+          size="sm"
+          variant="outline"
+        >
+          <PlusCircle className="size-4" />
           {filterTitle}
           {selectedValues.size > 0 ? (
             <>
@@ -70,9 +76,9 @@ function DataTableFacetedFilter<TData, TValue>({ column, title, options }: DataT
           ) : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[200px] p-0">
+      <PopoverContent align="start" className="w-[240px] rounded-xl border-border/70 p-0 shadow-lg">
         <Command>
-          <CommandInput placeholder={filterTitle} />
+          <CommandInput placeholder={`Search ${String(filterTitle).toLowerCase()}`} />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
