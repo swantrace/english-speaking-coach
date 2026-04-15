@@ -20,6 +20,12 @@ export interface AdminUserListQueryKeyInput {
   status?: string;
 }
 
+export interface AdminScenarioListQueryKeyInput {
+  reviewStatus?: string;
+  search?: string;
+  tags?: string[];
+}
+
 function normalizeTextParam(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "";
@@ -59,9 +65,23 @@ export function normalizeAdminUserListQueryKeyInput(input: AdminUserListQueryKey
   };
 }
 
+export function normalizeAdminScenarioListQueryKeyInput(input: AdminScenarioListQueryKeyInput = {}) {
+  return {
+    reviewStatus: normalizeTextParam(input.reviewStatus),
+    search: normalizeTextParam(input.search),
+    tags: normalizeTagParams(input.tags),
+  };
+}
+
 export const queryKeys = {
   admin: {
     dashboard: () => ["admin", "dashboard"] as const,
+    scenarios: {
+      all: () => ["admin", "scenarios"] as const,
+      detail: (scenarioId: string) => ["admin", "scenarios", "detail", scenarioId] as const,
+      list: (input: AdminScenarioListQueryKeyInput = {}) =>
+        ["admin", "scenarios", "list", normalizeAdminScenarioListQueryKeyInput(input)] as const,
+    },
     users: {
       all: () => ["admin", "users"] as const,
       list: (input: AdminUserListQueryKeyInput = {}) =>

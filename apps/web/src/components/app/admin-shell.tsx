@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { PropsWithChildren } from "react";
+import { normalizeAdminScenarioSearch } from "@/features/scenario/admin-scenario-search";
 import { AppShell } from "./app-shell";
 
 export function AdminShell({ children }: PropsWithChildren) {
@@ -15,7 +16,11 @@ export function AdminShell({ children }: PropsWithChildren) {
           <Link className="rounded-full px-3 py-2 hover:bg-stone-100" search={{ page: 1 }} to="/admin/users">
             Users
           </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin/scenarios">
+          <Link
+            className="rounded-full px-3 py-2 hover:bg-stone-100"
+            search={normalizeAdminScenarioSearch({})}
+            to="/admin/scenarios"
+          >
             Scenarios
           </Link>
           <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin/knowledge">

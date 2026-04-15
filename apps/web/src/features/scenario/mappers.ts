@@ -1,5 +1,21 @@
 import type { Scenario } from "@english-coach/contract";
-import type { ExampleDialogueTurn, ScenarioDetail, ScenarioGoalView, ScenarioListItem } from "./types";
+import { formatDate } from "@/lib/dates";
+import { truncateText } from "@/lib/format";
+import type {
+  AdminScenarioDetailView,
+  AdminScenarioListItemView,
+  AdminScenarioWritePayload,
+  BulkScenarioSubmissionView,
+  ExampleDialogueTurn,
+  ScenarioDetail,
+  ScenarioFormValues,
+  ScenarioGoalView,
+  ScenarioListItem,
+} from "./types";
+
+function createId() {
+  return crypto.randomUUID();
+}
 
 function normalizeTags(tags: string[]) {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right));
@@ -71,5 +87,151 @@ export function mapScenarioToDetail(scenario: Scenario): ScenarioDetail {
     setting: scenario.setting,
     tags: normalizeTags(scenario.tags),
     title: scenario.title,
+  };
+}
+
+export function createEmptyScenarioFormValues(): ScenarioFormValues {
+  return {
+    characters: [
+      { description: "", name: "" },
+      { description: "", name: "" },
+    ],
+    exampleDialogue: [
+      {
+        characterIndex: 0,
+        id: createId(),
+        text: "",
+      },
+    ],
+    goals: {
+      goals: [
+        {
+          description: "",
+          id: createId(),
+          logic: {
+            required_intents: [],
+            required_slots: [],
+          },
+          optional: false,
+        },
+      ],
+      intents: [],
+      slots: [],
+    },
+    imageUrl: "",
+    isPendingReview: true,
+    setting: "",
+    tags: [],
+    title: "",
+  };
+}
+
+export function mapScenarioToAdminListItem(scenario: Scenario): AdminScenarioListItemView {
+  return {
+    id: scenario.id,
+    isPendingReview: scenario.isPendingReview,
+    reviewStatus: scenario.isPendingReview ? "pendingReview" : "approved",
+    settingPreview: truncateText(scenario.setting, 120),
+    tags: normalizeTags(scenario.tags),
+    title: scenario.title,
+    updatedAt: scenario.updatedAt,
+    updatedAtLabel: formatDate(scenario.updatedAt),
+  };
+}
+
+export function mapScenarioToAdminDetail(scenario: Scenario): AdminScenarioDetailView {
+  return {
+    ...mapScenarioToDetail(scenario),
+    createdAt: scenario.createdAt,
+    createdAtLabel: formatDate(scenario.createdAt),
+    isPendingReview: scenario.isPendingReview,
+    reviewStatus: scenario.isPendingReview ? "pendingReview" : "approved",
+    updatedAt: scenario.updatedAt,
+    updatedAtLabel: formatDate(scenario.updatedAt),
+  };
+}
+
+export function mapScenarioDetailToFormValues(scenario: AdminScenarioDetailView): ScenarioFormValues {
+  return {
+    characters: [
+      {
+        description: scenario.characters[0].description,
+        name: scenario.characters[0].name,
+      },
+      {
+        description: scenario.characters[1].description,
+        name: scenario.characters[1].name,
+      },
+    ],
+    exampleDialogue: scenario.exampleDialogue.map((turn) => ({
+      characterIndex: turn.characterIndex,
+      id: turn.id,
+      text: turn.text,
+    })),
+    goals: {
+      goals: scenario.goals.map((goal) => ({
+        description: goal.description,
+        id: goal.id,
+        logic: {
+          required_intents: goal.requiredIntents,
+          required_slots: goal.requiredSlots,
+        },
+        optional: goal.optional,
+      })),
+      intents: scenario.goalDimensions.intents,
+      slots: scenario.goalDimensions.slots,
+    },
+    imageUrl: scenario.imageUrl ?? "",
+    isPendingReview: scenario.isPendingReview,
+    setting: scenario.setting,
+    tags: scenario.tags,
+    title: scenario.title,
+  };
+}
+
+export function mapScenarioFormValuesToAdminPayload(values: ScenarioFormValues): AdminScenarioWritePayload {
+  return {
+    characters: values.characters,
+    exampleDialogue: values.exampleDialogue.map((turn) => ({
+      characterIndex: turn.characterIndex,
+      text: turn.text.trim(),
+    })),
+    goals: {
+      goals: values.goals.goals.map((goal) => ({
+        description: goal.description.trim(),
+        id: goal.id.trim(),
+        logic: {
+          required_intents: normalizeTags(goal.logic.required_intents),
+          required_slots: normalizeTags(goal.logic.required_slots),
+        },
+        optional: goal.optional,
+      })),
+      intents: normalizeTags(values.goals.intents),
+      slots: normalizeTags(values.goals.slots),
+    },
+    imageUrl: values.imageUrl.trim() || null,
+    isPendingReview: values.isPendingReview,
+    setting: values.setting.trim(),
+    tags: normalizeTags(values.tags),
+    title: values.title.trim(),
+  };
+}
+
+export function mapBulkScenarioSubmission(response: {
+  submissionId: string;
+  summary: {
+    enqueueFailed: number;
+    invalid: number;
+    queued: number;
+    total: number;
+  };
+}): BulkScenarioSubmissionView {
+  return {
+    enqueueFailedCount: response.summary.enqueueFailed,
+    invalidCount: response.summary.invalid,
+    kind: "scenario.generate",
+    queuedCount: response.summary.queued,
+    submissionId: response.submissionId,
+    totalCount: response.summary.total,
   };
 }

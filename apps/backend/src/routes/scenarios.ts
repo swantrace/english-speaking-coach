@@ -213,8 +213,10 @@ export function registerScenarioRoutes(app: BackendApp) {
       exampleDialogue: parsedBody.data.exampleDialogue,
       goals: parsedBody.data.goals,
       id: scenarioId,
-      isPendingReview: false,
+      imageUrl: parsedBody.data.imageUrl ?? null,
+      isPendingReview: parsedBody.data.isPendingReview ?? false,
       setting: parsedBody.data.setting,
+      tags: parsedBody.data.tags ?? [],
       title: parsedBody.data.title,
       updatedAt: now,
     });
@@ -246,8 +248,10 @@ export function registerScenarioRoutes(app: BackendApp) {
         characters: parsedBody.data.characters ?? existingScenario.characters,
         exampleDialogue: parsedBody.data.exampleDialogue ?? existingScenario.exampleDialogue,
         goals: parsedBody.data.goals ?? existingScenario.goals,
+        imageUrl: parsedBody.data.imageUrl === undefined ? existingScenario.imageUrl : parsedBody.data.imageUrl,
         isPendingReview: parsedBody.data.isPendingReview ?? existingScenario.isPendingReview,
         setting: parsedBody.data.setting ?? existingScenario.setting,
+        tags: parsedBody.data.tags ?? existingScenario.tags,
         title: parsedBody.data.title ?? existingScenario.title,
         updatedAt: now,
       })
