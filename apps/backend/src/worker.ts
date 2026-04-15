@@ -1,12 +1,14 @@
+import { knowledgeGenerateQueueName } from "@english-coach/contract/knowledge";
+import { scenarioGenerateQueueName } from "@english-coach/contract/scenario";
 import {
   inConversationAnalysisQueueName,
   lingAnalysisQueueName,
   sessionCompletionQueueName,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { inConversationAnalysisWorker } from "./lib/queues/in-conversation.analysis";
-import { knowledgeGenerateQueueName, knowledgeGenerateWorker } from "./lib/queues/knowledge.generate";
+import { knowledgeGenerateWorker } from "./lib/queues/knowledge.generate";
 import { lingAnalysisWorker } from "./lib/queues/ling.analysis";
-import { scenarioGenerateQueueName, scenarioGenerateWorker } from "./lib/queues/scenario.generate";
+import { scenarioGenerateWorker } from "./lib/queues/scenario.generate";
 import { sessionCompletionWorker } from "./lib/queues/session.completion";
 
 void knowledgeGenerateWorker;

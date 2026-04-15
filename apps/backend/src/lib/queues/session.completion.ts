@@ -4,7 +4,7 @@ import {
   sessionCompletionJobName,
   sessionCompletionQueueName,
   sessionCompletionRequestSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { sessionHistory } from "@english-coach/database/schema";
 import { Queue, Worker } from "bullmq";

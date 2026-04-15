@@ -1,4 +1,8 @@
-import { historyDetailResponseSchema, historyListQuerySchema, sessionTypeSchema } from "@english-coach/contract";
+import {
+  historyDetailResponseSchema,
+  historyListQuerySchema,
+  sessionTypeSchema,
+} from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import {
   freeFormContexts,

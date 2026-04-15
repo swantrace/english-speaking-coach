@@ -11,7 +11,7 @@ import {
   knowledgeGenerateSubmissionKind,
   knowledgeGenerateSubmissionResponseSchema,
   knowledgeGenerateSubmissionTransportRequestSchema,
-} from "@english-coach/contract/knowledge-generate";
+} from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import { submissionJobs, submissions } from "@english-coach/database/schema";
 import { desc, eq, inArray } from "drizzle-orm";

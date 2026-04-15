@@ -6,4 +6,4 @@ export type {
   AdminUserListItem,
   AdminUserListQuery,
   AdminUserListResponse,
-} from "../admin";
+} from "./schemas";

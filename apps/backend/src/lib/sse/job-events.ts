@@ -3,7 +3,7 @@ import {
   jobEventsConnectedEvent,
   jobEventsHeartbeatEvent,
   jobEventsSystemMessageSchema,
-} from "@english-coach/contract/job-events";
+} from "@english-coach/contract/common";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 

@@ -1,12 +1,13 @@
 import {
+  adminScenarioCreateSchema,
   adminScenarioListQuerySchema,
   adminScenarioListResponseSchema,
+  adminScenarioUpdateSchema,
   learnerScenarioListQuerySchema,
   scenarioCursorResponseSchema,
   scenarioPageResponseSchema,
   scenarioSchema,
-} from "@english-coach/contract";
-import { adminScenarioCreateSchema, adminScenarioUpdateSchema } from "@english-coach/contract/scenario-generate";
+} from "@english-coach/contract/scenario";
 import { db } from "@english-coach/database";
 import { scenarios } from "@english-coach/database/schema";
 import { and, asc, count, desc, eq, like, lt, or } from "drizzle-orm";

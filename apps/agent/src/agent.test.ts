@@ -1,4 +1,5 @@
-import type { Scenario, SessionAgentBootstrap, SessionCompletionJob } from "@english-coach/contract";
+import type { Scenario } from "@english-coach/contract/scenario";
+import type { SessionAgentBootstrap, SessionCompletionJob } from "@english-coach/contract/session";
 import { llm } from "@livekit/agents";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -58,14 +59,13 @@ const scenario: Scenario = {
     slots: ["dish_name"],
   },
   id: "scenario-1",
-  reviewStatus: "approved",
-  reviewedAt: null,
-  reviewedByUserId: null,
+  isPendingReview: false,
   setting: "A small neighborhood restaurant.",
-  source: "admin",
-  submissionId: null,
   title: "Restaurant practice",
   updatedAt: new Date().toISOString(),
+  tags: [],
+  imageUrl: null,
+  deletedAt: null,
 };
 
 const freeFormBootstrap: Extract<SessionAgentBootstrap, { sessionType: "free-form" }> = {

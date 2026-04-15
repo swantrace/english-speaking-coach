@@ -1,5 +1,5 @@
-import { type GoalProgressPacket, goalProgressPacketSchema, type Scenario } from "@english-coach/contract";
-
+import { type GoalProgressPacket, goalProgressPacketSchema } from "@english-coach/contract";
+import type { Scenario } from "@english-coach/contract/scenario";
 import type { RolePlayRuntimeConfig } from "./types";
 
 type GoalState = {

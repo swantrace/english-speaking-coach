@@ -3,7 +3,7 @@ import {
   type JobProgressMessage,
   type JobProgressStatus,
   jobProgressMessageSchema,
-} from "@english-coach/contract/job-events";
+} from "@english-coach/contract/common";
 import type IORedis from "ioredis";
 
 export type { JobProgressMessage, JobProgressStatus };

@@ -1,4 +1,4 @@
-import { type GoalProgressPacket, sessionDispatchMetadataSchema } from "@english-coach/contract";
+import { type GoalProgressPacket, sessionDispatchMetadataSchema } from "@english-coach/contract/session";
 
 import { Agent } from "./Agent";
 import { fetchSessionBootstrapFromBackend } from "./runtime-services";

@@ -1,4 +1,9 @@
-import { defaultListPage, defaultListPageSize, maxListPageSize, pageListQuerySchema } from "@english-coach/contract";
+import {
+  defaultListPage,
+  defaultListPageSize,
+  maxListPageSize,
+  pageListQuerySchema,
+} from "@english-coach/contract/common";
 import type { z } from "zod";
 import { z as zod } from "zod";
 

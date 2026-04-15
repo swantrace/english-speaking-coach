@@ -1,7 +1,24 @@
-export type { AdminScenarioListQuery, AdminScenarioListResponse, ScenarioPageResponse } from "../list";
 export type {
   AdminScenarioCreate,
+  AdminScenarioListQuery,
+  AdminScenarioListResponse,
   AdminScenarioUpdate,
+  LearnerScenarioListQuery,
+  Scenario,
+  ScenarioCharacter,
+  ScenarioCursorResponse,
+  ScenarioDialogueTurn,
+  ScenarioGenerateEventsQuery,
+  ScenarioGenerateJobUpdate,
+  ScenarioGenerateSubmissionBody,
+  ScenarioGenerateSubmissionItem,
   ScenarioGenerateSubmissionResponse,
-} from "../scenario-generate";
-export type { Scenario } from "../session";
+  ScenarioGenerateSubmissionResult,
+  ScenarioGenerateSubmissionTransportBody,
+  ScenarioGenerateSubmissionTransportRequest,
+  ScenarioGoal,
+  ScenarioGoals,
+  ScenarioListQuery,
+  ScenarioPageResponse,
+  ScenarioPendingReview,
+} from "./schemas";

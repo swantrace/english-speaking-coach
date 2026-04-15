@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { adminKnowledgeItemCreateSchema } from "@english-coach/contract/knowledge-generate";
+import { adminKnowledgeCreateSchema } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import { knowledgeItems, sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";
@@ -17,7 +17,7 @@ export const knowledgeOccurrenceResolveQueue = new Queue<{ occurrenceId: string 
   },
 );
 
-const generatedKnowledgeItemSchema = adminKnowledgeItemCreateSchema.omit({
+const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema.omit({
   isPendingReview: true,
 });
 

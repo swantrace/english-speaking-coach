@@ -1,4 +1,5 @@
-import { scenarioSchema, sessionAgentBootstrapSchema } from "@english-coach/contract";
+import { scenarioSchema } from "@english-coach/contract/scenario";
+import { sessionAgentBootstrapSchema } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { freeFormContexts, scenarios, sessionHistory } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";

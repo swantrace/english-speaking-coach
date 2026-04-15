@@ -1,4 +1,4 @@
-import type { GoalProgressPacket, SessionAgentBootstrap } from "@english-coach/contract";
+import type { GoalProgressPacket, SessionAgentBootstrap } from "@english-coach/contract/session";
 import type { JobContext, llm } from "@livekit/agents";
 
 export type WorkerFeedbackChatContext = Pick<llm.ChatContext, "items" | "addMessage">;

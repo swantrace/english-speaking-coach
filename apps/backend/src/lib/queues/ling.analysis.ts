@@ -1,14 +1,11 @@
 import { openai } from "@ai-sdk/openai";
+import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "@english-coach/contract/common";
 import {
-  communicativeFunctions,
-  errorDimensions,
-  fixednessLevels,
   type LingAnalysisResult,
   lingAnalysisJobName,
   lingAnalysisQueueName,
   lingAnalysisResultSchema,
-  syntaxRoles,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { knowledgeItems, sessionErrors, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";

@@ -1,4 +1,4 @@
-import type { SessionTurn } from "@english-coach/contract";
+import type { SessionTurn } from "@english-coach/contract/session";
 import type { llm } from "@livekit/agents";
 
 export function toSessionTurns(chatContext: Pick<llm.ChatContext, "items">): SessionTurn[] {

@@ -2,8 +2,8 @@ import {
   knowledgePointDetailSchema,
   knowledgePointListQuerySchema,
   knowledgePointListResponseSchema,
-  sessionTypeSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/knowledge";
+import { sessionTypeSchema } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import {
   knowledgeItems,

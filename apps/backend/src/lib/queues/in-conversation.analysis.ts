@@ -12,7 +12,7 @@ import {
   type SessionTurn,
   uiUpdatePacketSchema,
   workerFeedbackPacketSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { sessionKnowledgePointOccurrences, sessionTranscripts } from "@english-coach/database/schema";
 import { generateText, Output } from "ai";

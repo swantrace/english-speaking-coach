@@ -3,7 +3,7 @@ import {
   inConversationAnalysisJobSchema,
   sessionCompletionJobName,
   workerFeedbackPacketSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { llm, voice } from "@livekit/agents";
 import { z } from "zod";
 

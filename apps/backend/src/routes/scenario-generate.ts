@@ -8,7 +8,7 @@ import {
   scenarioGenerateSubmissionItemSchema,
   scenarioGenerateSubmissionResponseSchema,
   scenarioGenerateSubmissionTransportRequestSchema,
-} from "@english-coach/contract/scenario-generate";
+} from "@english-coach/contract/scenario";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import {

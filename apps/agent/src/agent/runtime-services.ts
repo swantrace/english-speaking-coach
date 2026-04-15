@@ -3,7 +3,7 @@ import {
   type SessionCompletionJob,
   sessionAgentBootstrapSchema,
   sessionCompletionQueueName,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { Queue } from "bullmq";
 
 import { getAgentApiToken, getBackendBaseUrl, getRedisConnectionOptions, getRequiredEnv } from "../env";

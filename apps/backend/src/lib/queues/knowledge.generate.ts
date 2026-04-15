@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import {
-  adminKnowledgeItemCreateSchema,
+  adminKnowledgeCreateSchema,
   type KnowledgeGenerateJobUpdate,
   type KnowledgeGenerateSubmissionItem,
   knowledgeGenerateProgressChannel as knowledgeGenerateDefaultProgressChannel,
@@ -9,9 +9,9 @@ import {
   knowledgeGenerateUpdatedEvent,
   knowledgeGenerateJobName as sharedKnowledgeGenerateJobName,
   knowledgeGenerateQueueName as sharedKnowledgeGenerateQueueName,
-} from "@english-coach/contract/knowledge-generate";
+} from "@english-coach/contract/knowledge";
 
-export { knowledgeGenerateUpdatedEvent } from "@english-coach/contract/knowledge-generate";
+export { knowledgeGenerateUpdatedEvent } from "@english-coach/contract/knowledge";
 
 import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
@@ -47,7 +47,7 @@ export const knowledgeGenerateQueue = new Queue<KnowledgeGenerateJobData>(knowle
   connection: producerRedis,
 });
 
-const generatedKnowledgeItemSchema = adminKnowledgeItemCreateSchema
+const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema
   .omit({
     isPendingReview: true,
   })

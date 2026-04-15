@@ -11,7 +11,7 @@ import {
   adminRejectKnowledgeOccurrenceSchema,
   assignKnowledgeOccurrenceSchema,
   resolveKnowledgeOccurrenceSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import {
   knowledgeItems,

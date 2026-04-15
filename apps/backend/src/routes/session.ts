@@ -4,7 +4,7 @@ import {
   endSessionResultSchema,
   liveSessionBootstrapSchema,
   sessionDispatchMetadataSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { freeFormContexts, scenarios, sessionHistory } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";

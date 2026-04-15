@@ -1,23 +1,20 @@
 import { openai } from "@ai-sdk/openai";
 import {
+  type ScenarioGenerateJobUpdate,
+  type ScenarioGenerateSubmissionItem,
   scenarioCharacterSchema,
   scenarioDialogueTurnSchema,
-  scenarioGoalsSchema,
-  scenarioSchema,
-} from "@english-coach/contract";
-import type {
-  ScenarioGenerateJobUpdate,
-  ScenarioGenerateSubmissionItem,
-} from "@english-coach/contract/scenario-generate";
-import {
   scenarioGenerateProgressChannel as scenarioGenerateDefaultProgressChannel,
   scenarioGenerateJobUpdateSchema,
   scenarioGenerateSubmissionKind,
+  scenarioGenerateUpdatedEvent,
+  scenarioGoalsSchema,
+  scenarioSchema,
   scenarioGenerateJobName as sharedScenarioGenerateJobName,
   scenarioGenerateQueueName as sharedScenarioGenerateQueueName,
-} from "@english-coach/contract/scenario-generate";
+} from "@english-coach/contract/scenario";
 
-export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario-generate";
+export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario";
 
 import { db, migrateDatabase, sqlite } from "@english-coach/database";
 import { scenarios, submissionJobs, submissions } from "@english-coach/database/schema";
