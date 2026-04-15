@@ -5,7 +5,7 @@ import {
   sessionStatusPacketSchema,
   type UiUpdatePacket,
   uiUpdatePacketSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { type SessionPacketTopic, sessionPacketTopics } from "./topics";
 
 type ParsedSessionPacket =

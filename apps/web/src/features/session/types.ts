@@ -3,7 +3,7 @@ import type {
   LiveSessionBootstrap as ContractLiveSessionBootstrap,
   EndSessionResult,
   GoalProgressPacket,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import type { SelectedCharacterIndex, SessionType, Speaker } from "@english-coach/domain";
 
 export interface SessionLiveRouteTarget {

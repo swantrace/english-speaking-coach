@@ -15,7 +15,7 @@ import {
   historyListResponseSchema,
   type LiveSessionBootstrap,
   liveSessionBootstrapSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { apiClient } from "@/lib/axios";
 import { normalizeHistoryListQueryKeyInput } from "@/lib/query-keys";
 import type { SessionHistoryFilters } from "./types";

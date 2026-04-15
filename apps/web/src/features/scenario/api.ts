@@ -1,16 +1,14 @@
 import {
+  adminScenarioCreateSchema,
   adminScenarioListQuerySchema,
   adminScenarioListResponseSchema,
-  scenarioPageResponseSchema,
-  scenarioSchema,
-} from "@english-coach/contract";
-import {
-  adminScenarioCreateSchema,
   adminScenarioUpdateSchema,
   scenarioGenerateSubmissionResponseSchema,
-} from "@english-coach/contract/scenario-generate";
-import axios from "axios";
-import { apiClient } from "@/lib/axios";
+  scenarioPageResponseSchema,
+  scenarioSchema,
+} from "@english-coach/contract/scenario";
+
+import { apiClient, isAxiosError } from "@/lib/axios";
 import { normalizeAdminScenarioListQueryKeyInput, normalizeScenarioListQueryKeyInput } from "@/lib/query-keys";
 import {
   isPracticeEligibleScenario,
@@ -97,7 +95,7 @@ export async function fetchStudentScenarioDetail(scenarioId: string): Promise<Sc
 }
 
 export function mapScenarioApiError(error: unknown, fallbackMessage: string) {
-  if (axios.isAxiosError(error)) {
+  if (isAxiosError(error)) {
     const responseMessage =
       typeof error.response?.data === "object" &&
       error.response?.data &&

@@ -1,4 +1,4 @@
-import type { AdminKnowledgeOccurrenceStatus } from "@english-coach/contract";
+import type { AdminKnowledgeOccurrenceStatus } from "@english-coach/contract/knowledge";
 
 export interface ProposedOccurrenceListFilters {
   search?: string;

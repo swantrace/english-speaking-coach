@@ -1,4 +1,4 @@
-import type { UiUpdatePacket } from "@english-coach/contract";
+import type { UiUpdatePacket } from "@english-coach/contract/session";
 import type { SessionHint } from "../types";
 
 function getHintLabel(kind: UiUpdatePacket["promptKind"]): SessionHint["label"] {

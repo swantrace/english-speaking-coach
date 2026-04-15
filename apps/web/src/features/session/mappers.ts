@@ -4,7 +4,7 @@ import type {
   CreateSessionResult,
   HistoryDetailResponse,
   HistorySummary,
-} from "@english-coach/contract";
+} from "@english-coach/contract/session";
 import { getDurationSeconds } from "@/lib/dates";
 import type {
   CreateFreeFormSessionFormInput,

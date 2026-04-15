@@ -5,9 +5,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./common": "./src/common/index.ts",
     "./job-events": "./src/job-events.ts",
+    "./knowledge": "./src/knowledge/index.ts",
     "./knowledge-generate": "./src/knowledge-generate.ts",
-    "./scenario-generate": "./src/scenario-generate.ts"
+    "./scenario": "./src/scenario/index.ts",
+    "./scenario-generate": "./src/scenario-generate.ts",
+    "./session": "./src/session/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit"

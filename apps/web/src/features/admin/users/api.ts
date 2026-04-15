@@ -6,7 +6,7 @@ import {
   adminSoftDeleteUserInputSchema,
   adminUserListQuerySchema,
   adminUserListResponseSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/auth";
 import type { UserRole } from "@english-coach/domain";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";

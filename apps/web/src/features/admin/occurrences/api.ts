@@ -3,7 +3,7 @@ import {
   adminKnowledgeOccurrenceListResponseWithStatusSchema,
   adminLinkKnowledgeOccurrenceResponseSchema,
   adminRejectKnowledgeOccurrenceResponseSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/knowledge";
 import { mapKnowledgeApiError } from "@/features/knowledge/api";
 import { apiClient } from "@/lib/axios";
 import { normalizeAdminOccurrenceListQueryKeyInput } from "@/lib/query-keys";

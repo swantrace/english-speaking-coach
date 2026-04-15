@@ -1,9 +1,6 @@
-import {
-  adminDashboardResponseSchema,
-  historyDetailResponseSchema,
-  historyListResponseSchema,
-  knowledgePointListResponseSchema,
-} from "@english-coach/contract";
+import { adminDashboardResponseSchema } from "@english-coach/contract/common";
+import { knowledgePointListResponseSchema } from "@english-coach/contract/knowledge";
+import { historyDetailResponseSchema, historyListResponseSchema } from "@english-coach/contract/session";
 import dayjs from "dayjs";
 import type { z } from "zod";
 import { apiClient } from "@/lib/axios";

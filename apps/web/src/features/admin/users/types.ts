@@ -1,4 +1,4 @@
-import type { AdminUserListItem, AdminUserListResponse } from "@english-coach/contract";
+import type { AdminUserListItem, AdminUserListResponse } from "@english-coach/contract/auth";
 import type { UserRole, UserStatus } from "@english-coach/domain";
 
 export interface AdminUserFilters {

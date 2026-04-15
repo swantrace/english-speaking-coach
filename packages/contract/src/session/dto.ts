@@ -1,6 +1,15 @@
 import { selectedCharacterIndexValues, sessionTypeValues } from "@english-coach/domain";
 import { z } from "zod";
 
+export type {
+  HistoryDetailResponse,
+  HistoryListQuery,
+  HistoryListResponse,
+  HistorySummary,
+} from "../list";
+export type { GoalProgressPacket, SessionStatusPacket, UiUpdatePacket } from "../livekit-packets";
+export type { CoachingPromptKind } from "../session";
+
 export const createRolePlaySessionInputSchema = z.object({
   scenarioId: z.string().trim().min(1),
   selectedCharacterIndex: z.union([

@@ -11,8 +11,18 @@ import {
   createPageListResponseSchema,
   knowledgeItemListQuerySchema,
   knowledgeItemSchema,
+  knowledgePointDetailSchema,
+  knowledgePointListQuerySchema,
+  knowledgePointListResponseSchema,
+  knowledgePointOccurrenceSchema,
+  knowledgePointSummarySchema,
   knowledgeSenseSchema,
 } from "../list";
+
+export {
+  knowledgeGenerateSubmissionBodySchema,
+  knowledgeGenerateSubmissionResponseSchema,
+} from "../knowledge-generate";
 
 const optionalSearchTextSchema = z.preprocess((value) => {
   if (typeof value !== "string") {
@@ -29,6 +39,13 @@ const optionalNullableEnumField = <TValues extends readonly [string, ...string[]
 export const adminKnowledgeListQuerySchema = knowledgeItemListQuerySchema;
 export const adminKnowledgeListItemSchema = knowledgeItemSchema;
 export const adminKnowledgeListResponseSchema = createPageListResponseSchema(adminKnowledgeListItemSchema);
+export {
+  knowledgePointDetailSchema,
+  knowledgePointListQuerySchema,
+  knowledgePointListResponseSchema,
+  knowledgePointOccurrenceSchema,
+  knowledgePointSummarySchema,
+};
 
 export const adminKnowledgeDetailSchema = adminKnowledgeListItemSchema.extend({
   senses: z.array(knowledgeSenseSchema).default([]),

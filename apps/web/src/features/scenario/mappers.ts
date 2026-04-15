@@ -1,4 +1,4 @@
-import type { Scenario } from "@english-coach/contract";
+import type { Scenario } from "@english-coach/contract/scenario";
 import { formatDate } from "@/lib/dates";
 import { truncateText } from "@/lib/format";
 import type {

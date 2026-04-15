@@ -5,7 +5,7 @@ import type {
   KnowledgePointDetail,
   KnowledgePointOccurrence,
   KnowledgePointSummary,
-} from "@english-coach/contract";
+} from "@english-coach/contract/knowledge";
 import dayjs from "dayjs";
 import type {
   AdminKnowledgeDetailView,

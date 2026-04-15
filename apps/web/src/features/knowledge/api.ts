@@ -9,7 +9,7 @@ import {
   knowledgePointDetailSchema,
   knowledgePointListQuerySchema,
   knowledgePointListResponseSchema,
-} from "@english-coach/contract";
+} from "@english-coach/contract/knowledge";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
 import { normalizeAdminKnowledgeListQueryKeyInput, normalizeKnowledgeListQueryKeyInput } from "@/lib/query-keys";
