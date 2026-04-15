@@ -18,3 +18,8 @@ export const communicativeFunctionValues = [
   "express_time_or_sequence",
 ] as const;
 export const knowledgeOccurrenceStatusValues = ["proposed", "approved", "rejected"] as const;
+
+export type SyntaxRole = (typeof syntaxRoleValues)[number];
+export type FixednessLevel = (typeof fixednessLevelValues)[number];
+export type CommunicativeFunction = (typeof communicativeFunctionValues)[number];
+export type KnowledgeOccurrenceStatus = (typeof knowledgeOccurrenceStatusValues)[number];

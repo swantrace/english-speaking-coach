@@ -1,4 +1,9 @@
-import { knowledgePointDetailSchema, knowledgePointListQuerySchema, sessionTypeSchema } from "@english-coach/contract";
+import {
+  knowledgePointDetailSchema,
+  knowledgePointListQuerySchema,
+  knowledgePointListResponseSchema,
+  sessionTypeSchema,
+} from "@english-coach/contract";
 import { db } from "@english-coach/database";
 import {
   knowledgeItems,
@@ -107,7 +112,9 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
     );
 
     return context.json(
-      createPageResponse(sortedRecords.slice(offset, offset + pageSize), sortedRecords.length, page, pageSize),
+      knowledgePointListResponseSchema.parse(
+        createPageResponse(sortedRecords.slice(offset, offset + pageSize), sortedRecords.length, page, pageSize),
+      ),
     );
   });
 
@@ -128,18 +135,17 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
         createdAt: knowledgeItems.createdAt,
         fixednessLevel: knowledgeItems.fixednessLevel,
         id: knowledgeItems.id,
-        isPendingReview: knowledgeItems.isPendingReview,
         lastSeenAt: sql<string>`max(coalesce(${sessionHistory.endedAt}, ${sessionHistory.startedAt}))`.as("lastSeenAt"),
         pattern: knowledgeItems.pattern,
         sessionCount: sql<number>`count(distinct ${sessionKnowledgePointOccurrences.sessionHistoryId})`
           .mapWith(Number)
           .as("sessionCount"),
+        senses: knowledgeItems.senses,
         syntaxRole: knowledgeItems.syntaxRole,
         totalOccurrences: sql<number>`count(${sessionKnowledgePointOccurrences.id})`
           .mapWith(Number)
           .as("totalOccurrences"),
         updatedAt: knowledgeItems.updatedAt,
-        userOccurrenceCount: sql<number>`0`.mapWith(Number).as("userOccurrenceCount"),
       })
       .from(sessionKnowledgePointOccurrences)
       .innerJoin(sessionHistory, eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistory.id))

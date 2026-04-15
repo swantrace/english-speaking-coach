@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RoutePlaceholder } from "@/components/app/route-placeholder";
+import { KnowledgeDetailPage } from "@/features/knowledge/components/knowledge-detail-page";
 
 export const Route = createFileRoute("/app/knowledge/$knowledgeId")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <RoutePlaceholder title="Knowledge Detail" />;
+  const { knowledgeId } = Route.useParams();
+
+  return <KnowledgeDetailPage knowledgeId={knowledgeId} />;
 }

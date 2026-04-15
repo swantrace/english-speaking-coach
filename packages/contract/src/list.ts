@@ -195,12 +195,26 @@ export const knowledgePointListQuerySchema = pageListQuerySchema.extend({
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
 });
 
-export const knowledgePointSummarySchema = knowledgeItemSchema.extend({
-  agentOccurrenceCount: z.number().int().min(0),
+export const knowledgeSenseSchema = z.object({
+  example: z.string().trim().min(1),
+  example_zh: z.string().trim().min(1),
+  grammatical_note: z.string().trim().min(1).optional(),
+  meaning_en: z.string().trim().min(1),
+  meaning_zh: z.string().trim().min(1),
+  order: z.number().int().min(1),
+});
+
+export const knowledgePointSummarySchema = z.object({
+  communicativeFunction: z.enum(communicativeFunctions).nullable(),
+  createdAt: z.string(),
   lastSeenAt: z.string(),
+  fixednessLevel: z.enum(fixednessLevels).nullable(),
+  id: z.string(),
+  pattern: z.string().trim().min(1),
   sessionCount: z.number().int().min(1),
+  syntaxRole: z.enum(syntaxRoles).nullable(),
   totalOccurrences: z.number().int().min(1),
-  userOccurrenceCount: z.number().int().min(0),
+  updatedAt: z.string(),
 });
 
 export const knowledgePointOccurrenceSchema = z.object({
@@ -243,6 +257,7 @@ export const adminKnowledgeOccurrencesResponseSchema = createPageListResponseSch
 
 export const knowledgePointDetailSchema = knowledgePointSummarySchema.extend({
   occurrences: z.array(knowledgePointOccurrenceSchema),
+  senses: z.array(knowledgeSenseSchema),
 });
 
 export const scenarioPageResponseSchema = createPageListResponseSchema(scenarioSchema);
@@ -272,6 +287,7 @@ export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
 export type KnowledgePointListQuery = z.infer<typeof knowledgePointListQuerySchema>;
 export type KnowledgePointSummary = z.infer<typeof knowledgePointSummarySchema>;
+export type KnowledgeSense = z.infer<typeof knowledgeSenseSchema>;
 export type KnowledgePointOccurrence = z.infer<typeof knowledgePointOccurrenceSchema>;
 export type KnowledgePointDetail = z.infer<typeof knowledgePointDetailSchema>;
 export type UnresolvedKnowledgeOccurrence = z.infer<typeof unresolvedKnowledgeOccurrenceSchema>;
