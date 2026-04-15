@@ -1,1 +1,92 @@
-// 每行三个主动作
+import { Button } from "@english-coach/ui";
+import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { LinkExistingDialog } from "./link-existing-dialog";
+import { createOccurrenceMutationError, useLinkOccurrenceMutation, useRejectOccurrenceMutation } from "./mutations";
+import type { ProposedOccurrenceListItemView } from "./types";
+
+interface OccurrenceActionsProps {
+  occurrence: ProposedOccurrenceListItemView;
+}
+
+export function OccurrenceActions({ occurrence }: OccurrenceActionsProps) {
+  const navigate = useNavigate();
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const linkMutation = useLinkOccurrenceMutation();
+  const rejectMutation = useRejectOccurrenceMutation();
+  const isPending = linkMutation.isPending || rejectMutation.isPending;
+
+  return (
+    <>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          disabled={isPending}
+          onClick={() => setIsLinkDialogOpen(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Link existing
+        </Button>
+        <Button
+          disabled={isPending}
+          onClick={() =>
+            void navigate({
+              search: {
+                occurrenceId: occurrence.id,
+                pattern: occurrence.proposedPattern,
+              },
+              to: "/admin/knowledge/new",
+            })
+          }
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Create new
+        </Button>
+        <Button disabled={isPending} onClick={() => setIsRejectOpen(true)} size="sm" type="button" variant="ghost">
+          Reject
+        </Button>
+      </div>
+
+      <LinkExistingDialog
+        isPending={linkMutation.isPending}
+        onConfirm={async (knowledgeItemId) => {
+          try {
+            await linkMutation.mutateAsync({
+              knowledgeItemId,
+              occurrenceId: occurrence.id,
+            });
+            setIsLinkDialogOpen(false);
+          } catch (error) {
+            throw new Error(createOccurrenceMutationError(error, "We couldn't link this occurrence.").message);
+          }
+        }}
+        onOpenChange={setIsLinkDialogOpen}
+        open={isLinkDialogOpen}
+        pattern={occurrence.proposedPattern}
+      />
+
+      <ConfirmDialog
+        confirmLabel="Reject occurrence"
+        description="This marks the proposed occurrence as rejected and removes it from the default review queue."
+        errorMessage={rejectMutation.error ? rejectMutation.error.message : null}
+        isPending={rejectMutation.isPending}
+        onConfirm={async () => {
+          try {
+            await rejectMutation.mutateAsync(occurrence.id);
+            setIsRejectOpen(false);
+          } catch (error) {
+            throw new Error(createOccurrenceMutationError(error, "We couldn't reject this occurrence.").message);
+          }
+        }}
+        onOpenChange={setIsRejectOpen}
+        open={isRejectOpen}
+        title="Reject this occurrence?"
+      />
+    </>
+  );
+}

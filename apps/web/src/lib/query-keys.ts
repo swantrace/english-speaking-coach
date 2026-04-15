@@ -12,6 +12,19 @@ export interface KnowledgeListQueryKeyInput {
   search?: string;
 }
 
+export interface AdminKnowledgeListQueryKeyInput {
+  communicativeFunction?: string;
+  fixednessLevel?: string;
+  reviewStatus?: string;
+  search?: string;
+  syntaxRole?: string;
+}
+
+export interface AdminOccurrenceListQueryKeyInput {
+  search?: string;
+  status?: string;
+}
+
 export interface AdminUserListQueryKeyInput {
   page?: number;
   pageSize?: number;
@@ -55,6 +68,23 @@ export function normalizeKnowledgeListQueryKeyInput(input: KnowledgeListQueryKey
   };
 }
 
+export function normalizeAdminKnowledgeListQueryKeyInput(input: AdminKnowledgeListQueryKeyInput = {}) {
+  return {
+    communicativeFunction: normalizeTextParam(input.communicativeFunction),
+    fixednessLevel: normalizeTextParam(input.fixednessLevel),
+    reviewStatus: normalizeTextParam(input.reviewStatus),
+    search: normalizeTextParam(input.search),
+    syntaxRole: normalizeTextParam(input.syntaxRole),
+  };
+}
+
+export function normalizeAdminOccurrenceListQueryKeyInput(input: AdminOccurrenceListQueryKeyInput = {}) {
+  return {
+    search: normalizeTextParam(input.search),
+    status: normalizeTextParam(input.status),
+  };
+}
+
 export function normalizeAdminUserListQueryKeyInput(input: AdminUserListQueryKeyInput = {}) {
   return {
     page: input.page ?? 1,
@@ -76,6 +106,17 @@ export function normalizeAdminScenarioListQueryKeyInput(input: AdminScenarioList
 export const queryKeys = {
   admin: {
     dashboard: () => ["admin", "dashboard"] as const,
+    knowledge: {
+      all: () => ["admin", "knowledge"] as const,
+      detail: (knowledgeId: string) => ["admin", "knowledge", "detail", knowledgeId] as const,
+      list: (input: AdminKnowledgeListQueryKeyInput = {}) =>
+        ["admin", "knowledge", "list", normalizeAdminKnowledgeListQueryKeyInput(input)] as const,
+    },
+    occurrences: {
+      all: () => ["admin", "occurrences"] as const,
+      list: (input: AdminOccurrenceListQueryKeyInput = {}) =>
+        ["admin", "occurrences", "list", normalizeAdminOccurrenceListQueryKeyInput(input)] as const,
+    },
     scenarios: {
       all: () => ["admin", "scenarios"] as const,
       detail: (scenarioId: string) => ["admin", "scenarios", "detail", scenarioId] as const,

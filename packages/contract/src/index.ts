@@ -1,5 +1,6 @@
 export * from "./admin";
 export * from "./job-events";
+export * from "./knowledge";
 export * from "./knowledge-generate";
 export * from "./linguistics";
 export * from "./list";

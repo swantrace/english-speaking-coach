@@ -4,23 +4,23 @@ import { DataTable } from "@/components/data-table/data-table";
 import { DataTableBulkBar } from "@/components/data-table/data-table-bulk-bar";
 import { DataTableEmpty } from "@/components/data-table/data-table-empty";
 import {
-  createScenarioMutationError,
-  useBulkApproveAdminScenariosMutation,
-  useBulkDeleteAdminScenariosMutation,
+  createKnowledgeMutationError,
+  useBulkApproveAdminKnowledgeMutation,
+  useBulkDeleteAdminKnowledgeMutation,
 } from "../mutations";
-import type { AdminScenarioListItemView } from "../types";
-import { createAdminScenarioColumns } from "./scenario-table-columns";
+import type { AdminKnowledgeListItemView } from "../types";
+import { createAdminKnowledgeColumns } from "./admin-knowledge-columns";
 
-interface AdminScenariosTableProps {
-  items: AdminScenarioListItemView[];
+interface AdminKnowledgeTableProps {
+  items: AdminKnowledgeListItemView[];
 }
 
-export function AdminScenariosTable({ items }: AdminScenariosTableProps) {
+export function AdminKnowledgeTable({ items }: AdminKnowledgeTableProps) {
   const [rowSelection, setRowSelection] = useState({});
-  const bulkApproveMutation = useBulkApproveAdminScenariosMutation();
-  const bulkDeleteMutation = useBulkDeleteAdminScenariosMutation();
+  const bulkApproveMutation = useBulkApproveAdminKnowledgeMutation();
+  const bulkDeleteMutation = useBulkDeleteAdminKnowledgeMutation();
   const table = useReactTable({
-    columns: useMemo(() => createAdminScenarioColumns(), []),
+    columns: useMemo(() => createAdminKnowledgeColumns(), []),
     data: items,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
@@ -39,8 +39,8 @@ export function AdminScenariosTable({ items }: AdminScenariosTableProps) {
           {
             confirmation: {
               confirmLabel: "Approve selected",
-              description: "This makes the selected pending-review scenarios available to learners.",
-              title: "Approve selected scenarios?",
+              description: "This makes the selected pending-review knowledge items available for downstream use.",
+              title: "Approve selected knowledge items?",
             },
             disabled: selectedPendingIds.length === 0 || bulkApproveMutation.isPending,
             key: "bulk-approve",
@@ -49,15 +49,17 @@ export function AdminScenariosTable({ items }: AdminScenariosTableProps) {
               try {
                 await bulkApproveMutation.mutateAsync(selectedPendingIds);
               } catch (error) {
-                throw new Error(createScenarioMutationError(error, "We couldn't approve those scenarios.").message);
+                throw new Error(
+                  createKnowledgeMutationError(error, "We couldn't approve those knowledge items.").message,
+                );
               }
             },
           },
           {
             confirmation: {
               confirmLabel: "Delete selected",
-              description: "This permanently removes the selected scenarios.",
-              title: "Delete selected scenarios?",
+              description: "This permanently removes the selected knowledge items.",
+              title: "Delete selected knowledge items?",
             },
             disabled: selectedIds.length === 0 || bulkDeleteMutation.isPending,
             isDestructive: true,
@@ -67,21 +69,23 @@ export function AdminScenariosTable({ items }: AdminScenariosTableProps) {
               try {
                 await bulkDeleteMutation.mutateAsync(selectedIds);
               } catch (error) {
-                throw new Error(createScenarioMutationError(error, "We couldn't delete those scenarios.").message);
+                throw new Error(
+                  createKnowledgeMutationError(error, "We couldn't delete those knowledge items.").message,
+                );
               }
             },
           },
         ]}
         onClearSelection={() => setRowSelection({})}
         selectedCount={selectedIds.length}
-        selectionLabel="scenario"
+        selectionLabel="knowledge item"
       />
 
       <DataTable
         emptyState={
           <DataTableEmpty
-            description="Try broadening the search or clearing one of the selected tag and review-status filters."
-            title="No scenarios match these filters"
+            description="Try broadening the search or clearing one of the selected review and taxonomy filters."
+            title="No knowledge items match these filters"
           />
         }
         table={table}

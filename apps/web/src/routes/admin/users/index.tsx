@@ -45,16 +45,17 @@ function RouteComponent() {
     startTransition(() => {
       void navigate({
         replace: true,
-        search: (current) =>
+        search: () =>
           normalizeAdminUserSearch({
-            ...current,
             page: 1,
+            role: normalizedSearch.role,
             search: nextSearch,
+            status: normalizedSearch.status,
           }),
         to: "/admin/users",
       });
     });
-  }, [deferredSearchValue, navigate, normalizedSearch.search]);
+  }, [deferredSearchValue, navigate, normalizedSearch.role, normalizedSearch.search, normalizedSearch.status]);
 
   function updateSearch(nextSearch: Partial<typeof normalizedSearch>) {
     startTransition(() => {

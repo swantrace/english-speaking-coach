@@ -21,9 +21,15 @@ interface DataTableBulkBarProps {
   actions: DataTableBulkAction[];
   onClearSelection?: () => void;
   selectedCount: number;
+  selectionLabel?: string;
 }
 
-export function DataTableBulkBar({ actions, onClearSelection, selectedCount }: DataTableBulkBarProps) {
+export function DataTableBulkBar({
+  actions,
+  onClearSelection,
+  selectedCount,
+  selectionLabel = "item",
+}: DataTableBulkBarProps) {
   const [selectedAction, setSelectedAction] = useState<DataTableBulkAction | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,7 +59,8 @@ export function DataTableBulkBar({ actions, onClearSelection, selectedCount }: D
       <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 px-4 py-3 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-slate-700">
-            {selectedCount.toLocaleString()} scenario{selectedCount === 1 ? "" : "s"} selected
+            {selectedCount.toLocaleString()} {selectionLabel}
+            {selectedCount === 1 ? "" : "s"} selected
           </p>
 
           <div className="flex flex-wrap items-center gap-2">

@@ -1,13 +1,10 @@
-import { knowledgeItems } from "@english-coach/database/schema";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import {
   createJobEventsSubmissionResponseSchema,
   jobProgressMessageSchema,
   jobProgressStatusSchema,
 } from "./job-events";
-import { communicativeFunctions, fixednessLevels, syntaxRoles } from "./linguistics";
-import { knowledgeItemPendingReviewSchema } from "./list";
+import { adminKnowledgeCreateSchema, adminKnowledgeUpdateSchema } from "./knowledge";
 
 export const knowledgeGenerateSubmissionKind = "knowledge.generate";
 export const knowledgeGenerateQueueName = knowledgeGenerateSubmissionKind;
@@ -37,26 +34,8 @@ export const knowledgeGenerateSubmissionItemSchema = z.object({
   queuedAt: z.string().optional(),
 });
 
-const adminKnowledgeItemWriteBaseSchema = createInsertSchema(knowledgeItems, {
-  communicativeFunction: z.enum(communicativeFunctions).nullable().optional(),
-  fixednessLevel: z.enum(fixednessLevels).nullable().optional(),
-  isPendingReview: knowledgeItemPendingReviewSchema.optional(),
-  pattern: z.string().trim().min(1),
-  syntaxRole: z.enum(syntaxRoles).nullable().optional(),
-}).omit({
-  createdAt: true,
-  id: true,
-  senses: true,
-  updatedAt: true,
-});
-
-export const adminKnowledgeItemCreateSchema = adminKnowledgeItemWriteBaseSchema.extend({
-  isPendingReview: knowledgeItemPendingReviewSchema.optional().default(false),
-});
-
-export const adminKnowledgeItemUpdateSchema = adminKnowledgeItemWriteBaseSchema
-  .partial()
-  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
+export const adminKnowledgeItemCreateSchema = adminKnowledgeCreateSchema;
+export const adminKnowledgeItemUpdateSchema = adminKnowledgeUpdateSchema;
 
 export const knowledgeGenerateSubmissionBodySchema = z.object({
   items: z.array(knowledgeGenerateSubmissionItemSchema).min(1),

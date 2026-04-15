@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
-import { fetchKnowledgeDetail, fetchKnowledgeList } from "./api";
+import { fetchAdminKnowledgeDetail, fetchAdminKnowledgeList, fetchKnowledgeDetail, fetchKnowledgeList } from "./api";
 import { mapKnowledgeDetail, mapKnowledgeListItem } from "./mappers";
-import type { KnowledgeListFilters } from "./types";
+import type { AdminKnowledgeListFilters, KnowledgeListFilters } from "./types";
 
 export function useKnowledgeListQuery(filters: KnowledgeListFilters) {
   return useQuery({
@@ -26,5 +26,29 @@ export function useKnowledgeDetailQuery(knowledgeId: string) {
     queryFn: async () => mapKnowledgeDetail(await fetchKnowledgeDetail(knowledgeId)),
     queryKey: queryKeys.knowledge.detail(knowledgeId),
     staleTime: 60_000,
+  });
+}
+
+export function useAdminKnowledgeListQuery(filters: AdminKnowledgeListFilters = {}) {
+  return useQuery({
+    placeholderData: (previousData) => previousData,
+    queryFn: () => fetchAdminKnowledgeList(filters),
+    queryKey: queryKeys.admin.knowledge.list({
+      communicativeFunction: filters.communicativeFunction,
+      fixednessLevel: filters.fixednessLevel,
+      reviewStatus: filters.reviewStatus,
+      search: filters.search,
+      syntaxRole: filters.syntaxRole,
+    }),
+    staleTime: 30_000,
+  });
+}
+
+export function useAdminKnowledgeDetailQuery(knowledgeId: string) {
+  return useQuery({
+    enabled: knowledgeId.trim().length > 0,
+    queryFn: () => fetchAdminKnowledgeDetail(knowledgeId),
+    queryKey: queryKeys.admin.knowledge.detail(knowledgeId),
+    staleTime: 30_000,
   });
 }

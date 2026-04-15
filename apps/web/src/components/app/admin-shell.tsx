@@ -26,6 +26,13 @@ export function AdminShell({ children }: PropsWithChildren) {
           <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin/knowledge">
             Knowledge
           </Link>
+          <Link
+            className="rounded-full px-3 py-2 hover:bg-stone-100"
+            search={{ status: "proposed" }}
+            to="/admin/occurrences"
+          >
+            Occurrences
+          </Link>
         </nav>
       }
     >
