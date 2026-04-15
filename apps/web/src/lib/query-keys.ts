@@ -12,6 +12,14 @@ export interface KnowledgeListQueryKeyInput {
   search?: string;
 }
 
+export interface AdminUserListQueryKeyInput {
+  page?: number;
+  pageSize?: number;
+  role?: string;
+  search?: string;
+  status?: string;
+}
+
 function normalizeTextParam(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "";
@@ -41,7 +49,25 @@ export function normalizeKnowledgeListQueryKeyInput(input: KnowledgeListQueryKey
   };
 }
 
+export function normalizeAdminUserListQueryKeyInput(input: AdminUserListQueryKeyInput = {}) {
+  return {
+    page: input.page ?? 1,
+    pageSize: input.pageSize ?? 20,
+    role: normalizeTextParam(input.role),
+    search: normalizeTextParam(input.search),
+    status: normalizeTextParam(input.status),
+  };
+}
+
 export const queryKeys = {
+  admin: {
+    dashboard: () => ["admin", "dashboard"] as const,
+    users: {
+      all: () => ["admin", "users"] as const,
+      list: (input: AdminUserListQueryKeyInput = {}) =>
+        ["admin", "users", "list", normalizeAdminUserListQueryKeyInput(input)] as const,
+    },
+  },
   dashboard: {
     student: () => ["dashboard", "student"] as const,
   },

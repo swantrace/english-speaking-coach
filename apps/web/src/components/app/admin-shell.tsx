@@ -12,7 +12,7 @@ export function AdminShell({ children }: PropsWithChildren) {
           <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin">
             Overview
           </Link>
-          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin/users">
+          <Link className="rounded-full px-3 py-2 hover:bg-stone-100" search={{ page: 1 }} to="/admin/users">
             Users
           </Link>
           <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin/scenarios">

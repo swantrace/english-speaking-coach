@@ -1,3 +1,4 @@
+export * from "./admin";
 export * from "./job-events";
 export * from "./knowledge-generate";
 export * from "./linguistics";
