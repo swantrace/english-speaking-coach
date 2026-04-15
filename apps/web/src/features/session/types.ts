@@ -191,3 +191,83 @@ export interface TranscriptTurnView extends SessionTranscriptTurn {
 export type LiveSessionBootstrapContract = ContractLiveSessionBootstrap;
 export type SessionEndMutationResult = EndSessionResult;
 export type RolePlayGoalProgressPacket = GoalProgressPacket;
+
+export interface SessionHistoryFilters {
+  search?: string;
+  sessionType?: SessionType;
+}
+
+export interface SessionHistoryListItemView {
+  date: string;
+  durationSeconds: number | null;
+  id: string;
+  sessionType: SessionType;
+  title: string;
+}
+
+export interface SessionHistoryListView {
+  items: SessionHistoryListItemView[];
+  total: number;
+}
+
+export interface SessionTranscriptReviewTurn {
+  id: string;
+  isRewritten: boolean;
+  order: number;
+  speaker: Speaker;
+  speakerLabel: string;
+  text: string;
+}
+
+export interface SessionKnowledgeOccurrenceView {
+  excerpt: string;
+  id: string;
+  occurrenceCount: number;
+  speaker: Speaker;
+  transcriptTurnIndex: number;
+  transcriptTurnLabel: string;
+}
+
+export interface SessionKnowledgeItemView {
+  count: number;
+  examples: string[];
+  id: string;
+  knowledgeItemId: string;
+  occurrences: SessionKnowledgeOccurrenceView[];
+  pattern: string;
+  speaker: Speaker;
+}
+
+export interface SessionReviewErrorView {
+  description: string;
+  dimension: string;
+  id: string;
+  suggestion: string;
+  transcriptTurnLabel: string | null;
+  utterance: string;
+}
+
+export interface SessionDetailSummaryView {
+  completedGoalsCount: number;
+  errorsCount: number;
+  knowledgeItemsCount: number;
+  reviewMarkdown: string;
+  transcriptTurnsCount: number;
+}
+
+export interface SessionHistoryDetailView {
+  contextDocument: string | null;
+  date: string;
+  durationSeconds: number | null;
+  endedAt: string | null;
+  errors: SessionReviewErrorView[];
+  id: string;
+  knowledgeItems: SessionKnowledgeItemView[];
+  originalTranscript: SessionTranscriptReviewTurn[];
+  refinedTranscript: SessionTranscriptReviewTurn[] | null;
+  scenarioSetting: string | null;
+  sessionType: SessionType;
+  startedAt: string;
+  summary: SessionDetailSummaryView;
+  title: string;
+}

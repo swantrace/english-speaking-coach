@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RoutePlaceholder } from "@/components/app/route-placeholder";
+import { SessionHistoryDetailPage } from "@/features/session/components/session-history-detail-page";
 
 export const Route = createFileRoute("/app/sessions/$sessionId/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <RoutePlaceholder title="Session Detail" />;
+  const { sessionId } = Route.useParams();
+
+  return <SessionHistoryDetailPage sessionId={sessionId} />;
 }

@@ -3,6 +3,11 @@ export interface ScenarioListQueryKeyInput {
   tags?: string[];
 }
 
+export interface HistoryListQueryKeyInput {
+  search?: string;
+  sessionType?: string;
+}
+
 function normalizeTextParam(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "";
@@ -19,6 +24,13 @@ export function normalizeScenarioListQueryKeyInput(input: ScenarioListQueryKeyIn
   };
 }
 
+export function normalizeHistoryListQueryKeyInput(input: HistoryListQueryKeyInput = {}) {
+  return {
+    search: normalizeTextParam(input.search),
+    sessionType: normalizeTextParam(input.sessionType),
+  };
+}
+
 export const queryKeys = {
   dashboard: {
     student: () => ["dashboard", "student"] as const,
@@ -26,7 +38,8 @@ export const queryKeys = {
   history: {
     all: () => ["history"] as const,
     detail: (sessionId: string) => ["history", "detail", sessionId] as const,
-    list: () => ["history", "list"] as const,
+    list: (input?: HistoryListQueryKeyInput) =>
+      input ? (["history", "list", normalizeHistoryListQueryKeyInput(input)] as const) : (["history", "list"] as const),
   },
   scenarios: {
     detail: (scenarioId: string) => ["scenarios", "detail", scenarioId] as const,
