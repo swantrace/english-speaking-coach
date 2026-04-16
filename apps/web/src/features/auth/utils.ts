@@ -1,13 +1,6 @@
 import { type UserRole, type UserStatus, userRoleValues, userStatusValues } from "@english-coach/domain";
+import type { AuthSessionUser } from "@/lib/auth-client";
 import type { AccessState, AuthUser } from "./types";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function getOptionalString(value: unknown) {
-  return typeof value === "string" ? value : null;
-}
 
 function isUserRole(value: unknown): value is UserRole {
   return typeof value === "string" && userRoleValues.includes(value as UserRole);
@@ -17,16 +10,12 @@ function isUserStatus(value: unknown): value is UserStatus {
   return typeof value === "string" && userStatusValues.includes(value as UserStatus);
 }
 
-export function normalizeAuthUser(input: unknown): AuthUser | null {
-  if (!isRecord(input)) {
+export function toAuthUser(input: AuthSessionUser | null): AuthUser | null {
+  if (!input) {
     return null;
   }
 
   const { email, id, image, name, role, status } = input;
-
-  if (typeof id !== "string" || typeof email !== "string") {
-    return null;
-  }
 
   if (!isUserRole(role) || !isUserStatus(status)) {
     return null;
@@ -35,8 +24,8 @@ export function normalizeAuthUser(input: unknown): AuthUser | null {
   return {
     email,
     id,
-    image: getOptionalString(image),
-    name: getOptionalString(name),
+    image: image ?? null,
+    name: name ?? null,
     role,
     status,
   };

@@ -17,6 +17,6 @@ export interface AuthBootstrapState {
   user: AuthUser | null;
   accessState: AccessState;
   isError: boolean;
-  isLoading: boolean;
+  isPending: boolean;
   isReady: boolean;
 }

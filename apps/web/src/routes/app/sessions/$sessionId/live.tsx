@@ -12,7 +12,7 @@ function RouteComponent() {
   const { sessionId } = Route.useParams();
   const liveSessionBootstrapQuery = useLiveSessionBootstrapQuery(sessionId);
 
-  if (liveSessionBootstrapQuery.isLoading) {
+  if (liveSessionBootstrapQuery.isPending) {
     return (
       <LoadingState
         title="Preparing your live session"

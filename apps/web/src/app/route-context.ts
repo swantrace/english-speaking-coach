@@ -9,6 +9,6 @@ export interface AppRouterContext {
 
 export const defaultAuthBootstrapResult: AuthBootstrapResult = {
   ...createAnonymousAuthBootstrapState(),
-  isLoading: true,
+  isPending: true,
   isReady: false,
 };

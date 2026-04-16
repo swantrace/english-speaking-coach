@@ -11,14 +11,14 @@ function AuthAwareRouterProvider() {
     queryClient,
     auth,
   };
-  const authContextVersion = `${auth.accessState}:${auth.isError ? "1" : "0"}:${auth.isLoading ? "1" : "0"}:${auth.user?.id ?? ""}`;
+  const authContextVersion = `${auth.accessState}:${auth.isError ? "1" : "0"}:${auth.isPending ? "1" : "0"}:${auth.user?.id ?? ""}`;
 
   useEffect(() => {
     void authContextVersion;
     void router.invalidate();
   }, [authContextVersion]);
 
-  if (auth.isLoading) {
+  if (auth.isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(245,232,209,0.65),_transparent_38%),linear-gradient(180deg,_#f8f4ec_0%,_#f3efe7_100%)] px-4">
         <div className="w-full max-w-md rounded-[2rem] border border-stone-200 bg-white p-8 text-center shadow-sm">
