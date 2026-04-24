@@ -1,6 +1,6 @@
 import { Badge } from "@english-coach/ui";
 import dayjs from "dayjs";
-import { selectConnectionBannerState } from "../runtime/selectors";
+import { selectConnectionStatus } from "../runtime/selectors";
 import { useSessionRuntimeStore } from "../runtime/store";
 import type { LiveSessionBootstrap } from "../types";
 
@@ -13,7 +13,7 @@ function getModeLabel(sessionType: LiveSessionBootstrap["sessionType"]) {
 }
 
 export function SessionHeader({ bootstrap }: SessionHeaderProps) {
-  const { status } = useSessionRuntimeStore(selectConnectionBannerState);
+  const status = useSessionRuntimeStore(selectConnectionStatus);
   const subtitle =
     bootstrap.sessionType === "role-play"
       ? bootstrap.scenario.setting

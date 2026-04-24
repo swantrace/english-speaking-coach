@@ -1,4 +1,11 @@
-import { selectGoalProgress, selectRecentHints, selectTranscriptTurns } from "../runtime/selectors";
+import { useMemo } from "react";
+import {
+  mapRecentHints,
+  mapTranscriptTurnViews,
+  selectGoalProgress,
+  selectHints,
+  selectTranscriptTurns,
+} from "../runtime/selectors";
 import { useSessionRuntimeStore } from "../runtime/store";
 import type { LiveSessionBootstrap } from "../types";
 import { ConnectionBanner } from "./connection-banner";
@@ -12,9 +19,11 @@ interface SessionShellProps {
 }
 
 export function SessionShell({ bootstrap }: SessionShellProps) {
-  const turns = useSessionRuntimeStore(selectTranscriptTurns);
-  const recentHints = useSessionRuntimeStore(selectRecentHints);
+  const rawTurns = useSessionRuntimeStore(selectTranscriptTurns);
+  const hints = useSessionRuntimeStore(selectHints);
   const goalProgress = useSessionRuntimeStore(selectGoalProgress);
+  const turns = useMemo(() => mapTranscriptTurnViews({ hints, turns: rawTurns }), [hints, rawTurns]);
+  const recentHints = useMemo(() => mapRecentHints({ hints }), [hints]);
 
   return (
     <div className="space-y-5">

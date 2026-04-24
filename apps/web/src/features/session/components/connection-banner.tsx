@@ -1,6 +1,6 @@
 import { Badge, cn } from "@english-coach/ui";
 import { SessionStartAudioButton } from "../livekit/components-adapter";
-import { selectConnectionBannerState } from "../runtime/selectors";
+import { selectConnectionError, selectConnectionStatus } from "../runtime/selectors";
 import { useSessionRuntimeStore } from "../runtime/store";
 
 const statusCopy = {
@@ -20,7 +20,8 @@ const statusBadgeClassNames = {
 } as const;
 
 export function ConnectionBanner() {
-  const { error, status } = useSessionRuntimeStore(selectConnectionBannerState);
+  const error = useSessionRuntimeStore(selectConnectionError);
+  const status = useSessionRuntimeStore(selectConnectionStatus);
 
   return (
     <section className="flex flex-col gap-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">

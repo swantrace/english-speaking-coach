@@ -1,5 +1,5 @@
 import type { RoomEventCallbacks } from "livekit-client";
-import { type PropsWithChildren, useEffect, useMemo } from "react";
+import { type PropsWithChildren, useEffect, useState } from "react";
 import { SessionLiveKitProvider } from "../livekit/components-adapter";
 import { mapHintPacketToHint } from "../livekit/hint-adapter";
 import { parseSessionPacket } from "../livekit/parsers";
@@ -14,7 +14,7 @@ interface SessionRuntimeControllerProps extends PropsWithChildren {
 }
 
 export function SessionRuntimeController({ bootstrap, children }: SessionRuntimeControllerProps) {
-  const room = useMemo(() => createSessionRoom(), []);
+  const [room, setRoom] = useState<ReturnType<typeof createSessionRoom> | null>(null);
   const initializeSessionRuntime = useSessionRuntimeStore((state) => state.initializeSessionRuntime);
   const resetSessionRuntime = useSessionRuntimeStore((state) => state.resetSessionRuntime);
   const setConnectionError = useSessionRuntimeStore((state) => state.setConnectionError);
@@ -25,7 +25,9 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
 
   useEffect(() => {
     let disposed = false;
+    const activeRoom = createSessionRoom();
 
+    setRoom(activeRoom);
     initializeSessionRuntime({ sessionId: bootstrap.sessionId });
     setConnectionError(null);
 
@@ -54,7 +56,7 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
     const handleTranscriptionReceived: RoomEventCallbacks["transcriptionReceived"] = (segments, participant) => {
       const nextTurns = mapTranscriptionSegmentsToTurns({
         participant,
-        room,
+        room: activeRoom,
         segments,
       });
 
@@ -63,7 +65,7 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
       }
     };
 
-    const unbindEvents = bindSessionRoomEvents(room, {
+    const unbindEvents = bindSessionRoomEvents(activeRoom, {
       onConnectionStateChange: setConnectionStatus,
       onDataReceived: handleDataReceived,
       onDisconnected: () => {
@@ -83,7 +85,7 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
 
     void (async () => {
       try {
-        await connectSessionRoom(room, bootstrap.room);
+        await connectSessionRoom(activeRoom, bootstrap.room);
 
         if (!disposed) {
           setConnectionStatus("connected");
@@ -101,7 +103,8 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
     return () => {
       disposed = true;
       unbindEvents();
-      disconnectSessionRoom(room);
+      disconnectSessionRoom(activeRoom);
+      setRoom((currentRoom) => (currentRoom === activeRoom ? null : currentRoom));
       resetSessionRuntime();
     };
   }, [
@@ -109,7 +112,6 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
     bootstrap.sessionId,
     initializeSessionRuntime,
     resetSessionRuntime,
-    room,
     setConnectionError,
     setConnectionStatus,
     setGoalProgress,
@@ -117,5 +119,5 @@ export function SessionRuntimeController({ bootstrap, children }: SessionRuntime
     upsertTranscriptTurn,
   ]);
 
-  return <SessionLiveKitProvider room={room}>{children}</SessionLiveKitProvider>;
+  return <SessionLiveKitProvider room={room}>{room ? children : null}</SessionLiveKitProvider>;
 }
