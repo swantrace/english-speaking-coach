@@ -19,6 +19,10 @@ interface AdminTrendChartsProps {
   contentTrend: AdminDashboardContentTrendView[];
 }
 
+function getWeeklyTickLabels<TPoint extends { label: string }>(points: TPoint[]) {
+  return points.filter((_, index) => index >= 2 && (index - 2) % 7 === 0).map((point) => point.label);
+}
+
 function ChartCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
     <article className="rounded-[0.25rem] border border-stone-200 bg-white p-5 shadow-sm">
@@ -32,6 +36,9 @@ function ChartCard({ title, description, children }: { title: string; descriptio
 }
 
 export function AdminTrendCharts({ usageTrend, contentTrend }: AdminTrendChartsProps) {
+  const usageTickLabels = getWeeklyTickLabels(usageTrend);
+  const contentTickLabels = getWeeklyTickLabels(contentTrend);
+
   if (usageTrend.length === 0 && contentTrend.length === 0) {
     return (
       <div className="rounded-[0.25rem] border border-dashed border-stone-300 bg-stone-50/70">
@@ -54,7 +61,7 @@ export function AdminTrendCharts({ usageTrend, contentTrend }: AdminTrendChartsP
             <ResponsiveContainer height="100%" width="100%">
               <LineChart data={usageTrend} margin={{ bottom: 0, left: -24, right: 8, top: 8 }}>
                 <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-                <XAxis dataKey="label" stroke="#78716c" tickLine={false} />
+                <XAxis dataKey="label" stroke="#78716c" tickLine={false} ticks={usageTickLabels} />
                 <YAxis allowDecimals={false} stroke="#78716c" tickLine={false} />
                 <Tooltip />
                 <Legend />
@@ -76,7 +83,7 @@ export function AdminTrendCharts({ usageTrend, contentTrend }: AdminTrendChartsP
             <ResponsiveContainer height="100%" width="100%">
               <BarChart data={contentTrend} margin={{ bottom: 0, left: -24, right: 8, top: 8 }}>
                 <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-                <XAxis dataKey="label" stroke="#78716c" tickLine={false} />
+                <XAxis dataKey="label" stroke="#78716c" tickLine={false} ticks={contentTickLabels} />
                 <YAxis allowDecimals={false} stroke="#78716c" tickLine={false} />
                 <Tooltip />
                 <Legend />

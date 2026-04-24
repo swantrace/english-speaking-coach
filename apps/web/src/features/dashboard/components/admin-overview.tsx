@@ -17,7 +17,7 @@ function hasAdminDashboardData(data: AdminDashboardOverviewView) {
 
 export function AdminOverview() {
   const dashboardQuery = useAdminDashboardQuery();
-
+  console.log("dashboardQuery", dashboardQuery);
   return (
     <div className="space-y-8">
       <PageHeader

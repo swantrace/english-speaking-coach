@@ -48,13 +48,19 @@ const chartConfigs: ChartConfig[] = [
   },
 ];
 
+function getWeeklyTickLabels(trends: StudentDashboardTrendPoint[]) {
+  return trends.filter((_, index) => index >= 2 && (index - 2) % 7 === 0).map((trend) => trend.label);
+}
+
 function TrendChart({
   color,
   dataKey,
+  tickLabels,
   trends,
 }: {
   color: string;
   dataKey: ChartConfig["dataKey"];
+  tickLabels: string[];
   trends: StudentDashboardTrendPoint[];
 }) {
   return (
@@ -67,6 +73,7 @@ function TrendChart({
           minTickGap={24}
           tickLine={false}
           tick={{ fill: "#78716c", fontSize: 12 }}
+          ticks={tickLabels}
         />
         <YAxis
           allowDecimals={false}
@@ -101,6 +108,8 @@ function TrendChart({
 }
 
 export function StudentTrendCharts({ trends }: StudentTrendChartsProps) {
+  const tickLabels = getWeeklyTickLabels(trends);
+
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       {chartConfigs.map((chart) => (
@@ -110,7 +119,7 @@ export function StudentTrendCharts({ trends }: StudentTrendChartsProps) {
           key={chart.dataKey}
           title={chart.title}
         >
-          <TrendChart color={chart.color} dataKey={chart.dataKey} trends={trends} />
+          <TrendChart color={chart.color} dataKey={chart.dataKey} tickLabels={tickLabels} trends={trends} />
         </LineChartCard>
       ))}
     </div>

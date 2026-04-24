@@ -98,7 +98,7 @@ function mapAdminUsageTrend(
     activeUsers7d: point.activeUsers7d,
     date: point.date,
     freeFormSessionsCompleted: point.freeFormSessionsCompleted,
-    label: dayjs(point.date).format("MMM D"),
+    label: dayjs(point.date).format("MM-DD"),
     rolePlaySessionsCompleted: point.rolePlaySessionsCompleted,
     totalUsers: point.totalUsers,
   }));
@@ -110,7 +110,7 @@ function mapAdminContentTrend(
   return points.map((point) => ({
     date: point.date,
     knowledgeItemsCreated: point.knowledgeItemsCreated,
-    label: dayjs(point.date).format("MMM D"),
+    label: dayjs(point.date).format("MM-DD"),
     scenariosCreated: point.scenariosCreated,
   }));
 }
@@ -123,7 +123,7 @@ function createTrendSeries() {
 
     return {
       date: day.format("YYYY-MM-DD"),
-      label: day.format("MMM D"),
+      label: day.format("MM-DD"),
       freeFormSessionsCompleted: 0,
       knowledgeItemsLearned: 0,
       practiceMinutes: 0,

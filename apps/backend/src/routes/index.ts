@@ -1,6 +1,7 @@
 import type { BackendApp } from "../http/context";
 import { registerAdminRoutes } from "./admin";
 import { registerAuthRoutes } from "./auth";
+import { registerDashboardRoutes } from "./dashboard";
 import { registerHistoryRoutes } from "./history";
 import { registerInternalAgentRoutes } from "./internal-agent";
 import { registerKnowledgeGenerateRoutes } from "./knowledge-generate";
@@ -15,6 +16,7 @@ export function registerRoutes(app: BackendApp) {
   registerSystemRoutes(app);
   registerInternalAgentRoutes(app);
   registerSessionRoutes(app);
+  registerDashboardRoutes(app);
   registerKnowledgePointRoutes(app);
   registerKnowledgeGenerateRoutes(app);
   registerScenarioGenerateRoutes(app);
