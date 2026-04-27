@@ -15,6 +15,8 @@ export {
   OctagonX,
   PanelLeft,
   Plus,
+  SendHorizontal,
   Sparkles,
   Users,
+  UserCircle
 } from "lucide-react";

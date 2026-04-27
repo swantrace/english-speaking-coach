@@ -1,4 +1,4 @@
-import { BookOpen, History, Home, Plus, Sparkles, Users } from "@english-coach/ui";
+import { BookOpen, History, Home, Plus, Sparkles, UserCircle } from "@english-coach/ui";
 import type { PropsWithChildren } from "react";
 import { DashboardShell } from "./dashboard-shell";
 
@@ -11,7 +11,7 @@ export function StudentShell({ children }: PropsWithChildren) {
         { icon: History, label: "Sessions", to: "/app/sessions" },
         { icon: Sparkles, label: "Scenarios", to: "/app/scenarios" },
         { icon: BookOpen, label: "Knowledge", to: "/app/knowledge" },
-        { icon: Users, label: "Profile", to: "/app/profile" },
+        { icon: UserCircle, label: "Profile", to: "/app/profile" },
       ]}
     >
       {children}

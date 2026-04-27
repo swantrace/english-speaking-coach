@@ -106,7 +106,7 @@ describe("SessionTracker", () => {
   it("renders remaining slots for the active goal", () => {
     const tracker = new SessionTracker(scenario);
 
-    expect(tracker.renderCurrentStatus()).toContain("Remaining Slots: dish_name");
+    expect(tracker.renderCurrentStatus()).toContain("- Remaining slots: dish_name");
   });
 
   it("returns a wrap-up hint when all goals are complete", () => {
@@ -128,13 +128,13 @@ describe("SessionTracker", () => {
       tracker,
     );
 
-    expect(instructions).toContain("Extract slot values from the learner's natural wording");
-    expect(instructions).toContain("[ACTIVE_GOAL_SCHEMA]");
+    expect(instructions).toContain("Extract slot values from natural wording");
+    expect(instructions).toContain("[ACTIVE_GOAL]");
+    expect(instructions).toContain("[TOOL_CALL_RULES]");
+    expect(instructions).toContain("[CURRENT_PROGRESS]");
     expect(instructions).toContain("Goal: Order a dish");
     expect(instructions).toContain("Required intents: order_food");
     expect(instructions).toContain("Required slots: dish_name");
-    expect(instructions).toContain("Current goal intent names: order_food");
-    expect(instructions).toContain("Current goal slot names: dish_name");
     expect(instructions).toContain("May I have a cup of mocha?");
   });
 });

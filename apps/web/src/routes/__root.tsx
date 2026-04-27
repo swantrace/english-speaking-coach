@@ -2,6 +2,7 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { createRootRouteWithContext, Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { AppRouterContext } from "@/app/route-context";
+import { useSignOutMutation } from "@/features/auth/mutations";
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
   component: RootComponent,
@@ -10,6 +11,10 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
 });
 
 function RootComponent() {
+  const { auth } = Route.useRouteContext();
+  const signOutMutation = useSignOutMutation();
+  const isLoggedIn = auth.user !== null;
+
   return (
     <>
       <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(245,232,209,0.65),_transparent_38%),linear-gradient(180deg,_#f8f4ec_0%,_#f3efe7_100%)]">
@@ -19,18 +24,26 @@ function RootComponent() {
               English Coach
             </Link>
             <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
-              <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/">
-                Public
-              </Link>
-              <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/login">
-                Login
-              </Link>
-              <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/app">
+              <Link className="rounded-full px-3 py-2 hover:bg-stone-100 cursor-pointer" to="/app">
                 App
               </Link>
-              <Link className="rounded-full px-3 py-2 hover:bg-stone-100" to="/admin">
+              <Link className="rounded-full px-3 py-2 hover:bg-stone-100 cursor-pointer" to="/admin">
                 Admin
               </Link>
+              {isLoggedIn ? (
+                <button
+                  className="rounded-full px-3 py-2 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                  disabled={signOutMutation.isPending}
+                  onClick={() => signOutMutation.mutate()}
+                  type="button"
+                >
+                  {signOutMutation.isPending ? "Logging out..." : "Logout"}
+                </button>
+              ) : (
+                <Link className="rounded-full px-3 py-2 hover:bg-stone-100 cursor-pointer" to="/login">
+                  Login
+                </Link>
+              )}
             </nav>
           </div>
         </header>

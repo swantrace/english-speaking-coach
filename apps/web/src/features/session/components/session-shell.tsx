@@ -12,6 +12,7 @@ import { ConnectionBanner } from "./connection-banner";
 import { SessionControls } from "./session-controls";
 import { SessionHeader } from "./session-header";
 import { SessionSidePanel } from "./session-side-panel";
+import { SessionTextComposer } from "./session-text-composer";
 import { TranscriptPane } from "./transcript-pane";
 
 interface SessionShellProps {
@@ -32,6 +33,7 @@ export function SessionShell({ bootstrap }: SessionShellProps) {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
         <div className="space-y-5">
           <TranscriptPane turns={turns} />
+          <SessionTextComposer />
           <SessionControls bootstrap={bootstrap} />
         </div>
 

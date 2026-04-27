@@ -1,17 +1,13 @@
+import {
+  buildFreeFormInstructionsPrompt,
+  buildLatestWorkerFeedbackPrompt,
+  workerFeedbackPrefix,
+} from "@english-coach/prompts";
 import type { llm } from "@livekit/agents";
-
 import type { FreeFormRuntimeConfig, WorkerFeedbackChatContext } from "./types";
 
-const workerFeedbackPrefix = "[WORKER_FEEDBACK]\n";
-
 export function createFreeFormInstructions(config: FreeFormRuntimeConfig) {
-  return [
-    "You are an English speaking coach for a live voice session.",
-    "Keep responses concise, practical, and easy to follow aloud.",
-    "Do not mention hidden analysis or worker feedback unless it improves the conversation naturally.",
-    "Use this context to ground the session:",
-    config.contextDocument,
-  ].join("\n\n");
+  return buildFreeFormInstructionsPrompt(config.contextDocument);
 }
 
 function isWorkerFeedbackItem(item: llm.ChatItem) {
@@ -21,7 +17,7 @@ function isWorkerFeedbackItem(item: llm.ChatItem) {
 export function withLatestWorkerFeedback<T extends WorkerFeedbackChatContext>(chatContext: T, message: string): T {
   chatContext.items = chatContext.items.filter((item) => !isWorkerFeedbackItem(item));
   chatContext.addMessage({
-    content: `${workerFeedbackPrefix}${message}`,
+    content: buildLatestWorkerFeedbackPrompt(message),
     role: "system",
   });
 

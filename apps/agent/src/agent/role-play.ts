@@ -1,5 +1,12 @@
 import { type GoalProgressPacket, goalProgressPacketSchema } from "@english-coach/contract";
 import type { Scenario } from "@english-coach/contract/scenario";
+import {
+  buildActiveGoalSchemaSectionPrompt,
+  buildCurrentStatusSectionPrompt,
+  buildExtractionGuidanceSectionPrompt,
+  buildHintSectionPrompt,
+  buildRolePlayInstructionsPrompt,
+} from "@english-coach/prompts";
 import type { RolePlayRuntimeConfig } from "./types";
 
 type GoalState = {
@@ -89,48 +96,24 @@ export class SessionTracker {
       (slot) => !this.getFilledSlotsForCurrentGoal()[slot],
     );
 
-    return [
-      filledSlotSummary ? `Detected ${intent} with ${filledSlotSummary}.` : `Detected ${intent}.`,
-      remainingSlots.length > 0
-        ? `Next: guide the learner toward ${remainingSlots.join(", ")}.`
-        : `Next: move the role-play toward goal '${currentGoal.description}'.`,
-    ].join(" ");
+    return buildHintSectionPrompt({
+      currentGoalDescription: currentGoal.description,
+      filledSlotSummary,
+      intent,
+      remainingSlots,
+    });
   }
 
   renderExtractionGuidance() {
-    const currentGoal = this.getCurrentGoal();
-
-    if (!currentGoal) {
-      return [
-        "[TOOL_CALL_RULES]",
-        "All goals are complete. Do not invent new slots or intents. Wrap up naturally.",
-      ].join("\n");
-    }
-
-    return [
-      "[TOOL_CALL_RULES]",
-      "When calling detectIntentAndSlot, use the exact intent names and slot names defined by the active goal.",
-      "Extract slot values from the learner's natural wording even when the learner does not say the slot name out loud.",
-      'Example: if the goal expects intent `orderDrink` and slot `drinkType`, and the learner says "May I have a cup of mocha?", call the tool with intent `orderDrink` and slots {"drinkType":"mocha"}.',
-      `Current goal intent names: ${currentGoal.logic.required_intents.join(", ") || "none"}`,
-      `Current goal slot names: ${currentGoal.logic.required_slots.join(", ") || "none"}`,
-    ].join("\n");
+    return buildExtractionGuidanceSectionPrompt({
+      currentGoal: this.getCurrentGoal(),
+    });
   }
 
   renderActiveGoalSchema() {
-    const currentGoal = this.getCurrentGoal();
-
-    if (!currentGoal) {
-      return ["[ACTIVE_GOAL_SCHEMA]", "All goals are complete."].join("\n");
-    }
-
-    return [
-      "[ACTIVE_GOAL_SCHEMA]",
-      `Goal: ${currentGoal.description}`,
-      `Required intents: ${currentGoal.logic.required_intents.join(", ") || "none"}`,
-      `Required slots: ${currentGoal.logic.required_slots.join(", ") || "none"}`,
-      "Slot extraction rule: if the learner provides a slot value indirectly or naturally, extract it using the exact slot name.",
-    ].join("\n");
+    return buildActiveGoalSchemaSectionPrompt({
+      currentGoal: this.getCurrentGoal(),
+    });
   }
 
   toGoalProgressPacket(transcriptTurnIndex?: number): GoalProgressPacket {
@@ -154,22 +137,12 @@ export class SessionTracker {
   renderCurrentStatus() {
     const currentGoal = this.getCurrentGoal();
 
-    return [
-      "[CURRENT_STATUS]",
-      "Current Goals:",
-      ...this.scenario.goals.goals.map((goal) => {
-        if (this.completedGoalIds.has(goal.id)) {
-          return `- [x] ${goal.description}`;
-        }
-
-        if (currentGoal?.id === goal.id) {
-          const remainingSlots = goal.logic.required_slots.filter((slot) => !this.getFilledSlotsForCurrentGoal()[slot]);
-          return `- [ ] ${goal.description} (Remaining Slots: ${remainingSlots.join(", ") || "none"})`;
-        }
-
-        return `- [ ] ${goal.description}`;
-      }),
-    ].join("\n");
+    return buildCurrentStatusSectionPrompt({
+      completedGoalIds: this.completedGoalIds,
+      currentGoal,
+      filledSlotsForCurrentGoal: this.getFilledSlotsForCurrentGoal(),
+      goals: this.scenario.goals.goals,
+    });
   }
 }
 
@@ -181,15 +154,12 @@ export function createRolePlayInstructions(config: RolePlayRuntimeConfig, sessio
     throw new Error("Scenario characters are incomplete for the selected role-play configuration.");
   }
 
-  return [
-    `You are role-playing as ${agentCharacter.name}. ${agentCharacter.description}`,
-    `The learner is playing as ${userCharacter.name}. ${userCharacter.description}`,
-    `Scenario setting: ${config.scenario.setting}`,
-    "Stay in character, speak naturally, and keep replies concise enough for voice conversation.",
-    "Call the detectIntentAndSlot tool whenever the learner makes meaningful progress on the active goal.",
-    "After the tool returns, use the hint to shape the next in-character turn.",
-    sessionTracker.renderActiveGoalSchema(),
-    sessionTracker.renderExtractionGuidance(),
-    sessionTracker.renderCurrentStatus(),
-  ].join("\n\n");
+  return buildRolePlayInstructionsPrompt({
+    activeGoalSchema: sessionTracker.renderActiveGoalSchema(),
+    agentCharacter,
+    currentStatus: sessionTracker.renderCurrentStatus(),
+    extractionGuidance: sessionTracker.renderExtractionGuidance(),
+    scenarioSetting: config.scenario.setting,
+    userCharacter,
+  });
 }

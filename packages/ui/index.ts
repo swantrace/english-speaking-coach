@@ -81,8 +81,10 @@ export {
 	OctagonX,
 	PanelLeft,
 	Plus,
+	SendHorizontal,
 	Sparkles,
 	Users,
+	UserCircle
 } from "./src/components/icons";
 export { Label } from "./src/components/label";
 export {
