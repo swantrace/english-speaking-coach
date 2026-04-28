@@ -8,6 +8,7 @@ import {
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { knowledgeItems, sessionErrors, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
+import { buildLingAnalysisPrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
@@ -55,23 +56,21 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
     });
   }
 
+  const { prompt, system } = buildLingAnalysisPrompt({
+    communicativeFunctions,
+    errorDimensions,
+    fixednessLevels,
+    syntaxRoles,
+    turns,
+  });
+
   const { output } = await generateText({
     model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
     output: Output.object({
       schema: lingAnalysisResultSchema,
     }),
-    prompt: [
-      "You are analyzing a completed English coaching session transcript.",
-      "Return one combined structured object with knowledge items, learner errors, and a markdown review.",
-      "Always include rewrittenUserTurns. If there are no rewrites to suggest, return rewrittenUserTurns as [].",
-      `Valid syntaxRole values: ${syntaxRoles.join(", ")}`,
-      `Valid fixednessLevel values: ${fixednessLevels.join(", ")}`,
-      `Valid communicativeFunction values: ${communicativeFunctions.join(", ")}`,
-      `Valid error dimensions: ${errorDimensions.join(", ")}`,
-      "Extract knowledge items from both user and assistant turns. Use speaker='user' for active learner production and speaker='assistant' for target language modelled by the coach.",
-      "Only report genuine learner errors for user utterances.",
-      JSON.stringify(turns),
-    ].join("\n\n"),
+    prompt,
+    system,
   });
 
   return output;

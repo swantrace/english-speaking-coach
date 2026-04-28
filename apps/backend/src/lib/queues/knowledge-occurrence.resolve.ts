@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { adminKnowledgeCreateSchema } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import { knowledgeItems, sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
+import { buildKnowledgeItemFromOccurrencePrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
@@ -39,18 +40,15 @@ async function generateKnowledgeItemFromOccurrence({
     });
   }
 
+  const { prompt, system } = buildKnowledgeItemFromOccurrencePrompt({ proposedPattern, utterance });
+
   const { output } = await generateText({
     model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
     output: Output.object({
       schema: generatedKnowledgeItemSchema,
     }),
-    prompt: [
-      "You generate one structured English knowledge item for an admin review queue.",
-      "Use the proposed pattern as a strong hint, improving normalization if helpful.",
-      "Return a concise reusable pattern and optional linguistic classifications when confident.",
-      `Proposed pattern: ${proposedPattern}`,
-      `Utterance evidence: ${utterance}`,
-    ].join("\n\n"),
+    prompt,
+    system,
     providerOptions: {
       openai: {
         strictJsonSchema: false,

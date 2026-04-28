@@ -15,6 +15,7 @@ export { knowledgeGenerateUpdatedEvent } from "@english-coach/contract/knowledge
 
 import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
+import { buildKnowledgeItemGeneratePrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
@@ -262,18 +263,15 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
   //   });
   // }
 
+  const { prompt: knowledgeItemPrompt, system } = buildKnowledgeItemGeneratePrompt({ input: prompt });
+
   const { output } = await generateText({
     model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
     output: Output.object({
       schema: modelGeneratedKnowledgeItemSchema,
     }),
-    prompt: [
-      "You generate one structured English knowledge item for an admin review queue.",
-      "Always include a non-empty 'pattern' field.",
-      "Return a useful phrase pattern, optional example sentence, and linguistic classifications when confident.",
-      "Keep the pattern concise and reusable for coaching.",
-      prompt,
-    ].join("\n\n"),
+    prompt: knowledgeItemPrompt,
+    system,
     providerOptions: {
       openai: {
         strictJsonSchema: false,

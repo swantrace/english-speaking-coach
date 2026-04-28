@@ -320,7 +320,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  packages/prompts: {}
+  packages/prompts:
+    dependencies:
+      '@english-coach/contract':
+        specifier: workspace:*
+        version: link:../contract
 
   packages/storage:
     dependencies:

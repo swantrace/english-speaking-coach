@@ -1,80 +1,8 @@
-export const buildSessionReviewPrompt = () => ({
-  system: "You are a helpful assistant for reviewing coaching sessions.",
-  prompt: "Review the following coaching session and provide feedback: {input}",
-});
+import type { ScenarioCharacter, ScenarioGoal } from "@english-coach/contract/scenario";
 
-export type InConversationAnalysisPromptTurn = {
-  speaker: string;
-  text: string;
-  timestampMs: number;
-  transcriptTurnIndex: number;
-};
-
-export const buildInConversationAnalysisPrompt = ({
-  indexedTurns,
-}: {
-  indexedTurns: InConversationAnalysisPromptTurn[];
-}) => {
-  const transcriptText =
-    indexedTurns.length === 0
-      ? "NO TRANSCRIPT TURNS."
-      : indexedTurns
-          .map(
-            (turn) =>
-              `[${turn.transcriptTurnIndex}] ${turn.speaker.toUpperCase()} (${turn.timestampMs}ms): ${turn.text}`,
-          )
-          .join("\n");
-
-  return {
-    system: [
-      "You are an expert English-speaking coach analyzing a live conversation while it is still happening.",
-      "Your job is to return compact structured coaching signals for the UI, the voice agent, and later knowledge review.",
-      "Be practical, specific, and lightweight. Do not over-explain.",
-    ].join("\n"),
-    prompt: [
-      "[RECENT TRANSCRIPT]",
-      "Turns are in chronological order. The number in brackets is transcriptTurnIndex.",
-      "",
-      transcriptText,
-      "",
-      "[TASK]",
-      "Analyze these recent turns and return one object with:",
-      "- up to 12 unresolved knowledge occurrences",
-      "- up to 3 transcript-aligned learner-facing UI prompts",
-      "- one short worker feedback message for the live voice agent",
-      "",
-      "[OUTPUT FIELDS]",
-      "occurrences:",
-      "- Extract useful reusable English patterns from user and assistant turns.",
-      "- Include only occurrences whose transcriptTurnIndex points to a turn shown above.",
-      "- Use speaker context implicitly: user turns are learner production; assistant turns are target language modeled by the coach.",
-      '- proposedPattern must be concise reusable notation, for example: "I\'d like <np>", "Could you <vp>?", "Would it be possible to <vp>?".',
-      "- utterance must be the exact or lightly trimmed phrase from that same transcript turn.",
-      "- Prefer unresolved or newly useful language, not every phrase in the transcript.",
-      "",
-      "uiPrompts:",
-      "- Always include uiPrompts. If there are no useful prompts, return [].",
-      "- Each prompt must be brief and learner-facing, not a full explanation.",
-      '- Phrase prompts like something the learner could ask next, for example: "Ask the agent why..." or "Ask how...".',
-      '- Use promptKind="error_hint" for learner mistakes.',
-      '- Use promptKind="knowledge_hint" for useful language patterns worth noticing.',
-      '- Use promptKind="fluency_hint" for pacing, clarity, hesitation, or response-length cues.',
-      "- Anchor transcriptTurnIndex to the most relevant turn whenever possible.",
-      "",
-      "workerFeedbackMessage:",
-      "- Write one compact coaching hint for the agent to append into chat context.",
-      "- Focus on what the agent should do next in the live conversation.",
-      "- Keep it natural, actionable, and short.",
-      "",
-      "[CONSTRAINTS]",
-      "- Return only data matching the required structured schema.",
-      "- Do not include markdown, prose outside fields, or extra keys.",
-      "- Do not invent transcriptTurnIndex values.",
-      "- Do not correct assistant turns as learner mistakes.",
-      "- Do not shame the learner; keep feedback warm and useful.",
-    ].join("\n"),
-  };
-};
+type LiveSessionGoal = Pick<ScenarioGoal, "description" | "id" | "logic" | "optional">;
+type ActiveGoalSchemaGoal = Pick<ScenarioGoal, "description" | "logic">;
+type LiveSessionCharacter = Pick<ScenarioCharacter, "description" | "name">;
 
 export const buildFreeFormInstructionsPrompt = (context: string) => {
   return `
@@ -118,12 +46,7 @@ export const buildHintSectionPrompt = ({
 export const buildExtractionGuidanceSectionPrompt = ({
   currentGoal,
 }: {
-  currentGoal: {
-    logic: {
-      required_intents: string[];
-      required_slots: string[];
-    };
-  } | null;
+  currentGoal: Pick<ScenarioGoal, "logic"> | null;
 }) => {
   return !currentGoal
     ? [
@@ -140,11 +63,7 @@ export const buildExtractionGuidanceSectionPrompt = ({
       ].join("\n");
 };
 
-export const buildActiveGoalSchemaSectionPrompt = ({
-  currentGoal,
-}: {
-  currentGoal: { description: string; logic: { required_intents: string[]; required_slots: string[] } } | null;
-}) => {
+export const buildActiveGoalSchemaSectionPrompt = ({ currentGoal }: { currentGoal: ActiveGoalSchemaGoal | null }) => {
   return !currentGoal
     ? "All goals are complete."
     : [
@@ -160,24 +79,8 @@ export const buildCurrentStatusSectionPrompt = ({
   completedGoalIds,
   filledSlotsForCurrentGoal,
 }: {
-  currentGoal: {
-    description: string;
-    id: string;
-    logic: {
-      required_intents: string[];
-      required_slots: string[];
-    };
-    optional?: boolean | undefined;
-  } | null;
-  goals: {
-    description: string;
-    id: string;
-    logic: {
-      required_intents: string[];
-      required_slots: string[];
-    };
-    optional?: boolean | undefined;
-  }[];
+  currentGoal: LiveSessionGoal | null;
+  goals: LiveSessionGoal[];
   completedGoalIds: Set<string>;
   filledSlotsForCurrentGoal: Record<string, string>;
 }) => {
@@ -227,8 +130,8 @@ export const buildRolePlayInstructionsPrompt = ({
   extractionGuidance,
   currentStatus,
 }: {
-  userCharacter: { description: string; name: string };
-  agentCharacter: { description: string; name: string };
+  userCharacter: LiveSessionCharacter;
+  agentCharacter: LiveSessionCharacter;
   scenarioSetting: string;
   activeGoalSchema: string;
   extractionGuidance: string;

@@ -18,6 +18,11 @@ export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario";
 
 import { db, migrateDatabase, sqlite } from "@english-coach/database";
 import { scenarios, submissionJobs, submissions } from "@english-coach/database/schema";
+import {
+  buildScenarioExampleDialoguePrompt,
+  buildScenarioGoalsGeneratePrompt,
+  buildScenarioStoryGeneratePrompt,
+} from "@english-coach/prompts";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { z } from "zod";
@@ -251,14 +256,15 @@ async function generateScenario(prompt: string): Promise<GeneratedScenario> {
 
 async function generateScenarioObject<TSchema extends z.ZodTypeAny>(
   schema: TSchema,
-  promptSections: string[],
+  promptParts: { prompt: string; system: string },
 ): Promise<z.output<TSchema>> {
   const { output } = await generateText({
     model: openai(process.env.SCENARIO_GENERATE_MODEL ?? "gpt-4.1-mini"),
     output: Output.object({
       schema,
     }),
-    prompt: promptSections.join("\n\n"),
+    prompt: promptParts.prompt,
+    system: promptParts.system,
     providerOptions: {
       openai: {
         strictJsonSchema: false,
@@ -270,46 +276,18 @@ async function generateScenarioObject<TSchema extends z.ZodTypeAny>(
 }
 
 async function generateScenarioStory(prompt: string): Promise<ScenarioStory> {
-  return generateScenarioObject(scenarioStorySchema, [
-    "You expand a short role-play brief into a concrete two-person spoken English scenario.",
-    "The brief can describe any kind of interaction. Do not assume customer service, complaints, or business context unless the brief implies it.",
-    "Return a concise title, a scene-setting summary, exactly two characters, and a detailed story.",
-    "The two characters are the two roles in the scenario. Do not assign one in advance as the learner or the agent.",
-    "The title should work as the main scenario card headline and as a quick label in lists and history.",
-    "The setting should be a compact summary that works as a browser card subtitle and as prompt input for the agent.",
-    "The story should be detailed enough for later steps to extract goals and write an example dialogue. It must clearly explain the background, what each person wants, the main obstacle or misunderstanding, any pressure or constraints on either side, the information that must be clarified during the conversation, and the most plausible path toward resolution.",
-    "Role-play brief:",
-    prompt,
-  ]);
+  return generateScenarioObject(scenarioStorySchema, buildScenarioStoryGeneratePrompt({ brief: prompt }));
 }
 
 async function generateScenarioGoals(story: ScenarioStory) {
-  return generateScenarioObject(scenarioGoalsSchema, [
-    "You convert a two-person scenario story into structured role-play goals.",
-    "Use only details that are supported by the scenario story package.",
-    "Top-level intents should be reusable conversational actions, not full sentences.",
-    "Top-level slots should be concrete pieces of information that matter for resolving the interaction.",
-    "Goals should describe what the learner must accomplish, follow a natural conversational order, and stay minimal while still covering the full interaction.",
-    "Every required_intents and required_slots entry must reference names declared in the top-level intents and slots arrays.",
-    "Do not include runtime progress or status.",
-    "Scenario story package:",
-    JSON.stringify(story, null, 2),
-  ]);
+  return generateScenarioObject(scenarioGoalsSchema, buildScenarioGoalsGeneratePrompt({ story }));
 }
 
 async function generateScenarioDialogue(story: ScenarioStory, goals: z.infer<typeof scenarioGoalsSchema>) {
-  const result = await generateScenarioObject(scenarioDialogueExampleSchema, [
-    "You write a short example dialogue for a two-person spoken English role-play.",
-    "Use characterIndex 0 or 1 on each turn so every line is tied to one of the two generated characters.",
-    "characterIndex 0 refers to characters[0]. characterIndex 1 refers to characters[1].",
-    "The dialogue should sound natural, reflect the characters and conflict, and show a credible path through the interaction.",
-    "Make the dialogue concise but complete enough to demonstrate how the scenario can succeed.",
-    "The dialogue must visibly cover the key goals, intents, and slot collection implied by the goals object.",
-    "Scenario story package:",
-    JSON.stringify(story, null, 2),
-    "Goals object:",
-    JSON.stringify(goals, null, 2),
-  ]);
+  const result = await generateScenarioObject(
+    scenarioDialogueExampleSchema,
+    buildScenarioExampleDialoguePrompt({ goals, story }),
+  );
 
   return result.exampleDialogue;
 }
