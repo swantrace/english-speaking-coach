@@ -15,6 +15,7 @@ import {
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { sessionKnowledgePointOccurrences, sessionTranscripts } from "@english-coach/database/schema";
+import { buildInConversationAnalysisPrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
@@ -167,26 +168,15 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     ...turn,
     transcriptTurnIndex: job.transcriptStartIndex + index,
   }));
+  const { prompt, system } = buildInConversationAnalysisPrompt({ indexedTurns });
 
   const { output } = await generateText({
     model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
     output: Output.object({
       schema: inConversationAnalysisResultSchema,
     }),
-    prompt: [
-      "You analyze recent turns from an English-speaking coaching conversation.",
-      "Return up to 3 transcript-aligned UI prompts and one short worker feedback message for the voice agent.",
-      "Also extract up to 12 unresolved knowledge occurrences with { transcriptTurnIndex, proposedPattern, utterance }.",
-      "Only include occurrences where transcriptTurnIndex points to a user or assistant turn that exists in the transcript.",
-      "Use concise reusable pattern notation like 'I'd like <np>' for proposedPattern.",
-      "Always include uiPrompts. If there are no useful prompts, return uiPrompts as [].",
-      "Each UI prompt must be a brief learner-facing follow-up cue, not a full explanation.",
-      "Phrase prompts like something the learner could ask next, for example 'Ask the agent why...' or 'Ask how...'.",
-      "Use promptKind='error_hint' for learner mistakes, 'knowledge_hint' for useful language patterns worth noticing, and 'fluency_hint' for pacing or clarity cues.",
-      "Anchor prompts to transcriptTurnIndex values from the transcript below whenever possible.",
-      "The worker feedback message should be a compact coaching hint for the agent to append into chat context.",
-      JSON.stringify(indexedTurns),
-    ].join("\n\n"),
+    prompt,
+    system,
   });
 
   return output;
