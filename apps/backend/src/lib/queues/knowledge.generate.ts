@@ -1,6 +1,4 @@
-import { openai } from "@ai-sdk/openai";
 import {
-  adminKnowledgeCreateSchema,
   type KnowledgeGenerateJobUpdate,
   type KnowledgeGenerateSubmissionItem,
   knowledgeGenerateProgressChannel as knowledgeGenerateDefaultProgressChannel,
@@ -15,11 +13,10 @@ export { knowledgeGenerateUpdatedEvent } from "@english-coach/contract/knowledge
 
 import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
-import { buildKnowledgeItemGeneratePrompt } from "@english-coach/prompts";
-import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
-import { z } from "zod";
+import { type GeneratedKnowledgeItem, getProvider, modelConfig } from "../ai";
+import { defaultProviderId } from "../env";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import {
   createCompletedProgressMessage,
@@ -48,20 +45,8 @@ export const knowledgeGenerateQueue = new Queue<KnowledgeGenerateJobData>(knowle
   connection: producerRedis,
 });
 
-const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema
-  .omit({
-    isPendingReview: true,
-  })
-  .extend({
-    example: z.string().trim().min(1).nullable().optional(),
-  });
-
-const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
-  pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),
-});
-
-type GeneratedKnowledgeItem = z.output<typeof generatedKnowledgeItemSchema>;
-type ModelGeneratedKnowledgeItem = z.output<typeof modelGeneratedKnowledgeItemSchema>;
+const knowledgeItemAi = getProvider(defaultProviderId).knowledgeItem;
+const models = modelConfig[defaultProviderId];
 
 let knowledgeGeneratorOverride: ((prompt: string) => Promise<GeneratedKnowledgeItem>) | null = null;
 
@@ -222,32 +207,6 @@ export async function getKnowledgeGenerateSnapshots({
   );
 }
 
-function normalizePatternValue(value: string | undefined): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const normalized = value.trim().replace(/\s+/g, " ");
-  return normalized.length > 0 ? normalized : undefined;
-}
-
-function derivePatternFallback(prompt: string, example?: string | null): string {
-  const normalizedExample = normalizePatternValue(example?.replace(/^\s*(["'])/, "").replace(/(["'])\s*$/, ""));
-
-  if (normalizedExample) {
-    return normalizedExample;
-  }
-
-  return normalizePatternValue(prompt) ?? "General language pattern";
-}
-
-function coerceGeneratedKnowledgeItem(output: ModelGeneratedKnowledgeItem, prompt: string): GeneratedKnowledgeItem {
-  return generatedKnowledgeItemSchema.parse({
-    ...output,
-    pattern: normalizePatternValue(output.pattern) ?? derivePatternFallback(prompt, output.example),
-  });
-}
-
 async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledgeItem> {
   if (knowledgeGeneratorOverride) {
     return knowledgeGeneratorOverride(prompt);
@@ -263,23 +222,9 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
   //   });
   // }
 
-  const { prompt: knowledgeItemPrompt, system } = buildKnowledgeItemGeneratePrompt({ input: prompt });
-
-  const { output } = await generateText({
-    model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
-    output: Output.object({
-      schema: modelGeneratedKnowledgeItemSchema,
-    }),
-    prompt: knowledgeItemPrompt,
-    system,
-    providerOptions: {
-      openai: {
-        strictJsonSchema: false,
-      },
-    },
+  return knowledgeItemAi.generateKnowledgeItem(models.KNOWLEDGE_GENERATE_MODEL, {
+    input: prompt,
   });
-
-  return coerceGeneratedKnowledgeItem(output, prompt);
 }
 
 async function persistKnowledgeItem(generatedKnowledgeItem: GeneratedKnowledgeItem) {

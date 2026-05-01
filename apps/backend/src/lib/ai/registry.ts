@@ -18,7 +18,13 @@ export const registry = createProviderRegistry({
   qwen,
 });
 
-export type ProviderId = "openai" | "qwen";
+export const providerIds = ["openai", "qwen"] as const;
+
+export type ProviderId = (typeof providerIds)[number];
+
+export function isProviderId(value: string): value is ProviderId {
+  return providerIds.includes(value as ProviderId);
+}
 
 // Convenience for building language models in a unified way.
 export function languageModel(providerId: ProviderId, modelId: string): ReturnType<typeof registry.languageModel> {

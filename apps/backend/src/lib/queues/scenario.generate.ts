@@ -1,15 +1,10 @@
-import { openai } from "@ai-sdk/openai";
 import {
   type ScenarioGenerateJobUpdate,
   type ScenarioGenerateSubmissionItem,
-  scenarioCharacterSchema,
-  scenarioDialogueTurnSchema,
   scenarioGenerateProgressChannel as scenarioGenerateDefaultProgressChannel,
   scenarioGenerateJobUpdateSchema,
   scenarioGenerateSubmissionKind,
   scenarioGenerateUpdatedEvent,
-  scenarioGoalsSchema,
-  scenarioSchema,
   scenarioGenerateJobName as sharedScenarioGenerateJobName,
   scenarioGenerateQueueName as sharedScenarioGenerateQueueName,
 } from "@english-coach/contract/scenario";
@@ -18,14 +13,9 @@ export { scenarioGenerateUpdatedEvent } from "@english-coach/contract/scenario";
 
 import { db, migrateDatabase, sqlite } from "@english-coach/database";
 import { scenarios, submissionJobs, submissions } from "@english-coach/database/schema";
-import {
-  buildScenarioExampleDialoguePrompt,
-  buildScenarioGoalsGeneratePrompt,
-  buildScenarioStoryGeneratePrompt,
-} from "@english-coach/prompts";
-import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
-import { z } from "zod";
+import { type GeneratedScenario, getProvider, modelConfig } from "../ai";
+import { defaultProviderId } from "../env";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import {
   createCompletedProgressMessage,
@@ -54,32 +44,8 @@ export const scenarioGenerateQueue = new Queue<ScenarioGenerateJobData>(scenario
   connection: producerRedis,
 });
 
-const generatedScenarioSchema = scenarioSchema
-  .omit({
-    createdAt: true,
-    id: true,
-    isPendingReview: true,
-    updatedAt: true,
-  })
-  .extend({
-    // OpenAI structured outputs reject tuple-style array schemas, so use a fixed-length
-    // array here and normalize back to the persisted tuple shape after generation.
-    characters: scenarioCharacterSchema.array().length(2),
-  });
-
-const scenarioStorySchema = z.object({
-  characters: scenarioCharacterSchema.array().length(2),
-  setting: z.string().trim().min(1),
-  story: z.string().trim().min(1),
-  title: z.string().trim().min(1),
-});
-
-const scenarioDialogueExampleSchema = z.object({
-  exampleDialogue: z.array(scenarioDialogueTurnSchema).min(1),
-});
-
-type GeneratedScenario = z.output<typeof generatedScenarioSchema>;
-type ScenarioStory = z.infer<typeof scenarioStorySchema>;
+const scenarioAi = getProvider(defaultProviderId).scenario;
+const models = modelConfig[defaultProviderId];
 
 let scenarioGeneratorOverride: ((prompt: string) => Promise<GeneratedScenario>) | null = null;
 
@@ -241,55 +207,9 @@ async function generateScenario(prompt: string): Promise<GeneratedScenario> {
     return scenarioGeneratorOverride(prompt);
   }
 
-  const scenarioStory = await generateScenarioStory(prompt);
-  const goals = await generateScenarioGoals(scenarioStory);
-  const exampleDialogue = await generateScenarioDialogue(scenarioStory, goals);
-
-  return generatedScenarioSchema.parse({
-    characters: scenarioStory.characters,
-    exampleDialogue,
-    goals,
-    setting: scenarioStory.setting,
-    title: scenarioStory.title,
+  return scenarioAi.generateScenario(models.SCENARIO_GENERATE_MODEL, {
+    brief: prompt,
   });
-}
-
-async function generateScenarioObject<TSchema extends z.ZodTypeAny>(
-  schema: TSchema,
-  promptParts: { prompt: string; system: string },
-): Promise<z.output<TSchema>> {
-  const { output } = await generateText({
-    model: openai(process.env.SCENARIO_GENERATE_MODEL ?? "gpt-4.1-mini"),
-    output: Output.object({
-      schema,
-    }),
-    prompt: promptParts.prompt,
-    system: promptParts.system,
-    providerOptions: {
-      openai: {
-        strictJsonSchema: false,
-      },
-    },
-  });
-
-  return schema.parse(output);
-}
-
-async function generateScenarioStory(prompt: string): Promise<ScenarioStory> {
-  return generateScenarioObject(scenarioStorySchema, buildScenarioStoryGeneratePrompt({ brief: prompt }));
-}
-
-async function generateScenarioGoals(story: ScenarioStory) {
-  return generateScenarioObject(scenarioGoalsSchema, buildScenarioGoalsGeneratePrompt({ story }));
-}
-
-async function generateScenarioDialogue(story: ScenarioStory, goals: z.infer<typeof scenarioGoalsSchema>) {
-  const result = await generateScenarioObject(
-    scenarioDialogueExampleSchema,
-    buildScenarioExampleDialoguePrompt({ goals, story }),
-  );
-
-  return result.exampleDialogue;
 }
 
 async function persistScenario(generatedScenario: GeneratedScenario) {

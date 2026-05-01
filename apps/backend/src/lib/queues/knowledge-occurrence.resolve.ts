@@ -1,11 +1,9 @@
-import { openai } from "@ai-sdk/openai";
-import { adminKnowledgeCreateSchema } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import { knowledgeItems, sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
-import { buildKnowledgeItemFromOccurrencePrompt } from "@english-coach/prompts";
-import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
+import { type GeneratedKnowledgeItem, getProvider, modelConfig } from "../ai";
+import { defaultProviderId } from "../env";
 import { producerRedis, workerRedis } from "../redis";
 
 export const knowledgeOccurrenceResolveQueueName = "knowledgeOccurrenceResolve";
@@ -18,11 +16,8 @@ export const knowledgeOccurrenceResolveQueue = new Queue<{ occurrenceId: string 
   },
 );
 
-const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema.omit({
-  isPendingReview: true,
-});
-
-type GeneratedKnowledgeItem = (typeof generatedKnowledgeItemSchema)["_output"];
+const knowledgeItemAi = getProvider(defaultProviderId).knowledgeItem;
+const models = modelConfig[defaultProviderId];
 
 async function generateKnowledgeItemFromOccurrence({
   proposedPattern,
@@ -32,33 +27,18 @@ async function generateKnowledgeItemFromOccurrence({
   utterance: string;
 }): Promise<GeneratedKnowledgeItem> {
   if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1") {
-    return generatedKnowledgeItemSchema.parse({
+    return {
       communicativeFunction: "give_or_seek_information",
       fixednessLevel: "restricted_collocation",
       pattern: proposedPattern,
+      senses: [],
       syntaxRole: "clause_pattern",
-    });
+    };
   }
 
-  const { prompt, system } = buildKnowledgeItemFromOccurrencePrompt({ proposedPattern, utterance });
-
-  const { output } = await generateText({
-    model: openai(process.env.KNOWLEDGE_GENERATE_MODEL ?? "gpt-4.1-mini"),
-    output: Output.object({
-      schema: generatedKnowledgeItemSchema,
-    }),
-    prompt,
-    system,
-    providerOptions: {
-      openai: {
-        strictJsonSchema: false,
-      },
-    },
-  });
-
-  return generatedKnowledgeItemSchema.parse({
-    ...output,
-    pattern: output.pattern?.trim() || proposedPattern,
+  return knowledgeItemAi.generateKnowledgeItemFromOccurrence(models.KNOWLEDGE_GENERATE_MODEL, {
+    proposedPattern,
+    utterance,
   });
 }
 

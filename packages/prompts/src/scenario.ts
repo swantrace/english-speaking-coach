@@ -1,4 +1,9 @@
-export const buildScenarioStoryGeneratePrompt = ({ brief }: { brief: string }) => ({
+type PromptModelParams = {
+  modelId?: string;
+  providerId?: string;
+};
+
+export const buildScenarioStoryGeneratePrompt = ({ brief }: PromptModelParams & { brief: string }) => ({
   system: [
     "You are a scenario designer for an English speaking practice app.",
     "You create realistic two-person role-play scenarios for live voice practice.",
@@ -22,7 +27,7 @@ export const buildScenarioStoryGeneratePrompt = ({ brief }: { brief: string }) =
   ].join("\n\n"),
 });
 
-export const buildScenarioGoalsGeneratePrompt = ({ story }: { story: unknown }) => ({
+export const buildScenarioGoalsGeneratePrompt = ({ story }: PromptModelParams & { story: unknown }) => ({
   system: [
     "You are a conversation task designer for an English speaking practice app.",
     "You convert scenario stories into structured goals that can be tracked during live role-play.",
@@ -48,7 +53,10 @@ export const buildScenarioGoalsGeneratePrompt = ({ story }: { story: unknown }) 
   ].join("\n\n"),
 });
 
-export const buildScenarioExampleDialoguePrompt = ({ goals, story }: { goals: unknown; story: unknown }) => ({
+export const buildScenarioExampleDialoguePrompt = ({
+  goals,
+  story,
+}: PromptModelParams & { goals: unknown; story: unknown }) => ({
   system: [
     "You are a dialogue writer for an English speaking practice app.",
     "You write concise, natural two-person example dialogues that demonstrate role-play success.",

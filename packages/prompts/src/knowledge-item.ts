@@ -1,4 +1,11 @@
-export const buildKnowledgeItemGeneratePrompt = ({ input = "{input}" }: { input?: string } = {}) => ({
+type PromptModelParams = {
+  modelId?: string;
+  providerId?: string;
+};
+
+export const buildKnowledgeItemGeneratePrompt = ({
+  input = "{input}",
+}: PromptModelParams & { input?: string } = {}) => ({
   system: [
     "You are an English linguistics assistant for an admin review queue.",
     "Your job is to convert rough language input into one reusable coaching knowledge item.",
@@ -23,7 +30,7 @@ export const buildKnowledgeItemGeneratePrompt = ({ input = "{input}" }: { input?
 export const buildKnowledgeItemFromOccurrencePrompt = ({
   proposedPattern,
   utterance,
-}: {
+}: PromptModelParams & {
   proposedPattern: string;
   utterance: string;
 }) => ({

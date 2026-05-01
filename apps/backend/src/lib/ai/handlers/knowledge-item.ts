@@ -1,39 +1,79 @@
-import {
-  // type BuildKnowledgePointGeneratePromptParams,
-  buildKnowledgeItemGeneratePrompt,
-  // KnowledgeItemGenerateSchema,
-  // KnowledgePointGenerateSchema,
-} from "@english-coach/prompts";
+import { adminKnowledgeCreateSchema } from "@english-coach/contract/knowledge";
+import { buildKnowledgeItemFromOccurrencePrompt, buildKnowledgeItemGeneratePrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
-import z from "zod";
-import type { ProviderContext } from "../provider";
+import type { z } from "zod";
+import { providerOptionsForStructuredOutput } from "../provider-options";
+import { languageModel, type ProviderId } from "../registry";
 
-type BuildKnowledgeItemGeneratePromptParams = {
-  provider: string;
-};
-
-const KnowledgeItemGenerateSchema = z.object({
-  phrase: z.string(),
-  explanation: z.string(),
+const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema.omit({
+  isPendingReview: true,
 });
 
-export function createKnowledgeItemHandler(ctx: ProviderContext) {
-  return async function knowledgePoints(
-    model: string,
-    _payload: Omit<BuildKnowledgeItemGeneratePromptParams, "provider">,
-  ) {
-    const { system, prompt } = buildKnowledgeItemGeneratePrompt();
+const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
+  pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),
+});
 
-    const lm = ctx.languageModel(ctx.providerId, model);
-    const result = await generateText({
-      model: lm,
-      output: Output.object({
-        schema: KnowledgeItemGenerateSchema,
-      }),
-      system,
-      prompt,
-    });
+export type GeneratedKnowledgeItem = z.output<typeof generatedKnowledgeItemSchema>;
 
-    return { output: result.output };
+export type GenerateKnowledgeItemInput = {
+  input: string;
+};
+
+export type GenerateKnowledgeItemFromOccurrenceInput = {
+  proposedPattern: string;
+  utterance: string;
+};
+
+function normalizePatternValue(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+export function createKnowledgeItemHandlers(providerId: ProviderId) {
+  return {
+    async generateKnowledgeItem(modelId: string, payload: GenerateKnowledgeItemInput): Promise<GeneratedKnowledgeItem> {
+      const { prompt, system } = buildKnowledgeItemGeneratePrompt({ modelId, providerId, ...payload });
+
+      const { output } = await generateText({
+        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+        model: languageModel(providerId, modelId),
+        output: Output.object({
+          schema: modelGeneratedKnowledgeItemSchema,
+        }),
+        system,
+        prompt,
+      });
+
+      return generatedKnowledgeItemSchema.parse({
+        ...output,
+        pattern: normalizePatternValue(output.pattern),
+      });
+    },
+
+    async generateKnowledgeItemFromOccurrence(
+      modelId: string,
+      payload: GenerateKnowledgeItemFromOccurrenceInput,
+    ): Promise<GeneratedKnowledgeItem> {
+      const { prompt, system } = buildKnowledgeItemFromOccurrencePrompt({ modelId, providerId, ...payload });
+
+      const { output } = await generateText({
+        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+        model: languageModel(providerId, modelId),
+        output: Output.object({
+          schema: generatedKnowledgeItemSchema,
+        }),
+        system,
+        prompt,
+      });
+
+      return generatedKnowledgeItemSchema.parse({
+        ...output,
+        pattern: output.pattern?.trim() || payload.proposedPattern,
+      });
+    },
   };
 }

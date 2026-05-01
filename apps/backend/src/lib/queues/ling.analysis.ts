@@ -1,5 +1,3 @@
-import { openai } from "@ai-sdk/openai";
-import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "@english-coach/contract/common";
 import {
   type LingAnalysisResult,
   lingAnalysisJobName,
@@ -8,10 +6,10 @@ import {
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { knowledgeItems, sessionErrors, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
-import { buildLingAnalysisPrompt } from "@english-coach/prompts";
-import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
+import { getProvider, modelConfig } from "../ai";
+import { defaultProviderId } from "../env";
 import { producerRedis, workerRedis } from "../redis";
 import { persistRewrittenTranscriptTurnsForSession } from "./in-conversation.analysis";
 
@@ -20,6 +18,9 @@ type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
 export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAnalysisQueueName, {
   connection: producerRedis,
 });
+
+const sessionAi = getProvider(defaultProviderId).session;
+const models = modelConfig[defaultProviderId];
 
 let lingAnalysisGeneratorOverride: ((turns: TranscriptTurns) => Promise<LingAnalysisResult>) | null = null;
 
@@ -56,24 +57,9 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
     });
   }
 
-  const { prompt, system } = buildLingAnalysisPrompt({
-    communicativeFunctions,
-    errorDimensions,
-    fixednessLevels,
-    syntaxRoles,
+  return sessionAi.generateLingAnalysis(models.LING_ANALYSIS_MODEL, {
     turns,
   });
-
-  const { output } = await generateText({
-    model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
-    output: Output.object({
-      schema: lingAnalysisResultSchema,
-    }),
-    prompt,
-    system,
-  });
-
-  return output;
 }
 
 export const lingAnalysisWorker = new Worker<{ sessionHistoryId: string }>(

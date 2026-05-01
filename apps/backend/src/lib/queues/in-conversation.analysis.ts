@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import {
   type InConversationAnalysisJob,
   type InConversationKnowledgeOccurrence,
@@ -15,13 +14,15 @@ import {
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { sessionKnowledgePointOccurrences, sessionTranscripts } from "@english-coach/database/schema";
-import { buildInConversationAnalysisPrompt } from "@english-coach/prompts";
-import { generateText, Output } from "ai";
 import { Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { DataPacket_Kind } from "livekit-server-sdk";
+import { getProvider } from "../ai";
+import { defaultProviderId } from "../env";
 import { getRoomServiceClient } from "../livekit";
 import { producerRedis, workerRedis } from "../redis";
+
+const sessionAi = getProvider(defaultProviderId).session;
 
 export const inConversationAnalysisQueue = new Queue<InConversationAnalysisJob>(inConversationAnalysisQueueName, {
   connection: producerRedis,
@@ -168,18 +169,10 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     ...turn,
     transcriptTurnIndex: job.transcriptStartIndex + index,
   }));
-  const { prompt, system } = buildInConversationAnalysisPrompt({ indexedTurns });
 
-  const { output } = await generateText({
-    model: openai(process.env.LING_ANALYSIS_MODEL ?? "gpt-4.1-mini"),
-    output: Output.object({
-      schema: inConversationAnalysisResultSchema,
-    }),
-    prompt,
-    system,
+  return await sessionAi.generateInConversationAnalysis("gpt-4o", {
+    indexedTurns,
   });
-
-  return output;
 }
 
 async function persistInConversationOccurrences(

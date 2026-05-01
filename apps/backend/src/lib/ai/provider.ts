@@ -1,57 +1,29 @@
-import OpenAI from "openai";
-import { languageModel, type ProviderId, registry, speechModel, transcriptionModel } from "./registry";
+import { createKnowledgeItemHandlers } from "./handlers/knowledge-item";
+import { createScenarioHandlers } from "./handlers/scenario";
+import { createSessionHandlers } from "./handlers/session";
+import type { ProviderId } from "./registry";
 
-export interface AppLlmProvider {
-  id: ProviderId;
-  // generateKnowledgeItemObject: ReturnType<typeof createKnowledgeItemHandler>;
-  // generateScenarioStoryObject: ReturnType<typeof createScenarioStoryHandler>;
-  // generateScenarioGoalsObject: ReturnType<typeof createScenarioGoalsHandler>;
-  // generateScenarioExampleDialogueObject: ReturnType<typeof createScenarioExampleDialogueHandler>;
-  // generateSessionReviewObject: ReturnType<typeof createSessionReviewHandler>;
-  // generateInConversationAnalysisObject: ReturnType<typeof createInConversationAnalysisHandler>;
-}
+export type AiProviderClient = ReturnType<typeof createProviderHandlers>;
 
-export interface ProviderContext {
-  providerId: ProviderId;
-  registry: typeof registry;
-  languageModel: typeof languageModel;
-  speechModel: typeof speechModel;
-  transcriptionModel: typeof transcriptionModel;
-  lib: unknown;
-}
+const providerCache = new Map<ProviderId, AiProviderClient>();
 
-const providerCache = new Map<ProviderId, AppLlmProvider>();
-
-export function getProvider(id: ProviderId): AppLlmProvider {
-  if (providerCache.has(id)) {
-    // biome-ignore lint/style/noNonNullAssertion: we check has() above, so this is safe
-    return providerCache.get(id)!;
-  }
-
-  const ctx = {
-    providerId: id,
-    registry,
-    languageModel,
-    speechModel,
-    transcriptionModel,
-  } as ProviderContext;
-
-  if (id === "openai") {
-    ctx.lib = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-
-  const provider = {
-    id,
-    // generateKnowledgeItemObject: createKnowledgeItemHandler(ctx),
-    // generateScenarioStoryObject: createScenarioStoryHandler(ctx),
-    // generateScenarioGoalsObject: createScenarioGoalsHandler(ctx),
-    // generateScenarioExampleDialogueObject: createScenarioExampleDialogueHandler(ctx),
-    // generateSessionReviewObject: createSessionReviewHandler(ctx),
-    // generateInConversationAnalysisObject: createInConversationAnalysisHandler(ctx),
+function createProviderHandlers(providerId: ProviderId) {
+  return {
+    id: providerId,
+    knowledgeItem: createKnowledgeItemHandlers(providerId),
+    scenario: createScenarioHandlers(providerId),
+    session: createSessionHandlers(providerId),
   };
+}
 
+export function getProvider(id: ProviderId): AiProviderClient {
+  const cachedProvider = providerCache.get(id);
+
+  if (cachedProvider) {
+    return cachedProvider;
+  }
+
+  const provider = createProviderHandlers(id);
   providerCache.set(id, provider);
   return provider;
 }

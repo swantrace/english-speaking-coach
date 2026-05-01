@@ -3,6 +3,11 @@ export const buildSessionReviewPrompt = () => ({
   prompt: "Review the following coaching session and provide feedback: {input}",
 });
 
+type PromptModelParams = {
+  modelId?: string;
+  providerId?: string;
+};
+
 export const buildLingAnalysisPrompt = ({
   communicativeFunctions,
   errorDimensions,
@@ -13,6 +18,8 @@ export const buildLingAnalysisPrompt = ({
   communicativeFunctions: readonly string[];
   errorDimensions: readonly string[];
   fixednessLevels: readonly string[];
+  modelId?: string;
+  providerId?: string;
   syntaxRoles: readonly string[];
   turns: unknown;
 }) => ({
@@ -55,7 +62,7 @@ export type InConversationAnalysisPromptTurn = {
 
 export const buildInConversationAnalysisPrompt = ({
   indexedTurns,
-}: {
+}: PromptModelParams & {
   indexedTurns: InConversationAnalysisPromptTurn[];
 }) => {
   const transcriptText =
