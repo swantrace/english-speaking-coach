@@ -70,6 +70,26 @@ export const adminDashboardResponseSchema = z.object({
   usageTrend: z.array(adminDashboardUsageTrendPointSchema).default([]),
 });
 
+export const studentDashboardTotalsSchema = z.object({
+  freeFormSessionsCompleted: z.number().int().min(0),
+  knowledgeItemsLearned: z.number().int().min(0),
+  practiceMinutes: z.number().int().min(0),
+  rolePlaySessionsCompleted: z.number().int().min(0),
+});
+
+export const studentDashboardTrendPointSchema = z.object({
+  date: z.string().min(1),
+  freeFormSessionsCompleted: z.number().int().min(0),
+  knowledgeItemsLearned: z.number().int().min(0),
+  practiceMinutes: z.number().int().min(0),
+  rolePlaySessionsCompleted: z.number().int().min(0),
+});
+
+export const studentDashboardResponseSchema = z.object({
+  totals: studentDashboardTotalsSchema,
+  trends: z.array(studentDashboardTrendPointSchema).default([]),
+});
+
 // Legacy lift: these linguistic taxonomies used to live in `linguistics.ts`.
 export const syntaxRoles = syntaxRoleValues;
 export const fixednessLevels = fixednessLevelValues;
@@ -127,6 +147,9 @@ export type AdminDashboardSummary = z.infer<typeof adminDashboardSummarySchema>;
 export type AdminDashboardUsageTrendPoint = z.infer<typeof adminDashboardUsageTrendPointSchema>;
 export type AdminDashboardContentTrendPoint = z.infer<typeof adminDashboardContentTrendPointSchema>;
 export type AdminDashboardResponse = z.infer<typeof adminDashboardResponseSchema>;
+export type StudentDashboardTotals = z.infer<typeof studentDashboardTotalsSchema>;
+export type StudentDashboardTrendPoint = z.infer<typeof studentDashboardTrendPointSchema>;
+export type StudentDashboardResponse = z.infer<typeof studentDashboardResponseSchema>;
 export type SyntaxRole = (typeof syntaxRoles)[number];
 export type FixednessLevel = (typeof fixednessLevels)[number];
 export type CommunicativeFunction = (typeof communicativeFunctions)[number];

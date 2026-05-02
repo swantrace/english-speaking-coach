@@ -1,7 +1,7 @@
 import { adminDashboardResponseSchema } from "@english-coach/contract/common";
 import { db } from "@english-coach/database";
 import { knowledgeItems, scenarios, sessionHistory, user } from "@english-coach/database/schema";
-import type { BackendApp } from "../http/context";
+import type { BackendApp } from "../../http/context";
 
 const DASHBOARD_TREND_DAYS = 21;
 const ACTIVE_USERS_WINDOW_DAYS = 7;
@@ -78,7 +78,7 @@ function sumCountsBeforeDate(countsByDate: Map<string, number>, cutoffDate: stri
   return total;
 }
 
-export function registerDashboardRoutes(app: BackendApp) {
+export function registerAdminDashboardRoutes(app: BackendApp) {
   // Return admin dashboard summary metrics and recent usage/content trends.
   app.get("/api/admin/dashboard", async (context) => {
     const [userRows, sessionRows, scenarioRows, knowledgeItemRows] = await Promise.all([

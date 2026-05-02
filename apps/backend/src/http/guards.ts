@@ -77,6 +77,7 @@ export function registerAccessPolicies(app: BackendApp) {
     "/api/history",
     "/api/history/*",
     "/api/sessions/*",
+    "/api/student/dashboard",
   ]) {
     app.use(path, requireAuthMiddleware);
   }

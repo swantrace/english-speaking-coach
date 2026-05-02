@@ -12,6 +12,9 @@ export type {
   JobProgressMessage,
   JobProgressStatus,
   SortDirection,
+  StudentDashboardResponse,
+  StudentDashboardTotals,
+  StudentDashboardTrendPoint,
   SyntaxRole,
   UserRole,
 } from "./schemas";
