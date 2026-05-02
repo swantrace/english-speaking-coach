@@ -2,22 +2,17 @@ import {
   type KnowledgeGenerateJobUpdate,
   type KnowledgeGenerateSubmissionItem,
   knowledgeGenerateProgressChannel as knowledgeGenerateDefaultProgressChannel,
+  knowledgeGenerateJobName,
   knowledgeGenerateJobUpdateSchema,
+  knowledgeGenerateQueueName,
   knowledgeGenerateSubmissionKind,
-  knowledgeGenerateUpdatedEvent,
-  knowledgeGenerateJobName as sharedKnowledgeGenerateJobName,
-  knowledgeGenerateQueueName as sharedKnowledgeGenerateQueueName,
 } from "@english-coach/contract/knowledge";
 
-export { knowledgeGenerateUpdatedEvent } from "@english-coach/contract/knowledge";
-
-import { db, migrateDatabase, sqlite, submissionJobs, submissions } from "@english-coach/database";
-import { knowledgeItems } from "@english-coach/database/schema";
-import { Queue, Worker } from "bullmq";
-import { eq } from "drizzle-orm";
+import { type Job, Queue, Worker } from "bullmq";
 import { type GeneratedKnowledgeItem, getProvider, modelConfig } from "../ai";
 import { defaultProviderId } from "../env";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
+import { persistGeneratedKnowledgeItem } from "./helpers/knowledge-items.persistence";
 import {
   createCompletedProgressMessage,
   createFailedProgressMessage,
@@ -25,7 +20,15 @@ import {
   createStartedProgressMessage,
   type JobProgressMessage,
   publishJobProgress,
-} from "./progress";
+} from "./helpers/progress";
+import {
+  createSubmissionProgressMessage,
+  createSubmissionRecord,
+  getSubmissionProgressSnapshots,
+  type SubmissionProgressMessage,
+  saveSubmissionProgressSnapshot,
+} from "./helpers/submission-progress";
+import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
 
 export const knowledgeGenerateProgressChannel =
   process.env.KNOWLEDGE_GENERATE_PROGRESS_CHANNEL ?? knowledgeGenerateDefaultProgressChannel;
@@ -37,9 +40,6 @@ export type KnowledgeGenerateJobData = KnowledgeGenerateSubmissionItem & {
 };
 
 export type KnowledgeGenerateProgressMessage = KnowledgeGenerateJobUpdate;
-
-export const knowledgeGenerateJobName = sharedKnowledgeGenerateJobName;
-export const knowledgeGenerateQueueName = sharedKnowledgeGenerateQueueName;
 
 export const knowledgeGenerateQueue = new Queue<KnowledgeGenerateJobData>(knowledgeGenerateQueueName, {
   connection: producerRedis,
@@ -58,10 +58,11 @@ function createKnowledgeGenerateProgressMessage(
   baseMessage: JobProgressMessage,
   jobData: Pick<KnowledgeGenerateJobData, "cursor" | "submissionId">,
 ) {
-  return knowledgeGenerateJobUpdateSchema.parse({
-    ...baseMessage,
-    cursor: jobData.cursor,
-    submissionId: jobData.submissionId,
+  return createSubmissionProgressMessage({
+    baseMessage,
+    jobData,
+    kind: knowledgeGenerateSubmissionKind,
+    schema: knowledgeGenerateJobUpdateSchema,
   });
 }
 
@@ -86,7 +87,7 @@ function createCompletedKnowledgeGenerateProgressMessage(
   pattern: string,
 ) {
   return createKnowledgeGenerateProgressMessage(
-    createCompletedProgressMessage(jobId, `Knowledge item ready for review: ${pattern}`, processedAt),
+    createCompletedProgressMessage(jobId, processedAt, `Knowledge item ready for review: ${pattern}`),
     jobData,
   );
 }
@@ -103,49 +104,16 @@ export async function createKnowledgeGenerateSubmission(
   totalCount: number,
   userId?: string | null,
 ) {
-  const now = new Date().toISOString();
-
-  await db.insert(submissions).values({
-    createdAt: now,
-    id: submissionId,
+  await createSubmissionRecord({
     kind: knowledgeGenerateSubmissionKind,
     totalCount,
-    updatedAt: now,
-    userId: userId ?? null,
+    submissionId,
+    userId,
   });
 }
 
 async function saveKnowledgeGenerateSnapshot(message: KnowledgeGenerateProgressMessage) {
-  const updatedAt = new Date().toISOString();
-
-  await db
-    .insert(submissionJobs)
-    .values({
-      kind: message.kind,
-      cursor: message.cursor,
-      error: message.error,
-      jobId: message.jobId,
-      message: message.message,
-      processedAt: message.processedAt,
-      progress: message.progress,
-      queuedAt: message.queuedAt ?? new Date().toISOString(),
-      status: message.status,
-      submissionId: message.submissionId,
-    })
-    .onConflictDoUpdate({
-      set: {
-        error: message.error,
-        message: message.message,
-        processedAt: message.processedAt,
-        progress: message.progress,
-        queuedAt: message.queuedAt ?? new Date().toISOString(),
-        status: message.status,
-        submissionId: message.submissionId,
-      },
-      target: submissionJobs.jobId,
-    });
-
-  sqlite.query("update submissions set updated_at = ? where id = ?").run(updatedAt, message.submissionId);
+  await saveSubmissionProgressSnapshot(message as SubmissionProgressMessage);
 }
 
 export async function getKnowledgeGenerateSnapshots({
@@ -157,54 +125,12 @@ export async function getKnowledgeGenerateSnapshots({
   limit: number;
   submissionId: string;
 }): Promise<KnowledgeGenerateProgressMessage[]> {
-  const query =
-    typeof cursor === "number"
-      ? sqlite.query(
-          [
-            "select cursor, error, job_id, message, processed_at, progress, queued_at, status, submission_id",
-            "from submission_jobs",
-            "where submission_id = ? and cursor > ?",
-            "order by cursor asc",
-            "limit ?",
-          ].join(" "),
-        )
-      : sqlite.query(
-          [
-            "select cursor, error, job_id, message, processed_at, progress, queued_at, status, submission_id",
-            "from submission_jobs",
-            "where submission_id = ?",
-            "order by cursor asc",
-            "limit ?",
-          ].join(" "),
-        );
-
-  const snapshots = (
-    typeof cursor === "number" ? query.all(submissionId, cursor, limit) : query.all(submissionId, limit)
-  ) as Array<{
-    cursor: number;
-    error: string | null;
-    job_id: string;
-    message: string;
-    processed_at: string | null;
-    progress: number;
-    queued_at: string;
-    status: string;
-    submission_id: string;
-  }>;
-
-  return snapshots.map((snapshot) =>
-    knowledgeGenerateJobUpdateSchema.parse({
-      cursor: snapshot.cursor,
-      error: snapshot.error ?? undefined,
-      jobId: snapshot.job_id,
-      message: snapshot.message,
-      processedAt: snapshot.processed_at ?? undefined,
-      progress: snapshot.progress,
-      queuedAt: snapshot.queued_at,
-      status: snapshot.status,
-      submissionId: snapshot.submission_id,
-    }),
-  );
+  return getSubmissionProgressSnapshots({
+    cursor,
+    limit,
+    schema: knowledgeGenerateJobUpdateSchema,
+    submissionId,
+  });
 }
 
 async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledgeItem> {
@@ -217,77 +143,27 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
   });
 }
 
-async function persistKnowledgeItem(generatedKnowledgeItem: GeneratedKnowledgeItem) {
-  const now = new Date().toISOString();
-  const [existing] = await db
-    .select()
-    .from(knowledgeItems)
-    .where(eq(knowledgeItems.pattern, generatedKnowledgeItem.pattern))
-    .limit(1);
-
-  if (existing) {
-    if (existing.isPendingReview) {
-      await db
-        .update(knowledgeItems)
-        .set({
-          communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
-          fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
-          syntaxRole: generatedKnowledgeItem.syntaxRole ?? null,
-          updatedAt: now,
-        })
-        .where(eq(knowledgeItems.id, existing.id));
-    }
-
-    return {
-      knowledgeItemId: existing.id,
-      pattern: generatedKnowledgeItem.pattern,
-      processedAt: now,
-    };
-  }
-
-  const knowledgeItemId = crypto.randomUUID();
-
-  await db.insert(knowledgeItems).values({
-    communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
-    createdAt: now,
-    fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
-    id: knowledgeItemId,
-    isPendingReview: true,
-    pattern: generatedKnowledgeItem.pattern,
-    senses: [],
-    syntaxRole: generatedKnowledgeItem.syntaxRole ?? null,
-    updatedAt: now,
-  });
-
-  return {
-    knowledgeItemId,
-    pattern: generatedKnowledgeItem.pattern,
-    processedAt: now,
-  };
-}
-
 export function setKnowledgeGeneratorForTests(generator: ((prompt: string) => Promise<GeneratedKnowledgeItem>) | null) {
   knowledgeGeneratorOverride = generator;
 }
 
-migrateDatabase();
-
-export async function processKnowledgeGenerateJob(jobData: KnowledgeGenerateJobData, jobId: string) {
-  const startedMessage = createStartedKnowledgeGenerateProgressMessage(jobId, jobData);
-
+async function handleKnowledgeGenerateJob(job: Job<KnowledgeGenerateJobData>) {
+  // Step 1: publish started job progress
+  const startedMessage = createStartedKnowledgeGenerateProgressMessage(String(job.id), job.data);
   await saveKnowledgeGenerateSnapshot(startedMessage);
   await publishKnowledgeGenerateProgress(startedMessage);
 
-  const generatedKnowledgeItem = await generateKnowledgeItem(jobData.message);
-  const persistedKnowledgeItem = await persistKnowledgeItem(generatedKnowledgeItem);
+  // Step 2: generate the knowledge item
+  const generatedKnowledgeItem = await generateKnowledgeItem(job.data.message);
+  const persistedKnowledgeItem = await persistGeneratedKnowledgeItem(generatedKnowledgeItem);
 
+  // Step 3: publish completion progress
   const completedMessage = createCompletedKnowledgeGenerateProgressMessage(
-    jobId,
-    jobData,
+    String(job.id),
+    job.data,
     persistedKnowledgeItem.processedAt,
     persistedKnowledgeItem.pattern,
   );
-
   await saveKnowledgeGenerateSnapshot(completedMessage);
   await publishKnowledgeGenerateProgress(completedMessage);
 
@@ -296,25 +172,24 @@ export async function processKnowledgeGenerateJob(jobData: KnowledgeGenerateJobD
 
 export const knowledgeGenerateWorker = new Worker<KnowledgeGenerateJobData>(
   knowledgeGenerateQueueName,
-  async (job) => processKnowledgeGenerateJob(job.data, String(job.id)),
+  handleKnowledgeGenerateJob,
   {
     connection: workerRedis,
   },
 );
 
 knowledgeGenerateWorker.on("completed", (job) => {
-  console.log(`knowledge.generate job ${job.id} completed`);
+  logWorkerCompleted(knowledgeGenerateJobName, job);
 });
 
 knowledgeGenerateWorker.on("failed", async (job, error) => {
   if (job) {
     const failedMessage = createFailedKnowledgeGenerateProgressMessage(String(job.id), job.data, error.message);
-
     await saveKnowledgeGenerateSnapshot(failedMessage);
     await publishKnowledgeGenerateProgress(failedMessage);
   }
 
-  console.error(`knowledge.generate job ${job?.id ?? "unknown"} failed`, error);
+  logWorkerFailed(knowledgeGenerateJobName, job, error);
 });
 
 export async function persistQueuedKnowledgeGenerateJob(jobId: string, jobData: KnowledgeGenerateJobData) {

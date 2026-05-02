@@ -6,11 +6,13 @@ import {
   knowledgeGenerateEventsQuerySchema,
   knowledgeGenerateEventsSubscriberPrefix,
   knowledgeGenerateHistoryQuerySchema,
+  knowledgeGenerateJobName,
   knowledgeGenerateSubmissionHistoryResponseSchema,
   knowledgeGenerateSubmissionItemSchema,
   knowledgeGenerateSubmissionKind,
   knowledgeGenerateSubmissionResponseSchema,
   knowledgeGenerateSubmissionTransportRequestSchema,
+  knowledgeGenerateUpdatedEvent,
 } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import { submissionJobs, submissions } from "@english-coach/database/schema";
@@ -22,10 +24,8 @@ import {
   getKnowledgeGenerateSnapshots,
   type KnowledgeGenerateJobData,
   type KnowledgeGenerateProgressMessage,
-  knowledgeGenerateJobName,
   knowledgeGenerateProgressChannel,
   knowledgeGenerateQueue,
-  knowledgeGenerateUpdatedEvent,
   persistQueuedKnowledgeGenerateJob,
 } from "../lib/queues/knowledge.generate";
 import { streamChannelJobProgressSSE } from "../lib/sse/job-events";
@@ -85,6 +85,7 @@ function getKnowledgeGenerateSseMaxDurationMs() {
 }
 
 export function registerKnowledgeGenerateRoutes(app: BackendApp) {
+  // Queue one or more prompts for AI-generated knowledge items.
   app.post("/api/admin/knowledge-items/generate", async (context) => {
     const rawBody = await context.req.json<unknown>().catch(() => ({}));
     const items = normalizeGenerateRequestItems(rawBody);
@@ -139,6 +140,8 @@ export function registerKnowledgeGenerateRoutes(app: BackendApp) {
 
           await knowledgeGenerateQueue.add(knowledgeGenerateJobName, payload, {
             jobId,
+            removeOnComplete: true,
+            removeOnFail: false,
           });
 
           await persistQueuedKnowledgeGenerateJob(jobId, payload);
@@ -183,6 +186,7 @@ export function registerKnowledgeGenerateRoutes(app: BackendApp) {
     return context.json(responseBody, 200);
   });
 
+  // Stream queued knowledge generation progress for a submission over SSE.
   app.get("/api/admin/knowledge-items/generate/events", async (context) => {
     const parsedQuery = knowledgeGenerateEventsQuerySchema.safeParse(context.req.query());
 
@@ -219,6 +223,7 @@ export function registerKnowledgeGenerateRoutes(app: BackendApp) {
     });
   });
 
+  // List recent knowledge generation submissions and their job snapshots.
   app.get("/api/admin/knowledge-items/generate/submissions", async (context) => {
     const parsedQuery = knowledgeGenerateHistoryQuerySchema.safeParse(context.req.query());
 

@@ -50,6 +50,7 @@ function createSessionToken(params: {
 }
 
 export function registerSessionRoutes(app: BackendApp) {
+  // Create a session history record and mint a LiveKit token for a new session.
   app.post("/api/sessions/token", async (context) => {
     const parsedBody = await parseJsonBody(context, createSessionRequestSchema);
 
@@ -133,6 +134,7 @@ export function registerSessionRoutes(app: BackendApp) {
     }
   });
 
+  // Reopen a live session by returning its LiveKit room and session bootstrap data.
   app.get("/api/sessions/:sessionId/live", async (context) => {
     const currentUser = getAuthenticatedUser(context);
 
@@ -239,6 +241,7 @@ export function registerSessionRoutes(app: BackendApp) {
     }
   });
 
+  // Mark a session ended when the client closes or leaves the live room.
   app.post("/api/sessions/:sessionId/end", async (context) => {
     const currentUser = getAuthenticatedUser(context);
 

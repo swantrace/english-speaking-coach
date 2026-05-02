@@ -10,6 +10,7 @@ import {
   adminRejectKnowledgeOccurrenceResponseSchema,
   adminRejectKnowledgeOccurrenceSchema,
   assignKnowledgeOccurrenceSchema,
+  knowledgeOccurrenceResolveJobName,
   resolveKnowledgeOccurrenceSchema,
 } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
@@ -43,6 +44,7 @@ function createKnowledgeItemSearchCondition(search?: string) {
 }
 
 export function registerAdminRoutes(app: BackendApp) {
+  // List knowledge occurrences that need admin review or have already been reviewed.
   app.get("/api/admin/knowledge-occurrences", async (context) => {
     const parsedQuery = adminKnowledgeOccurrenceListQueryWithStatusSchema.safeParse(
       normalizePageQuery(context.req.query()),
@@ -117,6 +119,7 @@ export function registerAdminRoutes(app: BackendApp) {
     );
   });
 
+  // Link a detected knowledge occurrence to an existing knowledge item.
   app.patch("/api/admin/knowledge-occurrences/:id", async (context) => {
     const parsedBody = await parseJsonBody(context, assignKnowledgeOccurrenceSchema);
 
@@ -165,6 +168,7 @@ export function registerAdminRoutes(app: BackendApp) {
     );
   });
 
+  // Reject a detected knowledge occurrence and store the optional review reason.
   app.post("/api/admin/knowledge-occurrences/:id/reject", async (context) => {
     const parsedBody = await parseJsonBody(context, adminRejectKnowledgeOccurrenceSchema);
 
@@ -202,6 +206,7 @@ export function registerAdminRoutes(app: BackendApp) {
     );
   });
 
+  // Queue AI-assisted resolution for a knowledge occurrence.
   app.post("/api/admin/knowledge-occurrences/resolve", async (context) => {
     const parsedBody = await parseJsonBody(context, resolveKnowledgeOccurrenceSchema);
 
@@ -210,9 +215,10 @@ export function registerAdminRoutes(app: BackendApp) {
     }
 
     const job = await knowledgeOccurrenceResolveQueue.add(
-      "knowledgeOccurrenceResolve",
+      knowledgeOccurrenceResolveJobName,
       { occurrenceId: parsedBody.data.occurrenceId },
       {
+        jobId: `${knowledgeOccurrenceResolveJobName}-${parsedBody.data.occurrenceId}`,
         removeOnComplete: true,
         removeOnFail: false,
       },
@@ -221,6 +227,7 @@ export function registerAdminRoutes(app: BackendApp) {
     return context.json({ jobId: String(job.id), occurrenceId: parsedBody.data.occurrenceId }, 202);
   });
 
+  // List knowledge items for admin search, filtering, sorting, and review.
   app.get("/api/admin/knowledge-items", async (context) => {
     const parsedQuery = adminKnowledgeListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 
@@ -262,6 +269,7 @@ export function registerAdminRoutes(app: BackendApp) {
     );
   });
 
+  // Fetch one knowledge item for admin detail and editing views.
   app.get("/api/admin/knowledge-items/:id", async (context) => {
     const knowledgeItemId = context.req.param("id");
     const [record] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.id, knowledgeItemId)).limit(1);
@@ -273,6 +281,7 @@ export function registerAdminRoutes(app: BackendApp) {
     return context.json(adminKnowledgeDetailSchema.parse(record));
   });
 
+  // Create a knowledge item manually from admin input.
   app.post("/api/admin/knowledge-items", async (context) => {
     const parsedBody = await parseJsonBody(context, adminKnowledgeCreateSchema);
 
@@ -300,6 +309,7 @@ export function registerAdminRoutes(app: BackendApp) {
     return context.json(record, 201);
   });
 
+  // Update an existing knowledge item from admin edits.
   app.patch("/api/admin/knowledge-items/:id", async (context) => {
     const parsedBody = await parseJsonBody(context, adminKnowledgeUpdateSchema);
 
@@ -345,6 +355,7 @@ export function registerAdminRoutes(app: BackendApp) {
     return context.json(record);
   });
 
+  // Delete a knowledge item from the admin catalog.
   app.delete("/api/admin/knowledge-items/:id", async (context) => {
     const knowledgeItemId = context.req.param("id");
     const [existingRecord] = await db

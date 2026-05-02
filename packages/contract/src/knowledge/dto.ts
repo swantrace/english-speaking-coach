@@ -28,6 +28,7 @@ export type {
   KnowledgeItem,
   KnowledgeItemListQuery,
   KnowledgeItemListResponse,
+  KnowledgeOccurrenceResolveJob,
   KnowledgePointDetail,
   KnowledgePointListQuery,
   KnowledgePointListResponse,

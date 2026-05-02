@@ -79,6 +79,7 @@ function sumCountsBeforeDate(countsByDate: Map<string, number>, cutoffDate: stri
 }
 
 export function registerDashboardRoutes(app: BackendApp) {
+  // Return admin dashboard summary metrics and recent usage/content trends.
   app.get("/api/admin/dashboard", async (context) => {
     const [userRows, sessionRows, scenarioRows, knowledgeItemRows] = await Promise.all([
       db.select({ createdAt: user.createdAt, deletedAt: user.deletedAt, id: user.id }).from(user),

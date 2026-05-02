@@ -1,28 +1,34 @@
 import {
   type InConversationAnalysisJob,
+  type InConversationAnalysisResult,
   type InConversationKnowledgeOccurrence,
-  type InConversationUiPrompt,
   inConversationAnalysisJobName,
   inConversationAnalysisJobSchema,
   inConversationAnalysisQueueName,
   inConversationAnalysisResultSchema,
-  type RewrittenTranscriptTurn,
-  rewrittenTranscriptTurnSchema,
   type SessionTurn,
   uiUpdatePacketSchema,
   workerFeedbackPacketSchema,
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
-import { sessionKnowledgePointOccurrences, sessionTranscripts } from "@english-coach/database/schema";
-import { Queue, Worker } from "bullmq";
-import { eq } from "drizzle-orm";
+import { sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
+import { type Job, Queue, Worker } from "bullmq";
 import { DataPacket_Kind } from "livekit-server-sdk";
-import { getProvider } from "../ai";
+import { getProvider, modelConfig } from "../ai";
 import { defaultProviderId } from "../env";
 import { getRoomServiceClient } from "../livekit";
 import { producerRedis, workerRedis } from "../redis";
+import { persistTranscriptBatchForSession as persistTranscriptBatchForSessionImpl } from "./helpers/session-transcripts.persistence";
+import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
+
+export {
+  mergeTranscriptTurns,
+  persistRewrittenTranscriptTurnsForSession,
+  persistTranscriptBatchForSession,
+} from "./helpers/session-transcripts.persistence";
 
 const sessionAi = getProvider(defaultProviderId).session;
+const models = modelConfig[defaultProviderId];
 
 export const inConversationAnalysisQueue = new Queue<InConversationAnalysisJob>(inConversationAnalysisQueueName, {
   connection: producerRedis,
@@ -39,110 +45,12 @@ function getLatestUserTurnIndex(job: InConversationAnalysisJob) {
 }
 
 let inConversationAnalysisGeneratorOverride:
-  | ((job: InConversationAnalysisJob) => Promise<{
-      occurrences: InConversationKnowledgeOccurrence[];
-      uiPrompts: InConversationUiPrompt[];
-      workerFeedbackMessage: string;
-    }>)
+  | ((job: InConversationAnalysisJob) => Promise<InConversationAnalysisResult>)
   | null = null;
-
-type TranscriptRewrittenTurns = NonNullable<typeof sessionTranscripts.$inferSelect.rewrittenTurns>;
-
-export function mergeTranscriptTurns(existingTurns: SessionTurn[], incomingTurns: SessionTurn[]) {
-  const mergedTurns = [...existingTurns];
-  const seenTurnKeys = new Set(existingTurns.map((turn) => `${turn.timestampMs}:${turn.speaker}:${turn.text}`));
-
-  for (const turn of incomingTurns) {
-    const turnKey = `${turn.timestampMs}:${turn.speaker}:${turn.text}`;
-
-    if (seenTurnKeys.has(turnKey)) {
-      continue;
-    }
-
-    seenTurnKeys.add(turnKey);
-    mergedTurns.push(turn);
-  }
-
-  return mergedTurns.sort((left, right) => left.timestampMs - right.timestampMs);
-}
-
-function mergeRewrittenTranscriptTurns(
-  existingTurns: TranscriptRewrittenTurns,
-  incomingTurns: RewrittenTranscriptTurn[],
-) {
-  const mergedByTurnIndex = new Map(existingTurns.map((turn) => [turn.transcriptTurnIndex, turn]));
-
-  for (const turn of incomingTurns) {
-    mergedByTurnIndex.set(turn.transcriptTurnIndex, rewrittenTranscriptTurnSchema.parse(turn));
-  }
-
-  return [...mergedByTurnIndex.values()].sort((left, right) => left.transcriptTurnIndex - right.transcriptTurnIndex);
-}
-
-async function readExistingTranscriptRecord(sessionHistoryId: string) {
-  const [existingTranscript] = await db
-    .select()
-    .from(sessionTranscripts)
-    .where(eq(sessionTranscripts.sessionHistoryId, sessionHistoryId))
-    .limit(1);
-
-  return existingTranscript;
-}
-
-async function upsertTranscriptRecord({
-  rewrittenTurns,
-  sessionHistoryId,
-  turns,
-}: {
-  rewrittenTurns?: RewrittenTranscriptTurn[];
-  sessionHistoryId: string;
-  turns?: SessionTurn[];
-}) {
-  const existingTranscript = await readExistingTranscriptRecord(sessionHistoryId);
-  const nextTurns = turns ?? existingTranscript?.turns ?? [];
-  const nextRewrittenTurns = rewrittenTurns
-    ? mergeRewrittenTranscriptTurns(existingTranscript?.rewrittenTurns ?? [], rewrittenTurns)
-    : (existingTranscript?.rewrittenTurns ?? []);
-
-  await db
-    .insert(sessionTranscripts)
-    .values({
-      createdAt: existingTranscript?.createdAt ?? new Date().toISOString(),
-      id: existingTranscript?.id ?? crypto.randomUUID(),
-      rewrittenTurns: nextRewrittenTurns,
-      sessionHistoryId,
-      turns: nextTurns,
-    })
-    .onConflictDoUpdate({
-      set: {
-        rewrittenTurns: nextRewrittenTurns,
-        turns: nextTurns,
-      },
-      target: sessionTranscripts.sessionHistoryId,
-    });
-}
-
-export async function persistTranscriptBatchForSession(sessionHistoryId: string, turns: SessionTurn[]) {
-  const existingTranscript = await readExistingTranscriptRecord(sessionHistoryId);
-  const nextTurns = existingTranscript ? mergeTranscriptTurns(existingTranscript.turns, turns) : turns;
-
-  await upsertTranscriptRecord({ sessionHistoryId, turns: nextTurns });
-}
-
-export async function persistRewrittenTranscriptTurnsForSession(
-  sessionHistoryId: string,
-  rewrittenTurns: RewrittenTranscriptTurn[],
-) {
-  if (!rewrittenTurns.length) {
-    return;
-  }
-
-  await upsertTranscriptRecord({ rewrittenTurns, sessionHistoryId });
-}
 
 async function generateInConversationFeedback(job: InConversationAnalysisJob) {
   if (inConversationAnalysisGeneratorOverride) {
-    return inConversationAnalysisGeneratorOverride(job);
+    return inConversationAnalysisResultSchema.parse(await inConversationAnalysisGeneratorOverride(job));
   }
 
   const indexedTurns = job.turns.map((turn, index) => ({
@@ -150,9 +58,11 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     transcriptTurnIndex: job.transcriptStartIndex + index,
   }));
 
-  return await sessionAi.generateInConversationAnalysis("gpt-4o", {
+  const result = await sessionAi.generateInConversationAnalysis(models.CONVERSATION_ANALYSIS_MODEL, {
     indexedTurns,
   });
+
+  return inConversationAnalysisResultSchema.parse(result);
 }
 
 async function persistInConversationOccurrences(
@@ -202,77 +112,81 @@ async function persistInConversationOccurrences(
     });
 }
 
-export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob>(
-  inConversationAnalysisQueueName,
-  async (job) => {
-    const parsedJob = inConversationAnalysisJobSchema.parse(job.data);
+async function handleInConversationAnalysisJob(job: Job<InConversationAnalysisJob>) {
+  // Step 1: validate job payload
+  const parsedJob = inConversationAnalysisJobSchema.parse(job.data);
 
-    await persistTranscriptBatchForSession(parsedJob.sessionHistoryId, parsedJob.turns);
+  // Step 2: persist transcript batch before analysis
+  await persistTranscriptBatchForSessionImpl(parsedJob.sessionHistoryId, parsedJob.turns);
 
-    const result = await generateInConversationFeedback(parsedJob);
-    await persistInConversationOccurrences(
-      parsedJob.sessionHistoryId,
-      parsedJob.turns,
-      parsedJob.transcriptStartIndex,
-      result.occurrences,
-    );
-    const roomServiceClient = getRoomServiceClient();
+  // Step 3: generate worker feedback and UI prompts
+  const result = await generateInConversationFeedback(parsedJob);
 
-    const workerFeedbackPacket = workerFeedbackPacketSchema.parse({
-      message: result.workerFeedbackMessage,
+  // Step 4: persist any knowledge occurrences discovered
+  await persistInConversationOccurrences(
+    parsedJob.sessionHistoryId,
+    parsedJob.turns,
+    parsedJob.transcriptStartIndex,
+    result.occurrences,
+  );
+
+  // Step 5: publish packets to LiveKit
+  const roomServiceClient = getRoomServiceClient();
+
+  const workerFeedbackPacket = workerFeedbackPacketSchema.parse({
+    message: result.workerFeedbackMessage,
+    sessionHistoryId: parsedJob.sessionHistoryId,
+    type: "worker-feedback",
+  });
+
+  const uiUpdatePackets = result.uiPrompts.map((prompt) =>
+    uiUpdatePacketSchema.parse({
+      prompt: prompt.prompt,
+      promptKind: prompt.promptKind,
       sessionHistoryId: parsedJob.sessionHistoryId,
-      type: "worker-feedback",
-    });
-    const uiUpdatePackets = result.uiPrompts.map((prompt) =>
-      uiUpdatePacketSchema.parse({
-        prompt: prompt.prompt,
-        promptKind: prompt.promptKind,
-        sessionHistoryId: parsedJob.sessionHistoryId,
-        transcriptTurnIndex: prompt.transcriptTurnIndex ?? getLatestUserTurnIndex(parsedJob),
-        type: "ui-update",
-      }),
-    );
+      transcriptTurnIndex: prompt.transcriptTurnIndex ?? getLatestUserTurnIndex(parsedJob),
+      type: "ui-update",
+    }),
+  );
 
-    await Promise.all([
+  await Promise.all([
+    roomServiceClient.sendData(
+      parsedJob.roomName,
+      new TextEncoder().encode(JSON.stringify(workerFeedbackPacket)),
+      DataPacket_Kind.RELIABLE,
+      { topic: workerFeedbackPacket.type },
+    ),
+    ...uiUpdatePackets.map((packet) =>
       roomServiceClient.sendData(
         parsedJob.roomName,
-        new TextEncoder().encode(JSON.stringify(workerFeedbackPacket)),
+        new TextEncoder().encode(JSON.stringify(packet)),
         DataPacket_Kind.RELIABLE,
-        { topic: workerFeedbackPacket.type },
+        { topic: packet.type },
       ),
-      ...uiUpdatePackets.map((packet) =>
-        roomServiceClient.sendData(
-          parsedJob.roomName,
-          new TextEncoder().encode(JSON.stringify(packet)),
-          DataPacket_Kind.RELIABLE,
-          { topic: packet.type },
-        ),
-      ),
-    ]);
+    ),
+  ]);
 
-    return result;
-  },
+  return result;
+}
+
+export const inConversationAnalysisWorker = new Worker<InConversationAnalysisJob>(
+  inConversationAnalysisQueueName,
+  handleInConversationAnalysisJob,
   {
     connection: workerRedis,
   },
 );
 
 inConversationAnalysisWorker.on("completed", (job) => {
-  console.log(`${inConversationAnalysisJobName} job ${job.id} completed`);
+  logWorkerCompleted(inConversationAnalysisJobName, job);
 });
 
 inConversationAnalysisWorker.on("failed", (job, error) => {
-  console.error(`${inConversationAnalysisJobName} job ${job?.id ?? "unknown"} failed`, error);
+  logWorkerFailed(inConversationAnalysisJobName, job, error);
 });
 
 export function setInConversationAnalysisGeneratorForTests(
-  generator:
-    | ((job: InConversationAnalysisJob) => Promise<{
-        occurrences: InConversationKnowledgeOccurrence[];
-        uiPrompts: InConversationUiPrompt[];
-        workerFeedbackMessage: string;
-      }>)
-    | null,
+  generator: ((job: InConversationAnalysisJob) => Promise<InConversationAnalysisResult>) | null,
 ) {
   inConversationAnalysisGeneratorOverride = generator;
 }

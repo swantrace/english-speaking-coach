@@ -2,25 +2,24 @@ export type { KnowledgeGenerateJobData, KnowledgeGenerateProgressMessage } from 
 export {
   createKnowledgeGenerateSubmission,
   getKnowledgeGenerateSnapshots,
-  knowledgeGenerateJobName,
   knowledgeGenerateProgressChannel,
   knowledgeGenerateQueue,
-  knowledgeGenerateQueueName,
-  knowledgeGenerateUpdatedEvent,
   knowledgeGenerateWorker,
   persistQueuedKnowledgeGenerateJob,
   publishKnowledgeGenerateProgress,
 } from "./knowledge.generate";
+export {
+  knowledgeOccurrenceResolveQueue,
+  knowledgeOccurrenceResolveWorker,
+  setKnowledgeOccurrenceResolveGeneratorForTests,
+} from "./knowledge-occurrence.resolve";
 export type { ScenarioGenerateJobData, ScenarioGenerateProgressMessage } from "./scenario.generate";
 export {
   createScenarioGenerateSubmission,
   getScenarioGenerateSnapshots,
   persistQueuedScenarioGenerateJob,
   publishScenarioGenerateProgress,
-  scenarioGenerateJobName,
   scenarioGenerateProgressChannel,
   scenarioGenerateQueue,
-  scenarioGenerateQueueName,
-  scenarioGenerateUpdatedEvent,
   scenarioGenerateWorker,
 } from "./scenario.generate";

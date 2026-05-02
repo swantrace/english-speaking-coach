@@ -5,9 +5,11 @@ import {
   scenarioGenerateDefaultEventsLimit,
   scenarioGenerateEventsQuerySchema,
   scenarioGenerateEventsSubscriberPrefix,
+  scenarioGenerateJobName,
   scenarioGenerateSubmissionItemSchema,
   scenarioGenerateSubmissionResponseSchema,
   scenarioGenerateSubmissionTransportRequestSchema,
+  scenarioGenerateUpdatedEvent,
 } from "@english-coach/contract/scenario";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
@@ -17,10 +19,8 @@ import {
   persistQueuedScenarioGenerateJob,
   type ScenarioGenerateJobData,
   type ScenarioGenerateProgressMessage,
-  scenarioGenerateJobName,
   scenarioGenerateProgressChannel,
   scenarioGenerateQueue,
-  scenarioGenerateUpdatedEvent,
 } from "../lib/queues/scenario.generate";
 import { streamChannelJobProgressSSE } from "../lib/sse/job-events";
 
@@ -79,6 +79,7 @@ function getScenarioGenerateSseMaxDurationMs() {
 }
 
 export function registerScenarioGenerateRoutes(app: BackendApp) {
+  // Queue one or more prompts for AI-generated scenarios.
   app.post("/api/scenarios/generate", async (context) => {
     const rawBody = await context.req.json<unknown>().catch(() => ({}));
     const items = normalizeGenerateRequestItems(rawBody);
@@ -133,6 +134,8 @@ export function registerScenarioGenerateRoutes(app: BackendApp) {
 
           await scenarioGenerateQueue.add(scenarioGenerateJobName, payload, {
             jobId,
+            removeOnComplete: true,
+            removeOnFail: false,
           });
 
           await persistQueuedScenarioGenerateJob(jobId, payload);
@@ -177,6 +180,7 @@ export function registerScenarioGenerateRoutes(app: BackendApp) {
     return context.json(responseBody, 200);
   });
 
+  // Stream queued scenario generation progress for a submission over SSE.
   app.get("/api/scenarios/generate/events", async (context) => {
     const parsedQuery = scenarioGenerateEventsQuerySchema.safeParse(context.req.query());
 

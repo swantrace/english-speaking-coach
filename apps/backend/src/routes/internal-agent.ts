@@ -44,6 +44,7 @@ function requireApiToken(request: Request) {
 }
 
 export function registerInternalAgentRoutes(app: BackendApp) {
+  // Provide trusted agent workers with the session bootstrap payload they need to join a room.
   app.get("/api/internal/agent/sessions/:sessionHistoryId", async (context) => {
     const authError = requireApiToken(context.req.raw);
 

@@ -48,6 +48,7 @@ function findMatchedTranscriptTurnIndex(
 }
 
 export function registerHistoryRoutes(app: BackendApp) {
+  // List completed session history visible to the current user.
   app.get("/api/history", async (context) => {
     const currentUser = getAuthenticatedUser(context);
 
@@ -117,6 +118,7 @@ export function registerHistoryRoutes(app: BackendApp) {
     );
   });
 
+  // Fetch one completed session with transcript, errors, and resolved knowledge points.
   app.get("/api/history/:sessionId", async (context) => {
     const currentUser = getAuthenticatedUser(context);
 

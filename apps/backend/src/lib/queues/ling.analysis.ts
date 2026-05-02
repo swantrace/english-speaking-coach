@@ -5,15 +5,18 @@ import {
   lingAnalysisResultSchema,
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
-import { knowledgeItems, sessionErrors, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
-import { Queue, Worker } from "bullmq";
+import { sessionErrors, sessionHistory, sessionTranscripts } from "@english-coach/database/schema";
+import { type Job, Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { getProvider, modelConfig } from "../ai";
 import { defaultProviderId } from "../env";
 import { producerRedis, workerRedis } from "../redis";
-import { persistRewrittenTranscriptTurnsForSession } from "./in-conversation.analysis";
+import { persistRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
+import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
+const lingAnalysisJobDataSchema = z.object({ sessionHistoryId: z.string().min(1) });
 
 export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAnalysisQueueName, {
   connection: producerRedis,
@@ -26,21 +29,15 @@ let lingAnalysisGeneratorOverride: ((turns: TranscriptTurns) => Promise<LingAnal
 
 async function generateLingAnalysis(turns: TranscriptTurns) {
   if (lingAnalysisGeneratorOverride) {
-    return lingAnalysisGeneratorOverride(turns);
+    return lingAnalysisResultSchema.parse(await lingAnalysisGeneratorOverride(turns));
   }
 
-  return sessionAi.generateLingAnalysis(models.LING_ANALYSIS_MODEL, {
+  const result = await sessionAi.generateLingAnalysis(models.LING_ANALYSIS_MODEL, {
     turns,
   });
-}
 
-export const lingAnalysisWorker = new Worker<{ sessionHistoryId: string }>(
-  lingAnalysisQueueName,
-  async (job) => processLingAnalysisSession(job.data.sessionHistoryId),
-  {
-    connection: workerRedis,
-  },
-);
+  return lingAnalysisResultSchema.parse(result);
+}
 
 export async function processLingAnalysisSession(sessionHistoryId: string) {
   const [transcriptRecord] = await db
@@ -54,6 +51,7 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   }
 
   const analysis = await generateLingAnalysis(transcriptRecord.turns);
+
   await db.transaction(async (transaction) => {
     await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));
 
@@ -83,12 +81,31 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   return analysis;
 }
 
+async function handleLingAnalysisJob(job: Job<{ sessionHistoryId: string }>) {
+  // Step 1: validate the job payload
+  const { sessionHistoryId } = lingAnalysisJobDataSchema.parse(job.data);
+
+  // Step 2: run the analysis workflow for the transcript
+  const analysis = await processLingAnalysisSession(sessionHistoryId);
+
+  // Step 3: return the completed analysis result
+  return analysis;
+}
+
+export const lingAnalysisWorker = new Worker<{ sessionHistoryId: string }>(
+  lingAnalysisQueueName,
+  handleLingAnalysisJob,
+  {
+    connection: workerRedis,
+  },
+);
+
 lingAnalysisWorker.on("completed", (job) => {
-  console.log(`${lingAnalysisJobName} job ${job.id} completed`);
+  logWorkerCompleted(lingAnalysisJobName, job);
 });
 
 lingAnalysisWorker.on("failed", (job, error) => {
-  console.error(`${lingAnalysisJobName} job ${job?.id ?? "unknown"} failed`, error);
+  logWorkerFailed(lingAnalysisJobName, job, error);
 });
 
 export function setLingAnalysisGeneratorForTests(

@@ -114,7 +114,9 @@ export class Agent extends voice.Agent {
         turns: pendingTurns,
       }),
       {
+        jobId: `${inConversationAnalysisJobName}-${this.config.sessionHistoryId}-${lastAnalysisTurnIndex}`,
         removeOnComplete: true,
+        removeOnFail: false,
       },
     );
 
@@ -136,6 +138,7 @@ export class Agent extends voice.Agent {
       {
         jobId: `${sessionCompletionJobName}-${this.config.sessionHistoryId}`,
         removeOnComplete: true,
+        removeOnFail: false,
       },
     );
   }

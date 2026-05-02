@@ -84,6 +84,7 @@ async function deleteScenarioRecord(scenarioId: string) {
 }
 
 export function registerScenarioRoutes(app: BackendApp) {
+  // List approved scenarios available to learners.
   app.get("/api/learner/scenarios", async (context) => {
     const parsedQuery = learnerScenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 
@@ -163,6 +164,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     );
   });
 
+  // List scenarios for admin search, filtering, sorting, and review.
   app.get("/api/admin/scenarios", async (context) => {
     const parsedQuery = adminScenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
 
@@ -198,6 +200,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     );
   });
 
+  // Create a scenario manually from admin input.
   app.post("/api/admin/scenarios", async (context) => {
     const parsedBody = await parseJsonBody(context, adminScenarioCreateSchema);
 
@@ -227,6 +230,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     return context.json(scenarioSchema.parse(createdScenario), 201);
   });
 
+  // Update an existing scenario from admin edits.
   app.patch("/api/admin/scenarios/:id", async (context) => {
     const parsedBody = await parseJsonBody(context, adminScenarioUpdateSchema);
 
@@ -263,6 +267,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     return context.json(scenarioSchema.parse(updatedScenario));
   });
 
+  // Delete a scenario through the admin route.
   app.delete("/api/admin/scenarios/:id", async (context) => {
     const deletedScenario = await deleteScenarioRecord(context.req.param("id"));
 
@@ -273,6 +278,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     return new Response(null, { status: 204 });
   });
 
+  // Fetch one scenario, hiding pending-review scenarios from non-admin users.
   app.get("/api/scenarios/:id", async (context) => {
     const record = await getScenarioRecordById(context.req.param("id"));
 
@@ -287,6 +293,7 @@ export function registerScenarioRoutes(app: BackendApp) {
     return context.json(scenarioSchema.parse(record));
   });
 
+  // Delete a scenario through the legacy admin-protected route.
   app.delete("/api/scenarios/:id", async (context) => {
     const adminError = requireAdmin(context);
 

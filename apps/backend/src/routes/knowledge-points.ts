@@ -63,6 +63,7 @@ function compareKnowledgePointSummaries(
 }
 
 export function registerKnowledgePointRoutes(app: BackendApp) {
+  // List knowledge points observed in the current user's completed sessions.
   app.get("/api/knowledge-points", async (context) => {
     const currentUser = getAuthenticatedUser(context);
 
@@ -118,6 +119,7 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
     );
   });
 
+  // Fetch one knowledge point with the current user's session occurrences.
   app.get("/api/knowledge-points/:knowledgeItemId", async (context) => {
     const currentUser = getAuthenticatedUser(context);
 
