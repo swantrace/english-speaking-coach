@@ -29,34 +29,6 @@ async function generateLingAnalysis(turns: TranscriptTurns) {
     return lingAnalysisGeneratorOverride(turns);
   }
 
-  if (process.env.LING_ANALYSIS_USE_TEST_GENERATOR === "1") {
-    return lingAnalysisResultSchema.parse({
-      errors: [
-        {
-          dimension: "syntactic",
-          errorDescription: "Missing article before the noun phrase.",
-          suggestion: "Say 'I'd like a coffee' instead.",
-          utterance: "I'd like coffee",
-        },
-      ],
-      knowledgeItemsUsed: [
-        {
-          communicativeFunction: "make_request_or_offer",
-          count: 1,
-          example: "I'd like a coffee, please.",
-          fixednessLevel: "fixed_expression",
-          pattern: "I'd like <np>",
-          speaker: "user",
-          syntaxRole: "clause_pattern",
-          usageExcerpts: ["I'd like coffee"],
-        },
-      ],
-      rewrittenUserTurns: [{ text: "I went to the store.", transcriptTurnIndex: 0 }],
-      review:
-        "Clear effort with useful request language. Keep adding articles and model the full request form consistently.",
-    });
-  }
-
   return sessionAi.generateLingAnalysis(models.LING_ANALYSIS_MODEL, {
     turns,
   });

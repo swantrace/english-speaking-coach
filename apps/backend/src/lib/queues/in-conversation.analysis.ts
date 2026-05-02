@@ -145,26 +145,6 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     return inConversationAnalysisGeneratorOverride(job);
   }
 
-  if (process.env.LING_ANALYSIS_USE_TEST_GENERATOR === "1") {
-    return inConversationAnalysisResultSchema.parse({
-      occurrences: [
-        {
-          proposedPattern: "I'd like <np>",
-          transcriptTurnIndex: getLatestUserTurnIndex(job) ?? job.transcriptStartIndex,
-          utterance: "I'd like coffee",
-        },
-      ],
-      uiPrompts: [
-        {
-          prompt: "Ask the agent why the last tense choice sounds more natural here.",
-          promptKind: "error_hint",
-          transcriptTurnIndex: getLatestUserTurnIndex(job),
-        },
-      ],
-      workerFeedbackMessage: "Keep pushing the learner to answer with a little more detail.",
-    });
-  }
-
   const indexedTurns = job.turns.map((turn, index) => ({
     ...turn,
     transcriptTurnIndex: job.transcriptStartIndex + index,

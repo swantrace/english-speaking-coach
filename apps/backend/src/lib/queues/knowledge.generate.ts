@@ -212,16 +212,6 @@ async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledge
     return knowledgeGeneratorOverride(prompt);
   }
 
-  // if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1" || process.env.NODE_ENV === "test") {
-  //   return generatedKnowledgeItemSchema.parse({
-  //     communicativeFunction: "give_or_seek_information",
-  //     example: `Could you walk me through ${prompt}?`,
-  //     fixednessLevel: "restricted_collocation",
-  //     pattern: `Could you walk me through <np> ${prompt}`,
-  //     syntaxRole: "clause_pattern",
-  //   });
-  // }
-
   return knowledgeItemAi.generateKnowledgeItem(models.KNOWLEDGE_GENERATE_MODEL, {
     input: prompt,
   });

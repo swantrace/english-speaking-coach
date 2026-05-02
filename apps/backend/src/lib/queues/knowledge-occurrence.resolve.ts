@@ -26,16 +26,6 @@ async function generateKnowledgeItemFromOccurrence({
   proposedPattern: string;
   utterance: string;
 }): Promise<GeneratedKnowledgeItem> {
-  if (process.env.KNOWLEDGE_GENERATE_USE_TEST_GENERATOR === "1") {
-    return {
-      communicativeFunction: "give_or_seek_information",
-      fixednessLevel: "restricted_collocation",
-      pattern: proposedPattern,
-      senses: [],
-      syntaxRole: "clause_pattern",
-    };
-  }
-
   return knowledgeItemAi.generateKnowledgeItemFromOccurrence(models.KNOWLEDGE_GENERATE_MODEL, {
     proposedPattern,
     utterance,
