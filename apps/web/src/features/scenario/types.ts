@@ -124,12 +124,8 @@ export interface ScenarioFormValues {
   title: string;
 }
 
-export interface BulkScenarioDraftValue {
-  value: string;
-}
-
 export interface BulkScenarioFormValues {
-  drafts: BulkScenarioDraftValue[];
+  drafts: string;
 }
 
 export interface BulkScenarioSubmissionView {

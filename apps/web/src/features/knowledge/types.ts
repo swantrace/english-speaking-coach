@@ -123,9 +123,7 @@ export interface AdminKnowledgeWritePayload {
 }
 
 export interface BulkKnowledgeFormValues {
-  patterns: Array<{
-    value: string;
-  }>;
+  patterns: string;
 }
 
 export interface BulkKnowledgeSubmissionView {

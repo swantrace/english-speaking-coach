@@ -48,13 +48,9 @@ export const knowledgeFormSchema = z
   });
 
 export const bulkKnowledgeFormSchema = z.object({
-  patterns: z
-    .array(
-      z.object({
-        value: z.string().trim().min(1, "Add a draft pattern."),
-      }),
-    )
-    .min(1, "Add at least one draft pattern."),
+  patterns: z.string().refine((value) => value.split(/\r?\n/).some((line) => line.trim().length > 0), {
+    message: "Add at least one draft pattern.",
+  }),
 });
 
 function setNestedError(target: Record<string | number, unknown>, path: (string | number)[], message: string) {

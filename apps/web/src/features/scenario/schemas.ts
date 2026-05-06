@@ -71,13 +71,9 @@ export const scenarioFormSchema = z
   });
 
 export const bulkScenarioFormSchema = z.object({
-  drafts: z
-    .array(
-      z.object({
-        value: z.string().trim().min(1, "Add a draft setting description."),
-      }),
-    )
-    .min(1, "Add at least one draft row."),
+  drafts: z.string().refine((value) => value.split(/\r?\n/).some((line) => line.trim().length > 0), {
+    message: "Add at least one draft setting description.",
+  }),
 });
 
 function setNestedError(target: Record<string | number, unknown>, path: (string | number)[], message: string) {

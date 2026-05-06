@@ -24,6 +24,7 @@ const patternTypeDescriptions = [
   '- grammatical_noun_to_infinitive: N + to-infinitive pattern, e.g. "time to go"',
   '- grammatical_noun_that_clause: N + that-clause pattern, e.g. "the fact that..."',
   '- grammatical_conjunction_phrase: multiword conjunction phrase, e.g. "now that", "even though"',
+  '- grammatical_modal_semi_modal_phrase: modal or semi-modal phrase, e.g. "would rather <v>", "used to <v>", "be going to <v>"',
 ].join("\n");
 
 export const buildKnowledgeItemGeneratePrompt = ({

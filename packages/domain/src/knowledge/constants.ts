@@ -19,6 +19,7 @@ export const patternTypeValues = [
   "grammatical_noun_to_infinitive",
   "grammatical_noun_that_clause",
   "grammatical_conjunction_phrase",
+  "grammatical_modal_semi_modal_phrase",
 ] as const;
 export const fixednessLevelValues = ["restricted_collocation", "fixed_expression", "idiom"] as const;
 export const communicativeFunctionValues = [

@@ -9,6 +9,7 @@ const patternTypeLabels: Record<PatternType, string> = {
   grammatical_adjective_that_clause: "Adj + that-clause",
   grammatical_adjective_to_infinitive: "Adj + to-inf",
   grammatical_conjunction_phrase: "Conjunction phrase",
+  grammatical_modal_semi_modal_phrase: "Modal / semi-modal phrase",
   grammatical_noun_preposition: "N + prep",
   grammatical_noun_that_clause: "N + that-clause",
   grammatical_noun_to_infinitive: "N + to-inf",
