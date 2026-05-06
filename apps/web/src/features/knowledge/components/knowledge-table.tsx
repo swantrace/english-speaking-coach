@@ -3,15 +3,15 @@ import {
   communicativeFunctionValues,
   type FixednessLevel,
   fixednessLevelValues,
-  type SyntaxRole,
-  syntaxRoleValues,
+  type PatternType,
+  patternTypeValues,
 } from "@english-coach/domain";
 import { DataTable } from "@english-coach/ui";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { buildColumnFilters, getSingleSelectFilterValue } from "@/components/data-table/column-filter-state";
 import { DataTableEmpty } from "@/components/data-table/data-table-empty";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { KnowledgeListItemView } from "../types";
 import { createKnowledgeColumns } from "./knowledge-columns";
 
@@ -20,12 +20,12 @@ interface KnowledgeTableProps {
   fixednessLevel?: FixednessLevel;
   items: KnowledgeListItemView[];
   searchValue: string;
-  syntaxRole?: SyntaxRole;
+  patternType?: PatternType;
   onCommunicativeFunctionChange: (value?: CommunicativeFunction) => void;
   onFixednessLevelChange: (value?: FixednessLevel) => void;
   onRowClick: (item: KnowledgeListItemView) => void;
   onSearchChange: (value: string) => void;
-  onSyntaxRoleChange: (value?: SyntaxRole) => void;
+  onPatternTypeChange: (value?: PatternType) => void;
 }
 
 export function KnowledgeTable({
@@ -33,25 +33,25 @@ export function KnowledgeTable({
   fixednessLevel,
   items,
   searchValue,
-  syntaxRole,
+  patternType,
   onCommunicativeFunctionChange,
   onFixednessLevelChange,
   onRowClick,
   onSearchChange,
-  onSyntaxRoleChange,
+  onPatternTypeChange,
 }: KnowledgeTableProps) {
   const columnFilters = useMemo(
     () =>
       buildColumnFilters([
-        { id: "syntaxRole", value: syntaxRole },
+        { id: "patternType", value: patternType },
         { id: "fixednessLevel", value: fixednessLevel },
         { id: "communicativeFunction", value: communicativeFunction },
       ]),
-    [communicativeFunction, fixednessLevel, syntaxRole],
+    [communicativeFunction, fixednessLevel, patternType],
   );
 
   function handleColumnFiltersChange(nextFilters: ColumnFiltersState) {
-    onSyntaxRoleChange(getSingleSelectFilterValue<SyntaxRole>(nextFilters, "syntaxRole"));
+    onPatternTypeChange(getSingleSelectFilterValue<PatternType>(nextFilters, "patternType"));
     onFixednessLevelChange(getSingleSelectFilterValue<FixednessLevel>(nextFilters, "fixednessLevel"));
     onCommunicativeFunctionChange(
       getSingleSelectFilterValue<CommunicativeFunction>(nextFilters, "communicativeFunction"),
@@ -71,9 +71,9 @@ export function KnowledgeTable({
       }
       facetedFilters={[
         {
-          columnId: "syntaxRole",
-          options: Object.fromEntries(syntaxRoleValues.map((value) => [value, { label: formatSyntaxRole(value) }])),
-          title: "Syntax role",
+          columnId: "patternType",
+          options: Object.fromEntries(patternTypeValues.map((value) => [value, { label: formatPatternType(value) }])),
+          title: "Pattern type",
         },
         {
           columnId: "fixednessLevel",

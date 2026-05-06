@@ -8,8 +8,8 @@ import {
   errorDimensions,
   fixednessLevels,
   pageListQuerySchema,
+  patternTypes,
   sortDirectionSchema,
-  syntaxRoles,
 } from "../common";
 import { scenarioCharacterSchema, scenarioDialogueTurnSchema, scenarioGoalsSchema, scenarioSchema } from "../scenario";
 
@@ -224,7 +224,7 @@ export const historyKnowledgeItemSchema = z.object({
   occurrences: z.array(historyKnowledgeItemOccurrenceSummarySchema),
   pattern: z.string(),
   speaker: z.enum(speakerValues),
-  syntaxRole: z.enum(syntaxRoles).nullable(),
+  patternType: z.enum(patternTypes).nullable(),
 });
 
 export const historySessionErrorSchema = createSelectSchema(sessionErrors, {
@@ -305,7 +305,7 @@ export const lingAnalysisKnowledgeItemSchema = z.object({
   fixednessLevel: z.enum(fixednessLevels),
   pattern: z.string().trim().min(1),
   speaker: z.enum(speakerValues),
-  syntaxRole: z.enum(syntaxRoles),
+  patternType: z.enum(patternTypes),
   usageExcerpts: z.array(z.string().trim().min(1)),
 });
 

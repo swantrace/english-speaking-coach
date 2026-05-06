@@ -12,7 +12,7 @@ export const buildLingAnalysisPrompt = ({
   communicativeFunctions,
   errorDimensions,
   fixednessLevels,
-  syntaxRoles,
+  patternTypes,
   turns,
 }: {
   communicativeFunctions: readonly string[];
@@ -20,7 +20,7 @@ export const buildLingAnalysisPrompt = ({
   fixednessLevels: readonly string[];
   modelId?: string;
   providerId?: string;
-  syntaxRoles: readonly string[];
+  patternTypes: readonly string[];
   turns: unknown;
 }) => ({
   system: [
@@ -34,7 +34,7 @@ export const buildLingAnalysisPrompt = ({
     "Return one combined structured object with knowledge items, learner errors, rewritten user turns, and a markdown review.",
     "",
     "[CONTROLLED VALUES]",
-    `Valid syntaxRole values: ${syntaxRoles.join(", ")}`,
+    `Valid patternType values: ${patternTypes.join(", ")}`,
     `Valid fixednessLevel values: ${fixednessLevels.join(", ")}`,
     `Valid communicativeFunction values: ${communicativeFunctions.join(", ")}`,
     `Valid error dimensions: ${errorDimensions.join(", ")}`,

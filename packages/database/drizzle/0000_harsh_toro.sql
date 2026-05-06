@@ -85,7 +85,7 @@ CREATE TABLE `free_form_contexts` (
 CREATE TABLE `knowledge_items` (
 	`id` text PRIMARY KEY NOT NULL,
 	`pattern` text NOT NULL,
-	`syntax_role` text,
+	`pattern_type` text,
 	`fixedness_level` text,
 	`communicative_function` text,
 	`is_pending_review` integer DEFAULT false NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE `knowledge_items` (
 	`deleted_at` text,
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
-	CONSTRAINT "knowledge_items_syntax_role_check" CHECK("knowledge_items"."syntax_role" IS NULL OR "knowledge_items"."syntax_role" in ('predicate_verb', 'predicate_adjective', 'adverbial_modifier', 'noun_phrase', 'discourse_linker', 'clause_pattern')),
+	CONSTRAINT "knowledge_items_pattern_type_check" CHECK("knowledge_items"."pattern_type" IS NULL OR "knowledge_items"."pattern_type" in ('lexical_verb_noun', 'lexical_adjective_noun', 'lexical_noun_verb', 'lexical_noun_of_noun', 'lexical_adverb_adjective', 'lexical_verb_particle', 'grammatical_preposition_noun', 'grammatical_preposition_noun_preposition', 'grammatical_adjective_preposition', 'grammatical_adjective_to_infinitive', 'grammatical_adjective_that_clause', 'grammatical_verb_preposition', 'grammatical_verb_to_infinitive', 'grammatical_verb_that_clause', 'grammatical_verb_noun_preposition', 'grammatical_verb_particle_preposition', 'grammatical_noun_preposition', 'grammatical_noun_to_infinitive', 'grammatical_noun_that_clause', 'grammatical_conjunction_phrase')),
 	CONSTRAINT "knowledge_items_fixedness_level_check" CHECK("knowledge_items"."fixedness_level" IS NULL OR "knowledge_items"."fixedness_level" in ('restricted_collocation', 'fixed_expression', 'idiom')),
 	CONSTRAINT "knowledge_items_communicative_function_check" CHECK("knowledge_items"."communicative_function" IS NULL OR "knowledge_items"."communicative_function" in ('manage_social_relation', 'express_attitude_or_opinion', 'make_request_or_offer', 'give_or_seek_information', 'organize_discourse', 'react_in_conversation', 'express_degree_or_soften', 'express_time_or_sequence'))
 );

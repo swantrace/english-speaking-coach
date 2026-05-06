@@ -118,7 +118,7 @@ export function KnowledgeListPage({ search }: KnowledgeListPageProps) {
                 communicativeFunction,
                 fixednessLevel: normalizedSearch.fixednessLevel,
                 search: deferredSearchValue.trim() || undefined,
-                syntaxRole: normalizedSearch.syntaxRole,
+                patternType: normalizedSearch.patternType,
               })
             }
             onFixednessLevelChange={(fixednessLevel) =>
@@ -126,7 +126,7 @@ export function KnowledgeListPage({ search }: KnowledgeListPageProps) {
                 communicativeFunction: normalizedSearch.communicativeFunction,
                 fixednessLevel,
                 search: deferredSearchValue.trim() || undefined,
-                syntaxRole: normalizedSearch.syntaxRole,
+                patternType: normalizedSearch.patternType,
               })
             }
             onRowClick={(item) =>
@@ -136,16 +136,16 @@ export function KnowledgeListPage({ search }: KnowledgeListPageProps) {
               })
             }
             onSearchChange={setSearchValue}
-            onSyntaxRoleChange={(syntaxRole) =>
+            onPatternTypeChange={(patternType) =>
               updateSearch({
                 communicativeFunction: normalizedSearch.communicativeFunction,
                 fixednessLevel: normalizedSearch.fixednessLevel,
                 search: deferredSearchValue.trim() || undefined,
-                syntaxRole,
+                patternType,
               })
             }
             searchValue={searchValue}
-            syntaxRole={normalizedSearch.syntaxRole}
+            patternType={normalizedSearch.patternType}
           />
         </PageSection>
       ) : null}

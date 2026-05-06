@@ -50,7 +50,7 @@ export function mapKnowledgeListItem(item: KnowledgePointSummary): KnowledgeList
     id: item.id,
     occurrenceCount: item.totalOccurrences,
     pattern: item.pattern,
-    syntaxRole: item.syntaxRole,
+    patternType: item.patternType,
   };
 }
 
@@ -81,7 +81,7 @@ export function mapKnowledgeDetail(detail: KnowledgePointDetail): KnowledgeDetai
       .sort((left, right) => left.order - right.order)
       .map(mapSense),
     sessionCount: detail.sessionCount,
-    syntaxRole: detail.syntaxRole,
+    patternType: detail.patternType,
   };
 }
 
@@ -93,7 +93,7 @@ export function mapAdminKnowledgeListItem(item: AdminKnowledgeListItem): AdminKn
     isPendingReview: item.isPendingReview,
     pattern: item.pattern,
     reviewStatus: item.isPendingReview ? "pendingReview" : "approved",
-    syntaxRole: item.syntaxRole,
+    patternType: item.patternType,
     updatedAt: item.updatedAt,
     updatedAtLabel: formatAdminDateLabel(item.updatedAt),
   };
@@ -127,7 +127,7 @@ export function createEmptyKnowledgeFormValues(partial?: Partial<KnowledgeFormVa
         order: 1,
       },
     ],
-    syntaxRole: "",
+    patternType: "",
     ...partial,
   };
 }
@@ -148,7 +148,7 @@ export function mapAdminKnowledgeDetailToFormValues(detail: AdminKnowledgeDetail
           order: sense.order,
         }))
       : createEmptyKnowledgeFormValues().senses,
-    syntaxRole: detail.syntaxRole ?? "",
+    patternType: detail.patternType ?? "",
   });
 }
 
@@ -166,7 +166,7 @@ export function mapKnowledgeFormValuesToAdminPayload(values: KnowledgeFormValues
       meaning_zh: sense.meaningZh.trim(),
       order: index + 1,
     })),
-    syntaxRole: values.syntaxRole || null,
+    patternType: values.patternType || null,
   };
 }
 
@@ -183,7 +183,7 @@ export function mapBulkKnowledgeSubmission(response: KnowledgeGenerateSubmission
 
 export function filterKnowledgeListItems(items: KnowledgeListItemView[], filters: KnowledgeListFilters) {
   return items.filter((item) => {
-    if (filters.syntaxRole && item.syntaxRole !== filters.syntaxRole) {
+    if (filters.patternType && item.patternType !== filters.patternType) {
       return false;
     }
 
@@ -205,7 +205,7 @@ export function filterAdminKnowledgeListItems(items: AdminKnowledgeListItemView[
       return false;
     }
 
-    if (filters.syntaxRole && item.syntaxRole !== filters.syntaxRole) {
+    if (filters.patternType && item.patternType !== filters.patternType) {
       return false;
     }
 

@@ -1,4 +1,4 @@
-import type { CommunicativeFunction, FixednessLevel, SessionType, SyntaxRole } from "@english-coach/domain";
+import type { CommunicativeFunction, FixednessLevel, PatternType, SessionType } from "@english-coach/domain";
 
 export type AdminKnowledgeReviewStatus = "approved" | "pendingReview";
 
@@ -6,7 +6,7 @@ export interface KnowledgeListFilters {
   communicativeFunction?: CommunicativeFunction;
   fixednessLevel?: FixednessLevel;
   search?: string;
-  syntaxRole?: SyntaxRole;
+  patternType?: PatternType;
 }
 
 export interface AdminKnowledgeListFilters {
@@ -14,7 +14,7 @@ export interface AdminKnowledgeListFilters {
   fixednessLevel?: FixednessLevel;
   reviewStatus?: AdminKnowledgeReviewStatus;
   search?: string;
-  syntaxRole?: SyntaxRole;
+  patternType?: PatternType;
 }
 
 export interface KnowledgeListItemView {
@@ -24,7 +24,7 @@ export interface KnowledgeListItemView {
   id: string;
   occurrenceCount: number;
   pattern: string;
-  syntaxRole: SyntaxRole | null;
+  patternType: PatternType | null;
 }
 
 export interface KnowledgeListView {
@@ -62,7 +62,7 @@ export interface KnowledgeDetailView {
   pattern: string;
   senses: KnowledgeSenseView[];
   sessionCount: number;
-  syntaxRole: SyntaxRole | null;
+  patternType: PatternType | null;
 }
 
 export interface AdminKnowledgeListItemView {
@@ -72,7 +72,7 @@ export interface AdminKnowledgeListItemView {
   isPendingReview: boolean;
   pattern: string;
   reviewStatus: AdminKnowledgeReviewStatus;
-  syntaxRole: SyntaxRole | null;
+  patternType: PatternType | null;
   updatedAt: string;
   updatedAtLabel: string;
 }
@@ -103,7 +103,7 @@ export interface KnowledgeFormValues {
   isPendingReview: boolean;
   pattern: string;
   senses: KnowledgeSenseFormValue[];
-  syntaxRole: SyntaxRole | "";
+  patternType: PatternType | "";
 }
 
 export interface AdminKnowledgeWritePayload {
@@ -119,7 +119,7 @@ export interface AdminKnowledgeWritePayload {
     meaning_zh: string;
     order: number;
   }>;
-  syntaxRole: SyntaxRole | null;
+  patternType: PatternType | null;
 }
 
 export interface BulkKnowledgeFormValues {

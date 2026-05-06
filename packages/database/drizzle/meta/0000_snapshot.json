@@ -598,8 +598,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "syntax_role": {
-          "name": "syntax_role",
+        "pattern_type": {
+          "name": "pattern_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -683,9 +683,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {
-        "knowledge_items_syntax_role_check": {
-          "name": "knowledge_items_syntax_role_check",
-          "value": "\"knowledge_items\".\"syntax_role\" IS NULL OR \"knowledge_items\".\"syntax_role\" in ('predicate_verb', 'predicate_adjective', 'adverbial_modifier', 'noun_phrase', 'discourse_linker', 'clause_pattern')"
+        "knowledge_items_pattern_type_check": {
+          "name": "knowledge_items_pattern_type_check",
+          "value": "\"knowledge_items\".\"pattern_type\" IS NULL OR \"knowledge_items\".\"pattern_type\" in ('lexical_verb_noun', 'lexical_adjective_noun', 'lexical_noun_verb', 'lexical_noun_of_noun', 'lexical_adverb_adjective', 'lexical_verb_particle', 'grammatical_preposition_noun', 'grammatical_preposition_noun_preposition', 'grammatical_adjective_preposition', 'grammatical_adjective_to_infinitive', 'grammatical_adjective_that_clause', 'grammatical_verb_preposition', 'grammatical_verb_to_infinitive', 'grammatical_verb_that_clause', 'grammatical_verb_noun_preposition', 'grammatical_verb_particle_preposition', 'grammatical_noun_preposition', 'grammatical_noun_to_infinitive', 'grammatical_noun_that_clause', 'grammatical_conjunction_phrase')"
         },
         "knowledge_items_fixedness_level_check": {
           "name": "knowledge_items_fixedness_level_check",

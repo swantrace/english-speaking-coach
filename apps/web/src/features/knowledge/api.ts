@@ -102,7 +102,7 @@ export async function fetchAdminKnowledgeList(
     search: normalizedFilters.search || undefined,
     sortBy: "updatedAt",
     sortDirection: "desc",
-    syntaxRole: normalizedFilters.syntaxRole || undefined,
+    patternType: normalizedFilters.patternType || undefined,
   });
   const response = await apiClient.get(knowledgeEndpoints.adminList, {
     params: query,

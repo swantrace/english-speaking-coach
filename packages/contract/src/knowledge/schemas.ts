@@ -3,8 +3,8 @@ import {
   communicativeFunctionValues,
   fixednessLevelValues,
   knowledgeOccurrenceStatusValues,
+  patternTypeValues,
   speakerValues,
-  syntaxRoleValues,
 } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -45,7 +45,7 @@ export const knowledgeItemSchema = createSelectSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctionValues).nullable(),
   fixednessLevel: z.enum(fixednessLevelValues).nullable(),
   isPendingReview: z.boolean(),
-  syntaxRole: z.enum(syntaxRoleValues).nullable(),
+  patternType: z.enum(patternTypeValues).nullable(),
 });
 
 export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "isPendingReview"]);
@@ -56,7 +56,7 @@ export const knowledgeItemListQuerySchema = pageListQuerySchema.extend({
   search: optionalSearchTextSchema,
   sortBy: knowledgeItemListSortBySchema.default(knowledgeItemListSortBySchema.enum.updatedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
-  syntaxRole: z.enum(syntaxRoleValues).optional(),
+  patternType: z.enum(patternTypeValues).optional(),
 });
 
 export const knowledgePointListSortBySchema = z.enum(["lastSeenAt", "pattern", "sessionCount", "totalOccurrences"]);
@@ -74,7 +74,7 @@ export const knowledgePointSummarySchema = z.object({
   lastSeenAt: z.string(),
   pattern: z.string().trim().min(1),
   sessionCount: z.number().int().min(1),
-  syntaxRole: z.enum(syntaxRoleValues).nullable(),
+  patternType: z.enum(patternTypeValues).nullable(),
   totalOccurrences: z.number().int().min(1),
   updatedAt: z.string(),
 });
@@ -139,7 +139,7 @@ export const adminKnowledgeWriteSchema = z.object({
   isPendingReview: z.boolean().optional(),
   pattern: z.string().trim().min(1),
   senses: z.array(knowledgeSenseSchema).default([]),
-  syntaxRole: optionalNullableEnumField(syntaxRoleValues),
+  patternType: optionalNullableEnumField(patternTypeValues),
 });
 
 export const adminKnowledgeCreateSchema = adminKnowledgeWriteSchema.extend({

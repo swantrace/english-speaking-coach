@@ -1,6 +1,8 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+
+const patternTypeValuesSql = sql.raw(patternTypeValues.map((value) => `'${value.replace(/'/g, "''")}'`).join(", "));
 
 export const knowledgeItems = sqliteTable(
   "knowledge_items",
@@ -8,7 +10,7 @@ export const knowledgeItems = sqliteTable(
     id: text("id").primaryKey(),
     /** e.g. "I'd like <np>", "it's worth <v_ing>" — UNIQUE so workers can upsert by pattern. */
     pattern: text("pattern").notNull().unique(),
-    syntaxRole: text("syntax_role", { enum: syntaxRoleValues }),
+    patternType: text("pattern_type", { enum: patternTypeValues }),
     fixednessLevel: text("fixedness_level", { enum: fixednessLevelValues }),
     communicativeFunction: text("communicative_function", { enum: communicativeFunctionValues }),
     isPendingReview: integer("is_pending_review", { mode: "boolean" }).notNull().default(false),
@@ -30,8 +32,8 @@ export const knowledgeItems = sqliteTable(
     uniqueIndex("knowledge_items_pattern_idx").on(table.pattern),
     index("knowledge_items_is_pending_review_idx").on(table.isPendingReview),
     check(
-      "knowledge_items_syntax_role_check",
-      sql`${table.syntaxRole} IS NULL OR ${table.syntaxRole} in ('predicate_verb', 'predicate_adjective', 'adverbial_modifier', 'noun_phrase', 'discourse_linker', 'clause_pattern')`,
+      "knowledge_items_pattern_type_check",
+      sql`${table.patternType} IS NULL OR ${table.patternType} in (${patternTypeValuesSql})`,
     ),
     check(
       "knowledge_items_fixedness_level_check",

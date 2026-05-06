@@ -95,7 +95,7 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
         sessionCount: sql<number>`count(distinct ${sessionKnowledgePointOccurrences.sessionHistoryId})`
           .mapWith(Number)
           .as("sessionCount"),
-        syntaxRole: knowledgeItems.syntaxRole,
+        patternType: knowledgeItems.patternType,
         totalOccurrences: sql<number>`count(${sessionKnowledgePointOccurrences.id})`
           .mapWith(Number)
           .as("totalOccurrences"),
@@ -143,7 +143,7 @@ export function registerKnowledgePointRoutes(app: BackendApp) {
           .mapWith(Number)
           .as("sessionCount"),
         senses: knowledgeItems.senses,
-        syntaxRole: knowledgeItems.syntaxRole,
+        patternType: knowledgeItems.patternType,
         totalOccurrences: sql<number>`count(${sessionKnowledgePointOccurrences.id})`
           .mapWith(Number)
           .as("totalOccurrences"),

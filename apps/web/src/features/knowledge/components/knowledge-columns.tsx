@@ -2,7 +2,7 @@ import { Badge } from "@english-coach/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 import { includesSelectedValues } from "@/components/data-table/filter-fns";
 import { formatDate } from "@/lib/dates";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { KnowledgeListItemView } from "../types";
 
 function renderNullableValue(value: string | null) {
@@ -24,12 +24,12 @@ export function createKnowledgeColumns(): ColumnDef<KnowledgeListItemView>[] {
       ),
     },
     {
-      accessorKey: "syntaxRole",
+      accessorKey: "patternType",
       filterFn: multiValueFilter,
-      header: "Syntax role",
+      header: "Pattern type",
       cell: ({ row }) => (
         <Badge variant="outline">
-          {renderNullableValue(row.original.syntaxRole ? formatSyntaxRole(row.original.syntaxRole) : null)}
+          {renderNullableValue(row.original.patternType ? formatPatternType(row.original.patternType) : null)}
         </Badge>
       ),
     },

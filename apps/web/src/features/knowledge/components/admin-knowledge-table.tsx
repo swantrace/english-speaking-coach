@@ -1,10 +1,10 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import { DataTable } from "@english-coach/ui";
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { buildColumnFilters, getSingleSelectFilterValue } from "@/components/data-table/column-filter-state";
 import { DataTableEmpty } from "@/components/data-table/data-table-empty";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import {
   createKnowledgeMutationError,
   useBulkApproveAdminKnowledgeMutation,
@@ -19,12 +19,12 @@ interface AdminKnowledgeTableProps {
   items: AdminKnowledgeListItemView[];
   reviewStatus?: AdminKnowledgeReviewStatus;
   searchValue: string;
-  syntaxRole?: string;
+  patternType?: string;
   onCommunicativeFunctionChange: (value?: string) => void;
   onFixednessLevelChange: (value?: string) => void;
   onReviewStatusChange: (value?: AdminKnowledgeReviewStatus) => void;
   onSearchChange: (value: string) => void;
-  onSyntaxRoleChange: (value?: string) => void;
+  onPatternTypeChange: (value?: string) => void;
 }
 
 export function AdminKnowledgeTable({
@@ -33,12 +33,12 @@ export function AdminKnowledgeTable({
   items,
   reviewStatus,
   searchValue,
-  syntaxRole,
+  patternType,
   onCommunicativeFunctionChange,
   onFixednessLevelChange,
   onReviewStatusChange,
   onSearchChange,
-  onSyntaxRoleChange,
+  onPatternTypeChange,
 }: AdminKnowledgeTableProps) {
   const bulkApproveMutation = useBulkApproveAdminKnowledgeMutation();
   const bulkDeleteMutation = useBulkDeleteAdminKnowledgeMutation();
@@ -46,16 +46,16 @@ export function AdminKnowledgeTable({
     () =>
       buildColumnFilters([
         { id: "reviewStatus", value: reviewStatus },
-        { id: "syntaxRole", value: syntaxRole },
+        { id: "patternType", value: patternType },
         { id: "fixednessLevel", value: fixednessLevel },
         { id: "communicativeFunction", value: communicativeFunction },
       ]),
-    [communicativeFunction, fixednessLevel, reviewStatus, syntaxRole],
+    [communicativeFunction, fixednessLevel, reviewStatus, patternType],
   );
 
   function handleColumnFiltersChange(nextFilters: ColumnFiltersState) {
     onReviewStatusChange(getSingleSelectFilterValue<AdminKnowledgeReviewStatus>(nextFilters, "reviewStatus"));
-    onSyntaxRoleChange(getSingleSelectFilterValue<string>(nextFilters, "syntaxRole"));
+    onPatternTypeChange(getSingleSelectFilterValue<string>(nextFilters, "patternType"));
     onFixednessLevelChange(getSingleSelectFilterValue<string>(nextFilters, "fixednessLevel"));
     onCommunicativeFunctionChange(getSingleSelectFilterValue<string>(nextFilters, "communicativeFunction"));
   }
@@ -130,9 +130,9 @@ export function AdminKnowledgeTable({
           title: "Review state",
         },
         {
-          columnId: "syntaxRole",
-          options: Object.fromEntries(syntaxRoleValues.map((value) => [value, { label: formatSyntaxRole(value) }])),
-          title: "Syntax role",
+          columnId: "patternType",
+          options: Object.fromEntries(patternTypeValues.map((value) => [value, { label: formatPatternType(value) }])),
+          title: "Pattern type",
         },
         {
           columnId: "fixednessLevel",

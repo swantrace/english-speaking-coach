@@ -1,7 +1,7 @@
 import { db, sqlite } from "@english-coach/database";
 import { submissionJobs, submissions } from "@english-coach/database/schema";
 import type { z } from "zod";
-import type { JobProgressMessage } from "./progress";
+import type { JobProgressBaseMessage, JobProgressMessage } from "./progress";
 
 export type SubmissionJobData = {
   cursor: number;
@@ -30,18 +30,18 @@ type SubmissionSnapshotRow = {
 type SubmissionKind = typeof submissions.$inferInsert.kind;
 
 export function createSubmissionProgressMessage<TMessage extends SubmissionProgressMessage>({
-  baseMessage,
   jobData,
   kind,
+  progress,
   schema,
 }: {
-  baseMessage: JobProgressMessage;
   jobData: Pick<SubmissionJobData, "cursor" | "submissionId">;
   kind: string;
+  progress: JobProgressBaseMessage;
   schema: z.ZodType<TMessage>;
 }) {
   return schema.parse({
-    ...baseMessage,
+    ...progress,
     cursor: jobData.cursor,
     kind,
     submissionId: jobData.submissionId,

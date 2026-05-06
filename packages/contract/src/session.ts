@@ -2,7 +2,7 @@ import { scenarios } from "@english-coach/database/schema";
 import { sessionTypeValues, speakerValues } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
+import { communicativeFunctions, errorDimensions, fixednessLevels, patternTypes } from "./linguistics";
 
 export * from "./session/dto";
 
@@ -136,7 +136,7 @@ export const sessionCompletionRequestSchema = z.object({
 
 export const lingAnalysisKnowledgeItemSchema = z.object({
   pattern: z.string().trim().min(1),
-  syntaxRole: z.enum(syntaxRoles),
+  patternType: z.enum(patternTypes),
   fixednessLevel: z.enum(fixednessLevels),
   communicativeFunction: z.enum(communicativeFunctions),
   example: z.string().trim().min(1),

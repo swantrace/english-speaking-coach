@@ -2,7 +2,7 @@ import { knowledgeItems, scenarios, sessionErrors, sessionHistory } from "@engli
 import { speakerValues } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "./linguistics";
+import { communicativeFunctions, errorDimensions, fixednessLevels, patternTypes } from "./linguistics";
 import {
   rewrittenTranscriptTurnSchema,
   scenarioCharacterSchema,
@@ -139,7 +139,7 @@ export const historyKnowledgeItemSchema = z.object({
   occurrences: z.array(historyKnowledgeItemOccurrenceSummarySchema),
   pattern: z.string(),
   speaker: z.enum(speakerValues),
-  syntaxRole: z.enum(syntaxRoles).nullable(),
+  patternType: z.enum(patternTypes).nullable(),
 });
 
 export const historySessionErrorSchema = createSelectSchema(sessionErrors, {
@@ -174,7 +174,7 @@ export const knowledgeItemSchema = createSelectSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctions).nullable(),
   fixednessLevel: z.enum(fixednessLevels).nullable(),
   isPendingReview: z.boolean(),
-  syntaxRole: z.enum(syntaxRoles).nullable(),
+  patternType: z.enum(patternTypes).nullable(),
 });
 
 export const knowledgeItemListSortBySchema = z.enum(["updatedAt", "createdAt", "pattern", "isPendingReview"]);
@@ -185,7 +185,7 @@ export const knowledgeItemListQuerySchema = pageListQuerySchema.extend({
   search: optionalSearchTextSchema,
   sortBy: knowledgeItemListSortBySchema.default(knowledgeItemListSortBySchema.enum.updatedAt),
   sortDirection: sortDirectionSchema.default(sortDirectionSchema.enum.desc),
-  syntaxRole: z.enum(syntaxRoles).optional(),
+  patternType: z.enum(patternTypes).optional(),
 });
 
 export const knowledgePointListSortBySchema = z.enum(["lastSeenAt", "pattern", "sessionCount", "totalOccurrences"]);
@@ -212,7 +212,7 @@ export const knowledgePointSummarySchema = z.object({
   id: z.string(),
   pattern: z.string().trim().min(1),
   sessionCount: z.number().int().min(1),
-  syntaxRole: z.enum(syntaxRoles).nullable(),
+  patternType: z.enum(patternTypes).nullable(),
   totalOccurrences: z.number().int().min(1),
   updatedAt: z.string(),
 });

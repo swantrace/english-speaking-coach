@@ -1,4 +1,4 @@
-import { communicativeFunctions, errorDimensions, fixednessLevels, syntaxRoles } from "@english-coach/contract/common";
+import { communicativeFunctions, errorDimensions, fixednessLevels, patternTypes } from "@english-coach/contract/common";
 import {
   type InConversationAnalysisResult,
   inConversationAnalysisResultSchema,
@@ -32,7 +32,7 @@ export function createSessionHandlers(providerId: ProviderId) {
         communicativeFunctions,
         errorDimensions,
         fixednessLevels,
-        syntaxRoles,
+        patternTypes,
         turns: payload.turns,
       });
 

@@ -192,7 +192,7 @@ export function registerHistoryRoutes(app: BackendApp) {
             fixednessLevel: knowledgeItems.fixednessLevel,
             id: knowledgeItems.id,
             pattern: knowledgeItems.pattern,
-            syntaxRole: knowledgeItems.syntaxRole,
+            patternType: knowledgeItems.patternType,
           })
           .from(knowledgeItems)
           .where(inArray(knowledgeItems.id, resolvedKnowledgeItemIds))
@@ -216,7 +216,7 @@ export function registerHistoryRoutes(app: BackendApp) {
         }>;
         pattern: string;
         speaker: "user" | "assistant";
-        syntaxRole: (typeof knowledgeItemRecords)[number]["syntaxRole"];
+        patternType: (typeof knowledgeItemRecords)[number]["patternType"];
       }
     >();
 
@@ -251,7 +251,7 @@ export function registerHistoryRoutes(app: BackendApp) {
           ],
           pattern: knowledgeItem.pattern,
           speaker,
-          syntaxRole: knowledgeItem.syntaxRole,
+          patternType: knowledgeItem.patternType,
         });
         continue;
       }

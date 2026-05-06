@@ -167,12 +167,12 @@ export function AdminUserActions({ user }: AdminUserActionsProps) {
       confirmation: {
         confirmLabel: "Delete user",
         description: "This performs a soft delete. The account will remain in the system for audit purposes.",
-        title: "Soft-delete this user?",
+        title: "Delete this user?",
       },
       disabled: isPending,
       isDestructive: true,
       key: "softDelete",
-      label: "Soft-delete user",
+      label: "Delete this user",
       onSelect: () => runAction("softDelete"),
       separatorBefore: actions.length > 0,
     });

@@ -1,4 +1,4 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import { z } from "zod";
 
 const optionalSearchSchema = z.preprocess((value) => {
@@ -14,7 +14,7 @@ export const knowledgeSearchSchema = z.object({
   communicativeFunction: z.enum(communicativeFunctionValues).optional(),
   fixednessLevel: z.enum(fixednessLevelValues).optional(),
   search: optionalSearchSchema,
-  syntaxRole: z.enum(syntaxRoleValues).optional(),
+  patternType: z.enum(patternTypeValues).optional(),
 });
 
 export type KnowledgeSearchParams = z.infer<typeof knowledgeSearchSchema>;

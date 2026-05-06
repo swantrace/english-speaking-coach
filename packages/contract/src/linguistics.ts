@@ -2,7 +2,7 @@ import {
   communicativeFunctionValues,
   errorDimensionValues,
   fixednessLevelValues,
-  syntaxRoleValues,
+  patternTypeValues,
   userRoleValues,
 } from "@english-coach/domain";
 
@@ -30,7 +30,7 @@ import {
  * they are NOT validated by runtime code.
  */
 
-export const syntaxRoles = syntaxRoleValues;
+export const patternTypes = patternTypeValues;
 
 export const fixednessLevels = fixednessLevelValues;
 
@@ -40,7 +40,7 @@ export const errorDimensions = errorDimensionValues;
 
 export const userRoles = userRoleValues;
 
-export type SyntaxRole = (typeof syntaxRoles)[number];
+export type PatternType = (typeof patternTypes)[number];
 export type FixednessLevel = (typeof fixednessLevels)[number];
 export type CommunicativeFunction = (typeof communicativeFunctions)[number];
 export type ErrorDimension = (typeof errorDimensions)[number];

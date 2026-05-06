@@ -13,14 +13,7 @@ import { type GeneratedKnowledgeItem, getProvider, modelConfig } from "../ai";
 import { defaultProviderId } from "../env";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import { persistGeneratedKnowledgeItem } from "./helpers/knowledge-items.persistence";
-import {
-  createCompletedProgressMessage,
-  createFailedProgressMessage,
-  createQueuedProgressMessage,
-  createStartedProgressMessage,
-  type JobProgressMessage,
-  publishJobProgress,
-} from "./helpers/progress";
+import { type JobProgressBaseMessage, publishJobProgress } from "./helpers/progress";
 import {
   createSubmissionProgressMessage,
   createSubmissionRecord,
@@ -55,48 +48,19 @@ export function publishKnowledgeGenerateProgress(message: KnowledgeGenerateProgr
 }
 
 function createKnowledgeGenerateProgressMessage(
-  baseMessage: JobProgressMessage,
+  jobId: string,
   jobData: Pick<KnowledgeGenerateJobData, "cursor" | "submissionId">,
+  progress: Omit<JobProgressBaseMessage, "jobId">,
 ) {
   return createSubmissionProgressMessage({
-    baseMessage,
     jobData,
     kind: knowledgeGenerateSubmissionKind,
+    progress: {
+      jobId,
+      ...progress,
+    },
     schema: knowledgeGenerateJobUpdateSchema,
   });
-}
-
-function createQueuedKnowledgeGenerateProgressMessage(jobId: string, jobData: KnowledgeGenerateJobData) {
-  return createKnowledgeGenerateProgressMessage(
-    createQueuedProgressMessage(jobId, jobData.queuedAt, "Knowledge item queued"),
-    jobData,
-  );
-}
-
-function createStartedKnowledgeGenerateProgressMessage(jobId: string, jobData: KnowledgeGenerateJobData) {
-  return createKnowledgeGenerateProgressMessage(
-    createStartedProgressMessage(jobId, jobData.queuedAt, "Knowledge item generation started"),
-    jobData,
-  );
-}
-
-function createCompletedKnowledgeGenerateProgressMessage(
-  jobId: string,
-  jobData: KnowledgeGenerateJobData,
-  processedAt: string,
-  pattern: string,
-) {
-  return createKnowledgeGenerateProgressMessage(
-    createCompletedProgressMessage(jobId, processedAt, `Knowledge item ready for review: ${pattern}`),
-    jobData,
-  );
-}
-
-function createFailedKnowledgeGenerateProgressMessage(jobId: string, jobData: KnowledgeGenerateJobData, error: string) {
-  return createKnowledgeGenerateProgressMessage(
-    createFailedProgressMessage(jobId, error, "Knowledge item generation failed"),
-    jobData,
-  );
 }
 
 export async function createKnowledgeGenerateSubmission(
@@ -149,7 +113,12 @@ export function setKnowledgeGeneratorForTests(generator: ((prompt: string) => Pr
 
 async function handleKnowledgeGenerateJob(job: Job<KnowledgeGenerateJobData>) {
   // Step 1: publish started job progress
-  const startedMessage = createStartedKnowledgeGenerateProgressMessage(String(job.id), job.data);
+  const startedMessage = createKnowledgeGenerateProgressMessage(String(job.id), job.data, {
+    message: "Knowledge item generation started",
+    progress: 10,
+    queuedAt: job.data.queuedAt,
+    status: "started",
+  });
   await saveKnowledgeGenerateSnapshot(startedMessage);
   await publishKnowledgeGenerateProgress(startedMessage);
 
@@ -158,12 +127,12 @@ async function handleKnowledgeGenerateJob(job: Job<KnowledgeGenerateJobData>) {
   const persistedKnowledgeItem = await persistGeneratedKnowledgeItem(generatedKnowledgeItem);
 
   // Step 3: publish completion progress
-  const completedMessage = createCompletedKnowledgeGenerateProgressMessage(
-    String(job.id),
-    job.data,
-    persistedKnowledgeItem.processedAt,
-    persistedKnowledgeItem.pattern,
-  );
+  const completedMessage = createKnowledgeGenerateProgressMessage(String(job.id), job.data, {
+    message: `Knowledge item ready for review: ${persistedKnowledgeItem.pattern}`,
+    processedAt: persistedKnowledgeItem.processedAt,
+    progress: 100,
+    status: "completed",
+  });
   await saveKnowledgeGenerateSnapshot(completedMessage);
   await publishKnowledgeGenerateProgress(completedMessage);
 
@@ -184,7 +153,12 @@ knowledgeGenerateWorker.on("completed", (job) => {
 
 knowledgeGenerateWorker.on("failed", async (job, error) => {
   if (job) {
-    const failedMessage = createFailedKnowledgeGenerateProgressMessage(String(job.id), job.data, error.message);
+    const failedMessage = createKnowledgeGenerateProgressMessage(String(job.id), job.data, {
+      error: error.message,
+      message: "Knowledge item generation failed",
+      progress: 100,
+      status: "failed",
+    });
     await saveKnowledgeGenerateSnapshot(failedMessage);
     await publishKnowledgeGenerateProgress(failedMessage);
   }
@@ -193,7 +167,12 @@ knowledgeGenerateWorker.on("failed", async (job, error) => {
 });
 
 export async function persistQueuedKnowledgeGenerateJob(jobId: string, jobData: KnowledgeGenerateJobData) {
-  const queuedMessage = createQueuedKnowledgeGenerateProgressMessage(jobId, jobData);
+  const queuedMessage = createKnowledgeGenerateProgressMessage(jobId, jobData, {
+    message: "Knowledge item queued",
+    progress: 0,
+    queuedAt: jobData.queuedAt,
+    status: "queued",
+  });
 
   await saveKnowledgeGenerateSnapshot(queuedMessage);
   await publishKnowledgeGenerateProgress(queuedMessage);

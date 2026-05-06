@@ -4,7 +4,7 @@ import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-cor
 import { user } from "./auth";
 
 const submissionKindValuesSql = sql.raw(
-  submissionKindValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+  submissionKindValues.map((value) => `'${value.replace(/'/g, "''")}'`).join(", "),
 );
 
 export const submissions = sqliteTable(

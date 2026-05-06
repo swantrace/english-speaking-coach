@@ -26,7 +26,8 @@ export async function persistGeneratedKnowledgeItem(
         .set({
           communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
           fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
-          syntaxRole: generatedKnowledgeItem.syntaxRole ?? null,
+          senses: generatedKnowledgeItem.senses,
+          patternType: generatedKnowledgeItem.patternType ?? null,
           updatedAt: now,
         })
         .where(eq(knowledgeItems.id, existing.id));
@@ -48,8 +49,8 @@ export async function persistGeneratedKnowledgeItem(
     id: knowledgeItemId,
     isPendingReview: true,
     pattern: generatedKnowledgeItem.pattern,
-    senses: [],
-    syntaxRole: generatedKnowledgeItem.syntaxRole ?? null,
+    senses: generatedKnowledgeItem.senses,
+    patternType: generatedKnowledgeItem.patternType ?? null,
     updatedAt: now,
   });
 

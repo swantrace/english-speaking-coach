@@ -6,7 +6,7 @@ import { knowledgeItems } from "./knowledge-items";
 import { sessionHistory } from "./session-history";
 
 const knowledgeOccurrenceStatusValuesSql = sql.raw(
-  knowledgeOccurrenceStatusValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+  knowledgeOccurrenceStatusValues.map((value) => `'${value.replace(/'/g, "''")}'`).join(", "),
 );
 
 export const sessionKnowledgePointOccurrences = sqliteTable(

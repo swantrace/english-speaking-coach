@@ -1,4 +1,4 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import {
   FormControl,
   FormField,
@@ -15,14 +15,14 @@ import type { Control } from "react-hook-form";
 import { FormSection } from "@/components/form/form-section";
 import { SwitchField } from "@/components/form/switch-field";
 import { TextField } from "@/components/form/text-field";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { KnowledgeFormValues } from "../types";
 import { KnowledgeSensesFieldArray } from "./knowledge-senses-field-array";
 
 interface EnumSelectFieldProps {
   control: Control<KnowledgeFormValues>;
   label: string;
-  name: "communicativeFunction" | "fixednessLevel" | "syntaxRole";
+  name: "communicativeFunction" | "fixednessLevel" | "patternType";
   options: readonly string[];
   placeholder: string;
   renderLabel: (value: string) => string;
@@ -81,11 +81,11 @@ export function KnowledgeFormFields({ control }: { control: Control<KnowledgeFor
         <div className="grid gap-4 lg:grid-cols-3">
           <EnumSelectField
             control={control}
-            label="Syntax role"
-            name="syntaxRole"
-            options={syntaxRoleValues}
-            placeholder="Select syntax role"
-            renderLabel={(value) => formatSyntaxRole(value as (typeof syntaxRoleValues)[number])}
+            label="Pattern type"
+            name="patternType"
+            options={patternTypeValues}
+            placeholder="Select pattern type"
+            renderLabel={(value) => formatPatternType(value as (typeof patternTypeValues)[number])}
           />
           <EnumSelectField
             control={control}

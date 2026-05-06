@@ -1,4 +1,4 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import type { FieldError, FieldErrors, Resolver } from "react-hook-form";
 import { z } from "zod";
 import type { BulkKnowledgeFormValues, KnowledgeFormValues } from "./types";
@@ -29,7 +29,7 @@ export const knowledgeFormSchema = z
     isPendingReview: z.boolean().default(false),
     pattern: patternSchema,
     senses: z.array(knowledgeSenseFormSchema).min(1, "Add at least one sense."),
-    syntaxRole: optionalEnumSchema(syntaxRoleValues),
+    patternType: optionalEnumSchema(patternTypeValues),
   })
   .superRefine((value, context) => {
     const seenOrders = new Set<number>();

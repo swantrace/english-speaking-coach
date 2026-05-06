@@ -38,7 +38,7 @@ export function useAdminKnowledgeListQuery(filters: AdminKnowledgeListFilters = 
       fixednessLevel: filters.fixednessLevel,
       reviewStatus: filters.reviewStatus,
       search: filters.search,
-      syntaxRole: filters.syntaxRole,
+      patternType: filters.patternType,
     }),
     staleTime: 30_000,
   });

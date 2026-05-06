@@ -11,10 +11,10 @@ export type {
   JobEventsSystemStatus,
   JobProgressMessage,
   JobProgressStatus,
+  PatternType,
   SortDirection,
   StudentDashboardResponse,
   StudentDashboardTotals,
   StudentDashboardTrendPoint,
-  SyntaxRole,
   UserRole,
 } from "./schemas";

@@ -1,7 +1,7 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@english-coach/ui";
 import { SearchInput } from "@/components/app/search-input";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { AdminKnowledgeReviewStatus } from "../types";
 
 interface AdminKnowledgeFiltersProps {
@@ -12,10 +12,10 @@ interface AdminKnowledgeFiltersProps {
   onFixednessLevelChange: (value?: string) => void;
   onReviewStatusChange: (value?: AdminKnowledgeReviewStatus) => void;
   onSearchChange: (value: string) => void;
-  onSyntaxRoleChange: (value?: string) => void;
+  onPatternTypeChange: (value?: string) => void;
   reviewStatus?: AdminKnowledgeReviewStatus;
   searchValue: string;
-  syntaxRole?: string;
+  patternType?: string;
 }
 
 export function AdminKnowledgeFilters({
@@ -26,13 +26,13 @@ export function AdminKnowledgeFilters({
   onFixednessLevelChange,
   onReviewStatusChange,
   onSearchChange,
-  onSyntaxRoleChange,
+  onPatternTypeChange,
   reviewStatus,
   searchValue,
-  syntaxRole,
+  patternType,
 }: AdminKnowledgeFiltersProps) {
   const hasFilters = Boolean(
-    searchValue.trim() || reviewStatus || syntaxRole || fixednessLevel || communicativeFunction,
+    searchValue.trim() || reviewStatus || patternType || fixednessLevel || communicativeFunction,
   );
 
   return (
@@ -57,17 +57,17 @@ export function AdminKnowledgeFilters({
         </Select>
 
         <Select
-          onValueChange={(value) => onSyntaxRoleChange(value === "all" ? undefined : value)}
-          value={syntaxRole ?? "all"}
+          onValueChange={(value) => onPatternTypeChange(value === "all" ? undefined : value)}
+          value={patternType ?? "all"}
         >
           <SelectTrigger className="bg-white">
-            <SelectValue placeholder="All syntax roles" />
+            <SelectValue placeholder="All pattern types" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All syntax roles</SelectItem>
-            {syntaxRoleValues.map((value) => (
+            <SelectItem value="all">All pattern types</SelectItem>
+            {patternTypeValues.map((value) => (
               <SelectItem key={value} value={value}>
-                {formatSyntaxRole(value)}
+                {formatPatternType(value)}
               </SelectItem>
             ))}
           </SelectContent>

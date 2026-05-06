@@ -16,7 +16,7 @@ import {
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ReviewStatusBadge } from "@/components/status/review-status-badge";
 import { useAdminKnowledgeListQuery } from "@/features/knowledge/queries";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 
 interface LinkExistingDialogProps {
   isPending?: boolean;
@@ -78,13 +78,13 @@ export function LinkExistingDialog({
                   <CommandItem
                     key={item.id}
                     onSelect={() => setSelectedKnowledgeId(item.id)}
-                    value={`${item.pattern} ${item.syntaxRole ?? ""} ${item.communicativeFunction ?? ""}`}
+                    value={`${item.pattern} ${item.patternType ?? ""} ${item.communicativeFunction ?? ""}`}
                   >
                     <div className="flex w-full items-start justify-between gap-4">
                       <div className="space-y-1">
                         <p className="font-medium text-slate-950">{item.pattern}</p>
                         <p className="text-sm text-slate-600">
-                          {item.syntaxRole ? formatSyntaxRole(item.syntaxRole) : "No syntax role"}
+                          {item.patternType ? formatPatternType(item.patternType) : "No pattern type"}
                           {" • "}
                           {item.fixednessLevel ? formatFixednessLevel(item.fixednessLevel) : "No fixedness level"}
                         </p>

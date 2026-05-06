@@ -47,12 +47,12 @@ export function registerAdminKnowledgeItemRoutes(app: BackendApp) {
       search,
       sortBy,
       sortDirection,
-      syntaxRole,
+      patternType,
     } = parsedQuery.data;
     const offset = getPageOffset(page, pageSize);
     const conditions = [
       isPendingReview === undefined ? null : eq(knowledgeItems.isPendingReview, isPendingReview),
-      syntaxRole ? eq(knowledgeItems.syntaxRole, syntaxRole) : null,
+      patternType ? eq(knowledgeItems.patternType, patternType) : null,
       fixednessLevel ? eq(knowledgeItems.fixednessLevel, fixednessLevel) : null,
       communicativeFunction ? eq(knowledgeItems.communicativeFunction, communicativeFunction) : null,
       createKnowledgeItemSearchCondition(search),
@@ -103,7 +103,7 @@ export function registerAdminKnowledgeItemRoutes(app: BackendApp) {
       isPendingReview: parsedBody.data.isPendingReview ?? false,
       pattern: parsedBody.data.pattern,
       senses: parsedBody.data.senses,
-      syntaxRole: parsedBody.data.syntaxRole ?? null,
+      patternType: parsedBody.data.patternType ?? null,
       updatedAt: now,
     });
 
@@ -148,7 +148,8 @@ export function registerAdminKnowledgeItemRoutes(app: BackendApp) {
             : parsedBody.data.isPendingReview,
         pattern: parsedBody.data.pattern ?? existingRecord.pattern,
         senses: parsedBody.data.senses ?? existingRecord.senses,
-        syntaxRole: parsedBody.data.syntaxRole === undefined ? existingRecord.syntaxRole : parsedBody.data.syntaxRole,
+        patternType:
+          parsedBody.data.patternType === undefined ? existingRecord.patternType : parsedBody.data.patternType,
         updatedAt: now,
       })
       .where(eq(knowledgeItems.id, knowledgeItemId));

@@ -1,4 +1,4 @@
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import { z } from "zod";
 import type { AdminKnowledgeListFilters } from "./types";
 
@@ -16,7 +16,7 @@ export const adminKnowledgeSearchSchema = z.object({
   fixednessLevel: z.enum(fixednessLevelValues).optional(),
   reviewStatus: z.enum(["approved", "pendingReview"]).optional(),
   search: optionalSearchSchema,
-  syntaxRole: z.enum(syntaxRoleValues).optional(),
+  patternType: z.enum(patternTypeValues).optional(),
 });
 
 export type AdminKnowledgeSearchParams = z.infer<typeof adminKnowledgeSearchSchema>;
@@ -33,6 +33,6 @@ export function normalizeAdminKnowledgeSearch(search: Partial<AdminKnowledgeList
     fixednessLevel: parsed.fixednessLevel,
     reviewStatus: parsed.reviewStatus,
     search: parsed.search,
-    syntaxRole: parsed.syntaxRole,
+    patternType: parsed.patternType,
   };
 }

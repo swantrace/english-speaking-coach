@@ -1,16 +1,30 @@
-import type { CommunicativeFunction, FixednessLevel, SessionType, SyntaxRole } from "@english-coach/domain";
+import type { CommunicativeFunction, FixednessLevel, PatternType, SessionType } from "@english-coach/domain";
 
 export function formatSessionType(sessionType: SessionType) {
   return sessionType === "role-play" ? "Role-play" : "Free-form";
 }
 
-const syntaxRoleLabels: Record<SyntaxRole, string> = {
-  adverbial_modifier: "Adverbial modifier",
-  clause_pattern: "Clause pattern",
-  discourse_linker: "Discourse linker",
-  noun_phrase: "Noun phrase",
-  predicate_adjective: "Predicate adjective",
-  predicate_verb: "Predicate verb",
+const patternTypeLabels: Record<PatternType, string> = {
+  grammatical_adjective_preposition: "Adj + prep",
+  grammatical_adjective_that_clause: "Adj + that-clause",
+  grammatical_adjective_to_infinitive: "Adj + to-inf",
+  grammatical_conjunction_phrase: "Conjunction phrase",
+  grammatical_noun_preposition: "N + prep",
+  grammatical_noun_that_clause: "N + that-clause",
+  grammatical_noun_to_infinitive: "N + to-inf",
+  grammatical_preposition_noun: "Prep + N",
+  grammatical_preposition_noun_preposition: "Prep + N + prep",
+  grammatical_verb_noun_preposition: "V + N + prep",
+  grammatical_verb_particle_preposition: "V + particle + prep",
+  grammatical_verb_preposition: "V + prep",
+  grammatical_verb_that_clause: "V + that-clause",
+  grammatical_verb_to_infinitive: "V + to-inf",
+  lexical_adjective_noun: "Adj + N",
+  lexical_adverb_adjective: "Adv + adj",
+  lexical_noun_of_noun: "N + of + N",
+  lexical_noun_verb: "N + V",
+  lexical_verb_noun: "V + N",
+  lexical_verb_particle: "V + particle",
 };
 
 const fixednessLevelLabels: Record<FixednessLevel, string> = {
@@ -30,8 +44,8 @@ const communicativeFunctionLabels: Record<CommunicativeFunction, string> = {
   react_in_conversation: "React in conversation",
 };
 
-export function formatSyntaxRole(syntaxRole: SyntaxRole) {
-  return syntaxRoleLabels[syntaxRole];
+export function formatPatternType(patternType: PatternType) {
+  return patternTypeLabels[patternType];
 }
 
 export function formatFixednessLevel(fixednessLevel: FixednessLevel) {

@@ -1,34 +1,34 @@
-import type { CommunicativeFunction, FixednessLevel, SyntaxRole } from "@english-coach/domain";
-import { communicativeFunctionValues, fixednessLevelValues, syntaxRoleValues } from "@english-coach/domain";
+import type { CommunicativeFunction, FixednessLevel, PatternType } from "@english-coach/domain";
+import { communicativeFunctionValues, fixednessLevelValues, patternTypeValues } from "@english-coach/domain";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@english-coach/ui";
 import { SearchInput } from "@/components/app/search-input";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 
 interface KnowledgeFiltersProps {
   communicativeFunction?: CommunicativeFunction;
   fixednessLevel?: FixednessLevel;
   searchValue: string;
-  syntaxRole?: SyntaxRole;
+  patternType?: PatternType;
   onClear: () => void;
   onCommunicativeFunctionChange: (value?: CommunicativeFunction) => void;
   onFixednessLevelChange: (value?: FixednessLevel) => void;
   onSearchChange: (value: string) => void;
-  onSyntaxRoleChange: (value?: SyntaxRole) => void;
+  onPatternTypeChange: (value?: PatternType) => void;
 }
 
 export function KnowledgeFilters({
   communicativeFunction,
   fixednessLevel,
   searchValue,
-  syntaxRole,
+  patternType,
   onClear,
   onCommunicativeFunctionChange,
   onFixednessLevelChange,
   onSearchChange,
-  onSyntaxRoleChange,
+  onPatternTypeChange,
 }: KnowledgeFiltersProps) {
   const hasActiveFilters =
-    searchValue.trim().length > 0 || Boolean(syntaxRole) || Boolean(fixednessLevel) || Boolean(communicativeFunction);
+    searchValue.trim().length > 0 || Boolean(patternType) || Boolean(fixednessLevel) || Boolean(communicativeFunction);
 
   return (
     <section className="rounded-[0.25rem] border border-stone-200 bg-white p-4 shadow-sm">
@@ -39,17 +39,17 @@ export function KnowledgeFilters({
 
         <div className="grid gap-3 sm:grid-cols-2 xl:flex">
           <Select
-            onValueChange={(value) => onSyntaxRoleChange(value === "all" ? undefined : (value as SyntaxRole))}
-            value={syntaxRole ?? "all"}
+            onValueChange={(value) => onPatternTypeChange(value === "all" ? undefined : (value as PatternType))}
+            value={patternType ?? "all"}
           >
             <SelectTrigger className="w-full bg-white sm:w-[220px]">
-              <SelectValue placeholder="All syntax roles" />
+              <SelectValue placeholder="All pattern types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All syntax roles</SelectItem>
-              {syntaxRoleValues.map((value) => (
+              <SelectItem value="all">All pattern types</SelectItem>
+              {patternTypeValues.map((value) => (
                 <SelectItem key={value} value={value}>
-                  {formatSyntaxRole(value)}
+                  {formatPatternType(value)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -4,7 +4,7 @@ import { check, index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sessionHistory } from "./session-history";
 
 const errorDimensionValuesSql = sql.raw(
-  errorDimensionValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+  errorDimensionValues.map((value) => `'${value.replace(/'/g, "''")}'`).join(", "),
 );
 
 export const sessionErrors = sqliteTable(

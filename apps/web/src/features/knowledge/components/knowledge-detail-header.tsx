@@ -1,6 +1,6 @@
 import { Badge, Button } from "@english-coach/ui";
 import { Link } from "@tanstack/react-router";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { KnowledgeDetailView } from "../types";
 
 interface KnowledgeDetailHeaderProps {
@@ -13,7 +13,9 @@ export function KnowledgeDetailHeader({ knowledge }: KnowledgeDetailHeaderProps)
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            {knowledge.syntaxRole ? <Badge variant="secondary">{formatSyntaxRole(knowledge.syntaxRole)}</Badge> : null}
+            {knowledge.patternType ? (
+              <Badge variant="secondary">{formatPatternType(knowledge.patternType)}</Badge>
+            ) : null}
             {knowledge.fixednessLevel ? (
               <Badge variant="outline">{formatFixednessLevel(knowledge.fixednessLevel)}</Badge>
             ) : null}

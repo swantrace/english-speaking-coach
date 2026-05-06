@@ -1,13 +1,19 @@
-import { adminKnowledgeCreateSchema } from "@english-coach/contract/knowledge";
+import { patternTypes } from "@english-coach/contract/common";
+import { adminKnowledgeCreateSchema, knowledgeSenseSchema } from "@english-coach/contract/knowledge";
 import { buildKnowledgeItemFromOccurrencePrompt, buildKnowledgeItemGeneratePrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
-import type { z } from "zod";
+import { z } from "zod";
 import { providerOptionsForStructuredOutput } from "../provider-options";
 import { languageModel, type ProviderId } from "../registry";
 
-const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema.omit({
-  isPendingReview: true,
-});
+const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema
+  .omit({
+    isPendingReview: true,
+  })
+  .extend({
+    senses: z.array(knowledgeSenseSchema).min(1),
+    patternType: z.enum(patternTypes),
+  });
 
 const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
   pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),

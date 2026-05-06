@@ -3,7 +3,6 @@ import {
   scenarioCharacterSchema,
   scenarioDialogueTurnSchema,
   scenarioGoalsSchema,
-  scenarioSchema,
 } from "@english-coach/contract/scenario";
 import {
   buildScenarioExampleDialoguePrompt,
@@ -15,16 +14,13 @@ import { z } from "zod";
 import { providerOptionsForStructuredOutput } from "../provider-options";
 import { languageModel, type ProviderId } from "../registry";
 
-const generatedScenarioSchema = scenarioSchema
-  .omit({
-    createdAt: true,
-    id: true,
-    isPendingReview: true,
-    updatedAt: true,
-  })
-  .extend({
-    characters: scenarioCharacterSchema.array().length(2),
-  });
+const generatedScenarioSchema = z.object({
+  characters: scenarioCharacterSchema.array().length(2),
+  exampleDialogue: z.array(scenarioDialogueTurnSchema).min(1),
+  goals: scenarioGoalsSchema,
+  setting: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+});
 
 const scenarioStorySchema = z.object({
   characters: scenarioCharacterSchema.array().length(2),

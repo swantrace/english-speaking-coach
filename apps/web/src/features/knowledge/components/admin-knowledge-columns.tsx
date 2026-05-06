@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { includesSelectedValues } from "@/components/data-table/filter-fns";
 import { ReviewStatusBadge } from "@/components/status/review-status-badge";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { AdminKnowledgeListItemView } from "../types";
 import { AdminKnowledgeActions } from "./admin-knowledge-actions";
 
@@ -20,12 +20,12 @@ export function createAdminKnowledgeColumns(): ColumnDef<AdminKnowledgeListItemV
       ),
     },
     {
-      accessorKey: "syntaxRole",
+      accessorKey: "patternType",
       filterFn: multiValueFilter,
-      header: "Syntax role",
+      header: "Pattern type",
       cell: ({ row }) =>
-        row.original.syntaxRole ? (
-          <span className="text-sm text-slate-700">{formatSyntaxRole(row.original.syntaxRole)}</span>
+        row.original.patternType ? (
+          <span className="text-sm text-slate-700">{formatPatternType(row.original.patternType)}</span>
         ) : (
           <span className="text-sm text-slate-400">Not set</span>
         ),

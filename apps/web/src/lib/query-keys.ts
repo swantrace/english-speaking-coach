@@ -17,7 +17,7 @@ export interface AdminKnowledgeListQueryKeyInput {
   fixednessLevel?: string;
   reviewStatus?: string;
   search?: string;
-  syntaxRole?: string;
+  patternType?: string;
 }
 
 export interface AdminOccurrenceListQueryKeyInput {
@@ -85,7 +85,7 @@ export function normalizeAdminKnowledgeListQueryKeyInput(input: AdminKnowledgeLi
     fixednessLevel: normalizeTextParam(input.fixednessLevel),
     reviewStatus: normalizeTextParam(input.reviewStatus),
     search: normalizeTextParam(input.search),
-    syntaxRole: normalizeTextParam(input.syntaxRole),
+    patternType: normalizeTextParam(input.patternType),
   };
 }
 

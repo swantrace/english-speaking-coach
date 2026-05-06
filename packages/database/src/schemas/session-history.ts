@@ -5,7 +5,7 @@ import { user } from "./auth";
 import { freeFormContexts } from "./free-form-contexts";
 import { scenarios } from "./scenarios";
 
-const sessionTypeValuesSql = sql.raw(sessionTypeValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "));
+const sessionTypeValuesSql = sql.raw(sessionTypeValues.map((value) => `'${value.replace(/'/g, "''")}'`).join(", "));
 
 export const sessionHistory = sqliteTable(
   "session_history",

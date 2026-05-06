@@ -43,7 +43,7 @@ function RouteComponent() {
             fixednessLevel: normalizedSearch.fixednessLevel,
             reviewStatus: normalizedSearch.reviewStatus,
             search: nextSearch,
-            syntaxRole: normalizedSearch.syntaxRole,
+            patternType: normalizedSearch.patternType,
           }),
         to: "/admin/knowledge",
       });
@@ -55,7 +55,7 @@ function RouteComponent() {
     normalizedSearch.fixednessLevel,
     normalizedSearch.reviewStatus,
     normalizedSearch.search,
-    normalizedSearch.syntaxRole,
+    normalizedSearch.patternType,
   ]);
 
   function updateSearch(nextSearch: Partial<typeof normalizedSearch>) {
@@ -68,7 +68,7 @@ function RouteComponent() {
             fixednessLevel: nextSearch.fixednessLevel ?? normalizedSearch.fixednessLevel,
             reviewStatus: nextSearch.reviewStatus ?? normalizedSearch.reviewStatus,
             search: nextSearch.search ?? (searchValue.trim() || undefined),
-            syntaxRole: nextSearch.syntaxRole ?? normalizedSearch.syntaxRole,
+            patternType: nextSearch.patternType ?? normalizedSearch.patternType,
           }),
         to: "/admin/knowledge",
       });
@@ -147,14 +147,14 @@ function RouteComponent() {
               })
             }
             onSearchChange={setSearchValue}
-            onSyntaxRoleChange={(syntaxRole) =>
+            onPatternTypeChange={(patternType) =>
               updateSearch({
-                syntaxRole: syntaxRole as typeof normalizedSearch.syntaxRole,
+                patternType: patternType as typeof normalizedSearch.patternType,
               })
             }
             reviewStatus={normalizedSearch.reviewStatus}
             searchValue={searchValue}
-            syntaxRole={normalizedSearch.syntaxRole}
+            patternType={normalizedSearch.patternType}
           />
         </PageSection>
       ) : null}

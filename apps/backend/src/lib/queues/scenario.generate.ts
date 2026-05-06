@@ -14,14 +14,7 @@ import { type Job, Queue, Worker } from "bullmq";
 import { type GeneratedScenario, getProvider, modelConfig } from "../ai";
 import { defaultProviderId } from "../env";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
-import {
-  createCompletedProgressMessage,
-  createFailedProgressMessage,
-  createQueuedProgressMessage,
-  createStartedProgressMessage,
-  type JobProgressMessage,
-  publishJobProgress,
-} from "./helpers/progress";
+import { type JobProgressBaseMessage, publishJobProgress } from "./helpers/progress";
 import {
   createSubmissionProgressMessage,
   createSubmissionRecord,
@@ -56,44 +49,19 @@ export function publishScenarioGenerateProgress(message: ScenarioGenerateProgres
 }
 
 function createScenarioGenerateProgressMessage(
-  baseMessage: JobProgressMessage,
+  jobId: string,
   jobData: Pick<ScenarioGenerateJobData, "cursor" | "submissionId">,
+  progress: Omit<JobProgressBaseMessage, "jobId">,
 ) {
   return createSubmissionProgressMessage({
-    baseMessage,
     jobData,
     kind: scenarioGenerateSubmissionKind,
+    progress: {
+      jobId,
+      ...progress,
+    },
     schema: scenarioGenerateJobUpdateSchema,
   });
-}
-
-function createQueuedScenarioGenerateProgressMessage(jobId: string, jobData: ScenarioGenerateJobData) {
-  return createScenarioGenerateProgressMessage(
-    createQueuedProgressMessage(jobId, jobData.queuedAt, "Scenario queued"),
-    jobData,
-  );
-}
-
-function createStartedScenarioGenerateProgressMessage(jobId: string, jobData: ScenarioGenerateJobData) {
-  return createScenarioGenerateProgressMessage(
-    createStartedProgressMessage(jobId, jobData.queuedAt, "Scenario generation started"),
-    jobData,
-  );
-}
-
-function createCompletedScenarioGenerateProgressMessage(
-  jobId: string,
-  jobData: ScenarioGenerateJobData,
-  processedAt: string,
-) {
-  return createScenarioGenerateProgressMessage(
-    createCompletedProgressMessage(jobId, processedAt, "completed"),
-    jobData,
-  );
-}
-
-function createFailedScenarioGenerateProgressMessage(jobId: string, jobData: ScenarioGenerateJobData, error: string) {
-  return createScenarioGenerateProgressMessage(createFailedProgressMessage(jobId, error, "failed"), jobData);
 }
 
 export async function createScenarioGenerateSubmission(
@@ -168,18 +136,24 @@ async function persistScenario(generatedScenario: GeneratedScenario) {
 }
 
 async function handleScenarioGenerateJob(job: Job<ScenarioGenerateJobData>) {
-  const startedMessage = createStartedScenarioGenerateProgressMessage(String(job.id), job.data);
+  const startedMessage = createScenarioGenerateProgressMessage(String(job.id), job.data, {
+    message: "Scenario generation started",
+    progress: 10,
+    queuedAt: job.data.queuedAt,
+    status: "started",
+  });
   await saveScenarioGenerateSnapshot(startedMessage);
   await publishScenarioGenerateProgress(startedMessage);
 
   const generatedScenario = await generateScenario(job.data.message);
   const persistedScenario = await persistScenario(generatedScenario);
 
-  const completedMessage = createCompletedScenarioGenerateProgressMessage(
-    String(job.id),
-    job.data,
-    persistedScenario.processedAt,
-  );
+  const completedMessage = createScenarioGenerateProgressMessage(String(job.id), job.data, {
+    message: "completed",
+    processedAt: persistedScenario.processedAt,
+    progress: 100,
+    status: "completed",
+  });
   await saveScenarioGenerateSnapshot(completedMessage);
   await publishScenarioGenerateProgress(completedMessage);
 
@@ -200,7 +174,12 @@ scenarioGenerateWorker.on("completed", (job) => {
 
 scenarioGenerateWorker.on("failed", async (job, error) => {
   if (job) {
-    const failedMessage = createFailedScenarioGenerateProgressMessage(String(job.id), job.data, error.message);
+    const failedMessage = createScenarioGenerateProgressMessage(String(job.id), job.data, {
+      error: error.message,
+      message: "failed",
+      progress: 100,
+      status: "failed",
+    });
     await saveScenarioGenerateSnapshot(failedMessage);
     await publishScenarioGenerateProgress(failedMessage);
   }
@@ -213,7 +192,12 @@ export function setScenarioGeneratorForTests(generator: ((prompt: string) => Pro
 }
 
 export async function persistQueuedScenarioGenerateJob(jobId: string, jobData: ScenarioGenerateJobData) {
-  const queuedMessage = createQueuedScenarioGenerateProgressMessage(jobId, jobData);
+  const queuedMessage = createScenarioGenerateProgressMessage(jobId, jobData, {
+    message: "Scenario queued",
+    progress: 0,
+    queuedAt: jobData.queuedAt,
+    status: "queued",
+  });
 
   await saveScenarioGenerateSnapshot(queuedMessage);
   await publishScenarioGenerateProgress(queuedMessage);

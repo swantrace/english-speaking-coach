@@ -7,7 +7,7 @@ import { sessionHistory } from "./session-history";
 import { submissions } from "./submissions";
 
 const submissionJobStatusValuesSql = sql.raw(
-  submissionJobStatusValues.map((value) => `'${value.replaceAll("'", "''")}'`).join(", "),
+  submissionJobStatusValues.map((value) => `'${value.replace(/'/g, "''")}'`).join(", "),
 );
 
 export const submissionJobs = sqliteTable(

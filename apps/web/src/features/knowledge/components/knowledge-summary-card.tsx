@@ -1,7 +1,7 @@
 import { Badge } from "@english-coach/ui";
 import { MetricCard } from "@/components/app/metric-card";
 import { formatDate } from "@/lib/dates";
-import { formatCommunicativeFunction, formatFixednessLevel, formatSyntaxRole } from "@/lib/format";
+import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { KnowledgeDetailView } from "../types";
 
 interface KnowledgeSummaryCardProps {
@@ -40,9 +40,9 @@ export function KnowledgeSummaryCard({ knowledge }: KnowledgeSummaryCardProps) {
               <p className="mt-1 text-slate-950">{formatDate(knowledge.lastSeenAt)}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Syntax role</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Pattern type</p>
               <p className="mt-1 text-slate-950">
-                {formatMetaValue(knowledge.syntaxRole ? formatSyntaxRole(knowledge.syntaxRole) : null)}
+                {formatMetaValue(knowledge.patternType ? formatPatternType(knowledge.patternType) : null)}
               </p>
             </div>
             <div>
