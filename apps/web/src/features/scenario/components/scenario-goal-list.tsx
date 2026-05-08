@@ -7,40 +7,48 @@ interface ScenarioGoalListProps {
 
 export function ScenarioGoalList({ scenario }: ScenarioGoalListProps) {
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap gap-3">
-        {scenario.goalDimensions.intents.length > 0 ? (
-          <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Intents</p>
-            <p className="mt-2 text-sm text-slate-700">{scenario.goalDimensions.intents.join(", ")}</p>
+    <ol className="space-y-1 border-l border-stone-200 pl-4">
+      {scenario.goals.map((goal) => (
+        <li className="relative pb-5 last:pb-0" key={goal.id}>
+          <span className="absolute -left-[21px] top-2 size-2 rounded-full bg-slate-400" aria-hidden="true" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <h3 className="max-w-3xl text-base leading-7 text-slate-950">{goal.description}</h3>
+            <Badge className="w-fit" variant={goal.optional ? "outline" : "secondary"}>
+              {goal.optional ? "Optional" : "Required"}
+            </Badge>
           </div>
-        ) : null}
-        {scenario.goalDimensions.slots.length > 0 ? (
-          <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Slots</p>
-            <p className="mt-2 text-sm text-slate-700">{scenario.goalDimensions.slots.join(", ")}</p>
-          </div>
-        ) : null}
-      </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {scenario.goals.map((goal) => (
-          <article className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm" key={goal.id}>
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg text-slate-950">{goal.description}</h3>
-              <Badge variant={goal.optional ? "outline" : "secondary"}>{goal.optional ? "Optional" : "Required"}</Badge>
-            </div>
-            {goal.requiredIntents.length > 0 ? (
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                Required intents: {goal.requiredIntents.join(", ")}
-              </p>
-            ) : null}
-            {goal.requiredSlots.length > 0 ? (
-              <p className="mt-2 text-sm leading-6 text-slate-600">Required slots: {goal.requiredSlots.join(", ")}</p>
-            ) : null}
-          </article>
+          <div className="mt-3 space-y-3 pl-4">
+            <GoalBranch label="Intents" values={goal.requiredIntents} />
+            <GoalBranch label="Slots" values={goal.requiredSlots} />
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+interface GoalBranchProps {
+  label: string;
+  values: string[];
+}
+
+function GoalBranch({ label, values }: GoalBranchProps) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="relative border-l border-stone-200 pl-4">
+      <span className="absolute -left-px top-3 h-px w-3 bg-stone-200" aria-hidden="true" />
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{label}</p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {values.map((value) => (
+          <li className="rounded-sm bg-stone-100 px-2 py-1 text-xs text-slate-700" key={value}>
+            {value}
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

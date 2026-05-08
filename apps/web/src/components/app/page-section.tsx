@@ -1,7 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 
 interface PageSectionProps extends PropsWithChildren {
-  title?: string;
+  title?: ReactNode;
   description?: string;
   actions?: ReactNode;
   className?: string;

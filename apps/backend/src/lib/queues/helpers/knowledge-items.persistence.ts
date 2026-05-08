@@ -1,3 +1,4 @@
+import { communicativeFunctions, fixednessLevels, patternTypes } from "@english-coach/contract/common";
 import { db } from "@english-coach/database";
 import { knowledgeItems } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
@@ -9,10 +10,36 @@ export type PersistedKnowledgeItem = {
   processedAt: string;
 };
 
+type KnowledgeItemValues = typeof knowledgeItems.$inferInsert;
+
+function isPatternTypeConstraintError(error: unknown) {
+  return error instanceof Error && error.message.includes("knowledge_items_pattern_type_check");
+}
+
+function normalizeEnumValue<TValue extends string>(value: unknown, allowedValues: readonly TValue[]): TValue | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return allowedValues.find((allowedValue) => allowedValue === normalized) ?? null;
+}
+
 export async function persistGeneratedKnowledgeItem(
   generatedKnowledgeItem: GeneratedKnowledgeItem,
 ): Promise<PersistedKnowledgeItem> {
   const now = new Date().toISOString();
+  const communicativeFunction = normalizeEnumValue(
+    generatedKnowledgeItem.communicativeFunction,
+    communicativeFunctions,
+  );
+  const fixednessLevel = normalizeEnumValue(generatedKnowledgeItem.fixednessLevel, fixednessLevels);
+  const patternType = normalizeEnumValue(generatedKnowledgeItem.patternType, patternTypes);
   const [existing] = await db
     .select()
     .from(knowledgeItems)
@@ -21,16 +48,29 @@ export async function persistGeneratedKnowledgeItem(
 
   if (existing) {
     if (existing.isPendingReview) {
-      await db
-        .update(knowledgeItems)
-        .set({
-          communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
-          fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
-          senses: generatedKnowledgeItem.senses,
-          patternType: generatedKnowledgeItem.patternType ?? null,
-          updatedAt: now,
-        })
-        .where(eq(knowledgeItems.id, existing.id));
+      const updateValues = {
+        communicativeFunction,
+        fixednessLevel,
+        senses: generatedKnowledgeItem.senses,
+        patternType,
+        updatedAt: now,
+      } satisfies Partial<KnowledgeItemValues>;
+
+      try {
+        await db.update(knowledgeItems).set(updateValues).where(eq(knowledgeItems.id, existing.id));
+      } catch (error) {
+        if (!isPatternTypeConstraintError(error)) {
+          throw error;
+        }
+
+        await db
+          .update(knowledgeItems)
+          .set({
+            ...updateValues,
+            patternType: null,
+          })
+          .where(eq(knowledgeItems.id, existing.id));
+      }
     }
 
     return {
@@ -41,18 +81,30 @@ export async function persistGeneratedKnowledgeItem(
   }
 
   const knowledgeItemId = crypto.randomUUID();
-
-  await db.insert(knowledgeItems).values({
-    communicativeFunction: generatedKnowledgeItem.communicativeFunction ?? null,
+  const insertValues = {
+    communicativeFunction,
     createdAt: now,
-    fixednessLevel: generatedKnowledgeItem.fixednessLevel ?? null,
+    fixednessLevel,
     id: knowledgeItemId,
     isPendingReview: true,
     pattern: generatedKnowledgeItem.pattern,
     senses: generatedKnowledgeItem.senses,
-    patternType: generatedKnowledgeItem.patternType ?? null,
+    patternType,
     updatedAt: now,
-  });
+  } satisfies KnowledgeItemValues;
+
+  try {
+    await db.insert(knowledgeItems).values(insertValues);
+  } catch (error) {
+    if (!isPatternTypeConstraintError(error)) {
+      throw error;
+    }
+
+    await db.insert(knowledgeItems).values({
+      ...insertValues,
+      patternType: null,
+    });
+  }
 
   return {
     knowledgeItemId,

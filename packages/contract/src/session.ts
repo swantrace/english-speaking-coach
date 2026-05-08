@@ -2,7 +2,7 @@ import { scenarios } from "@english-coach/database/schema";
 import { sessionTypeValues, speakerValues } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { communicativeFunctions, errorDimensions, fixednessLevels, patternTypes } from "./linguistics";
+import { errorDimensions } from "./linguistics";
 
 export * from "./session/dto";
 
@@ -66,8 +66,8 @@ export const scenarioGoalSchema = z.object({
   description: z.string(),
   optional: z.boolean().optional(),
   logic: z.object({
-    required_intents: z.array(z.string()),
-    required_slots: z.array(z.string()),
+    required_intents: z.array(z.string()).default([]),
+    required_slots: z.array(z.string()).default([]),
   }),
 });
 
@@ -134,17 +134,6 @@ export const sessionCompletionRequestSchema = z.object({
   transcript: z.array(sessionTurnSchema),
 });
 
-export const lingAnalysisKnowledgeItemSchema = z.object({
-  pattern: z.string().trim().min(1),
-  patternType: z.enum(patternTypes),
-  fixednessLevel: z.enum(fixednessLevels),
-  communicativeFunction: z.enum(communicativeFunctions),
-  example: z.string().trim().min(1),
-  speaker: z.enum(speakerValues),
-  count: z.number().int().nonnegative(),
-  usageExcerpts: z.array(z.string().trim().min(1)),
-});
-
 export const lingAnalysisErrorSchema = z.object({
   dimension: z.enum(errorDimensions),
   errorDescription: z.string().trim().min(1),
@@ -154,7 +143,6 @@ export const lingAnalysisErrorSchema = z.object({
 
 export const lingAnalysisResultSchema = z.object({
   errors: z.array(lingAnalysisErrorSchema).min(0),
-  knowledgeItemsUsed: z.array(lingAnalysisKnowledgeItemSchema).min(0),
   rewrittenUserTurns: z.array(rewrittenTranscriptTurnSchema).min(0),
   review: z.string().trim().min(1),
 });

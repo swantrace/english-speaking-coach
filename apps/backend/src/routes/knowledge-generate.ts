@@ -140,7 +140,7 @@ export function registerKnowledgeGenerateRoutes(app: BackendApp) {
 
           await knowledgeGenerateQueue.add(knowledgeGenerateJobName, payload, {
             jobId,
-            removeOnComplete: true,
+            removeOnComplete: { age: 86_400, count: 1_000 },
             removeOnFail: false,
           });
 

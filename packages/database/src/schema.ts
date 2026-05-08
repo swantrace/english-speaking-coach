@@ -1,3 +1,5 @@
+export * from "./schemas/ai-model-requests";
+export * from "./schemas/ai-tool-calls";
 export * from "./schemas/auth";
 export * from "./schemas/free-form-contexts";
 export * from "./schemas/knowledge-items";

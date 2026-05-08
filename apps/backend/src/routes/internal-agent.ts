@@ -3,7 +3,9 @@ import { sessionAgentBootstrapSchema } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { freeFormContexts, scenarios, sessionHistory } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import type { BackendApp } from "../http/context";
+import { recordAiToolCall } from "../lib/ai/request-logging";
 
 const defaultDevelopmentApiToken = "english-coach-local-api-token";
 
@@ -42,6 +44,20 @@ function requireApiToken(request: Request) {
 
   return null;
 }
+
+const internalAgentToolCallLogSchema = z.object({
+  completedAt: z.string().optional(),
+  error: z.unknown().optional(),
+  input: z.unknown().optional(),
+  latencyMs: z.number().int().nonnegative().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  output: z.unknown().optional(),
+  sessionHistoryId: z.string().min(1),
+  startedAt: z.string().optional(),
+  status: z.enum(["started", "completed", "failed"]),
+  toolCallId: z.string().optional(),
+  toolName: z.string().trim().min(1),
+});
 
 export function registerInternalAgentRoutes(app: BackendApp) {
   // Provide trusted agent workers with the session bootstrap payload they need to join a room.
@@ -115,5 +131,24 @@ export function registerInternalAgentRoutes(app: BackendApp) {
         userId: sessionRecord.userId,
       }),
     );
+  });
+
+  // Preserve trusted agent-side tool calls that happen inside realtime model turns.
+  app.post("/api/internal/agent/tool-calls", async (context) => {
+    const authError = requireApiToken(context.req.raw);
+
+    if (authError) {
+      return authError;
+    }
+
+    const parsedPayload = internalAgentToolCallLogSchema.safeParse(await context.req.json());
+
+    if (!parsedPayload.success) {
+      return context.json({ error: "Invalid tool call log payload" }, 400);
+    }
+
+    await recordAiToolCall(parsedPayload.data);
+
+    return context.json({ ok: true });
   });
 }

@@ -7,11 +7,29 @@ import {
 import { llm, voice } from "@livekit/agents";
 import { z } from "zod";
 
+import { logAgentValidationError } from "./error-log";
 import { createFreeFormInstructions, withLatestWorkerFeedback } from "./free-form";
 import { createRolePlayInstructions, SessionTracker } from "./role-play";
-import { analysisTurnThreshold, inConversationAnalysisQueue, sessionCompletionQueue } from "./runtime-services";
+import {
+  analysisTurnThreshold,
+  inConversationAnalysisQueue,
+  preserveAgentToolCall,
+  sessionCompletionQueue,
+} from "./runtime-services";
 import { toSessionTurns } from "./session-turns";
 import type { AgentRuntimeConfig, FreeFormRuntimeConfig, RolePlayRuntimeConfig } from "./types";
+
+function serializeToolError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return error;
+  }
+
+  return {
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+  };
+}
 
 export class Agent extends voice.Agent {
   private readonly rolePlayConfig: RolePlayRuntimeConfig | null;
@@ -31,15 +49,75 @@ export class Agent extends voice.Agent {
                 intent: z.string().trim().min(1),
                 slots: z.record(z.string(), z.string()).default({}),
               }),
-              execute: async ({ intent, slots }) => {
-                sessionTracker.advance(intent, slots);
-                await config.publishGoalProgress(sessionTracker.toGoalProgressPacket(this.getLatestUserTurnIndex()));
+              execute: async ({ intent, slots }, toolContext) => {
+                const startedAt = new Date().toISOString();
+                const startedAtMs = Date.now();
+                const toolInput = { intent, slots };
 
-                if (refreshInstructions) {
-                  await refreshInstructions();
+                try {
+                  sessionTracker.advance(intent, slots);
+                  await config.publishGoalProgress(sessionTracker.toGoalProgressPacket(this.getLatestUserTurnIndex()));
+
+                  if (refreshInstructions) {
+                    await refreshInstructions();
+                  }
+
+                  const output = sessionTracker.createHint(intent, slots);
+
+                  try {
+                    await preserveAgentToolCall({
+                      completedAt: new Date().toISOString(),
+                      input: toolInput,
+                      latencyMs: Date.now() - startedAtMs,
+                      metadata: {
+                        sessionType: config.sessionType,
+                      },
+                      output,
+                      sessionHistoryId: config.sessionHistoryId,
+                      startedAt,
+                      status: "completed",
+                      toolCallId: toolContext?.toolCallId,
+                      toolName: "detectIntentAndSlot",
+                    });
+                  } catch (logError) {
+                    logAgentValidationError(
+                      {
+                        handler: "detectIntentAndSlot.preserveToolCall",
+                        sessionHistoryId: config.sessionHistoryId,
+                      },
+                      logError,
+                    );
+                  }
+
+                  return output;
+                } catch (error) {
+                  try {
+                    await preserveAgentToolCall({
+                      completedAt: new Date().toISOString(),
+                      error: serializeToolError(error),
+                      input: toolInput,
+                      latencyMs: Date.now() - startedAtMs,
+                      metadata: {
+                        sessionType: config.sessionType,
+                      },
+                      sessionHistoryId: config.sessionHistoryId,
+                      startedAt,
+                      status: "failed",
+                      toolCallId: toolContext?.toolCallId,
+                      toolName: "detectIntentAndSlot",
+                    });
+                  } catch (logError) {
+                    logAgentValidationError(
+                      {
+                        handler: "detectIntentAndSlot.preserveFailedToolCall",
+                        sessionHistoryId: config.sessionHistoryId,
+                      },
+                      logError,
+                    );
+                  }
+
+                  throw error;
                 }
-
-                return sessionTracker.createHint(intent, slots);
               },
             }),
           }
@@ -77,9 +155,35 @@ export class Agent extends voice.Agent {
       return;
     }
 
-    const parsedPayload = workerFeedbackPacketSchema.safeParse(JSON.parse(new TextDecoder().decode(payload)));
+    let parsedPayload: ReturnType<typeof workerFeedbackPacketSchema.safeParse>;
 
-    if (!parsedPayload.success || parsedPayload.data.sessionHistoryId !== this.config.sessionHistoryId) {
+    try {
+      parsedPayload = workerFeedbackPacketSchema.safeParse(JSON.parse(new TextDecoder().decode(payload)));
+    } catch (error) {
+      logAgentValidationError(
+        {
+          handler: "roomDataReceivedHandler",
+          sessionHistoryId: this.config.sessionHistoryId,
+          topic,
+        },
+        error,
+      );
+      return;
+    }
+
+    if (!parsedPayload.success) {
+      logAgentValidationError(
+        {
+          handler: "roomDataReceivedHandler",
+          sessionHistoryId: this.config.sessionHistoryId,
+          topic,
+        },
+        parsedPayload.error,
+      );
+      return;
+    }
+
+    if (parsedPayload.data.sessionHistoryId !== this.config.sessionHistoryId) {
       return;
     }
 
@@ -105,20 +209,31 @@ export class Agent extends voice.Agent {
       return lastAnalysisTurnIndex;
     }
 
-    await inConversationAnalysisQueue.add(
-      inConversationAnalysisJobName,
-      inConversationAnalysisJobSchema.parse({
-        roomName: this.config.roomName,
-        sessionHistoryId: this.config.sessionHistoryId,
-        transcriptStartIndex: lastAnalysisTurnIndex,
-        turns: pendingTurns,
-      }),
-      {
-        jobId: `${inConversationAnalysisJobName}-${this.config.sessionHistoryId}-${lastAnalysisTurnIndex}`,
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    );
+    const parsedJob = inConversationAnalysisJobSchema.safeParse({
+      roomName: this.config.roomName,
+      sessionHistoryId: this.config.sessionHistoryId,
+      transcriptStartIndex: lastAnalysisTurnIndex,
+      turns: pendingTurns,
+    });
+
+    if (!parsedJob.success) {
+      logAgentValidationError(
+        {
+          handler: "analyzeTurns",
+          lastAnalysisTurnIndex,
+          roomName: this.config.roomName,
+          sessionHistoryId: this.config.sessionHistoryId,
+        },
+        parsedJob.error,
+      );
+      return lastAnalysisTurnIndex;
+    }
+
+    await inConversationAnalysisQueue.add(inConversationAnalysisJobName, parsedJob.data, {
+      jobId: `${inConversationAnalysisJobName}-${this.config.sessionHistoryId}-${lastAnalysisTurnIndex}`,
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
 
     return turns.length;
   }
@@ -169,7 +284,20 @@ export class Agent extends voice.Agent {
       return;
     }
 
-    const packet = workerFeedbackPacketSchema.parse(payload);
+    const parsedPacket = workerFeedbackPacketSchema.safeParse(payload);
+
+    if (!parsedPacket.success) {
+      logAgentValidationError(
+        {
+          handler: "appendWorkerFeedback",
+          sessionHistoryId: this.config.sessionHistoryId,
+        },
+        parsedPacket.error,
+      );
+      return;
+    }
+
+    const packet = parsedPacket.data;
     const nextChatContext = withLatestWorkerFeedback(this.chatCtx.copy(), packet.message);
 
     await this.updateChatCtx(nextChatContext);

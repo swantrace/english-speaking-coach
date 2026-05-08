@@ -1,3 +1,66 @@
+CREATE TABLE `ai_model_requests` (
+	`completed_at` text,
+	`error` text,
+	`id` text PRIMARY KEY NOT NULL,
+	`input` text,
+	`knowledge_item_id` text,
+	`latency_ms` integer,
+	`metadata` text,
+	`model_id` text NOT NULL,
+	`operation` text NOT NULL,
+	`output` text,
+	`provider_id` text NOT NULL,
+	`raw_output` text,
+	`scenario_id` text,
+	`session_history_id` text,
+	`started_at` text NOT NULL,
+	`status` text NOT NULL,
+	`submission_id` text,
+	`submission_job_id` text,
+	`usage` text,
+	FOREIGN KEY (`knowledge_item_id`) REFERENCES `knowledge_items`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`scenario_id`) REFERENCES `scenarios`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`session_history_id`) REFERENCES `session_history`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`submission_id`) REFERENCES `submissions`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE INDEX `ai_model_requests_operation_idx` ON `ai_model_requests` (`operation`);--> statement-breakpoint
+CREATE INDEX `ai_model_requests_provider_model_idx` ON `ai_model_requests` (`provider_id`,`model_id`);--> statement-breakpoint
+CREATE INDEX `ai_model_requests_session_history_idx` ON `ai_model_requests` (`session_history_id`);--> statement-breakpoint
+CREATE INDEX `ai_model_requests_submission_idx` ON `ai_model_requests` (`submission_id`);--> statement-breakpoint
+CREATE INDEX `ai_model_requests_submission_job_idx` ON `ai_model_requests` (`submission_job_id`);--> statement-breakpoint
+CREATE INDEX `ai_model_requests_status_idx` ON `ai_model_requests` (`status`);--> statement-breakpoint
+CREATE TABLE `ai_tool_calls` (
+	`ai_model_request_id` text,
+	`completed_at` text,
+	`error` text,
+	`id` text PRIMARY KEY NOT NULL,
+	`input` text,
+	`knowledge_item_id` text,
+	`latency_ms` integer,
+	`metadata` text,
+	`output` text,
+	`scenario_id` text,
+	`session_history_id` text,
+	`started_at` text NOT NULL,
+	`status` text NOT NULL,
+	`submission_id` text,
+	`submission_job_id` text,
+	`tool_call_id` text,
+	`tool_name` text NOT NULL,
+	FOREIGN KEY (`ai_model_request_id`) REFERENCES `ai_model_requests`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`knowledge_item_id`) REFERENCES `knowledge_items`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`scenario_id`) REFERENCES `scenarios`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`session_history_id`) REFERENCES `session_history`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`submission_id`) REFERENCES `submissions`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE INDEX `ai_tool_calls_ai_model_request_idx` ON `ai_tool_calls` (`ai_model_request_id`);--> statement-breakpoint
+CREATE INDEX `ai_tool_calls_session_history_idx` ON `ai_tool_calls` (`session_history_id`);--> statement-breakpoint
+CREATE INDEX `ai_tool_calls_status_idx` ON `ai_tool_calls` (`status`);--> statement-breakpoint
+CREATE INDEX `ai_tool_calls_submission_idx` ON `ai_tool_calls` (`submission_id`);--> statement-breakpoint
+CREATE INDEX `ai_tool_calls_tool_call_id_idx` ON `ai_tool_calls` (`tool_call_id`);--> statement-breakpoint
+CREATE INDEX `ai_tool_calls_tool_name_idx` ON `ai_tool_calls` (`tool_name`);--> statement-breakpoint
 CREATE TABLE `account` (
 	`id` text PRIMARY KEY NOT NULL,
 	`account_id` text NOT NULL,

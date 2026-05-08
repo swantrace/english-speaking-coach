@@ -1,10 +1,12 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { RejectedState } from "@/features/auth/components/rejected-state";
 import { getRejectedPageRedirect } from "@/features/auth/guards";
+import { parseAuthRedirectSearch } from "@/features/auth/redirect-search";
 
 export const Route = createFileRoute("/(auth)/rejected")({
-  beforeLoad: ({ context }) => {
-    const redirectTo = getRejectedPageRedirect(context.auth.accessState);
+  validateSearch: parseAuthRedirectSearch,
+  beforeLoad: ({ context, search }) => {
+    const redirectTo = getRejectedPageRedirect(context.auth.accessState, search.redirectTo);
 
     if (redirectTo) {
       throw redirect({ to: redirectTo });

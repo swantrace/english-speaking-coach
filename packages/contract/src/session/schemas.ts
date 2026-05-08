@@ -22,6 +22,36 @@ const optionalSearchTextSchema = z.preprocess((value) => {
   return trimmed.length > 0 ? trimmed : undefined;
 }, z.string().min(1).max(200).optional());
 
+function normalizeErrorDimension(value: unknown) {
+  if (typeof value === "string" && errorDimensions.some((dimension) => dimension === value)) {
+    return value;
+  }
+
+  const normalizedValue = typeof value === "string" ? value.toLowerCase() : "";
+
+  if (normalizedValue.indexOf("phon") >= 0 || normalizedValue.indexOf("pronunciation") >= 0) {
+    return "phonological";
+  }
+
+  if (normalizedValue.indexOf("prag") >= 0) {
+    return "pragmatic";
+  }
+
+  if (normalizedValue.indexOf("disc") >= 0) {
+    return "discourse";
+  }
+
+  if (
+    normalizedValue.indexOf("grammar") >= 0 ||
+    normalizedValue.indexOf("grammatical") >= 0 ||
+    normalizedValue.indexOf("syntactic") >= 0
+  ) {
+    return "syntactic";
+  }
+
+  return "lexical";
+}
+
 export const sessionTypeSchema = z.enum(sessionTypeValues);
 
 export const sessionTurnSchema = z.object({
@@ -178,6 +208,14 @@ export const liveSessionIncomingPacketSchema = z.discriminatedUnion("type", [
 
 export const historySummarySchema = createSelectSchema(sessionHistory, {
   completedGoals: z.array(z.string()).nullable().optional(),
+  summary: z
+    .object({
+      overallComment: z.string().optional(),
+      opportunities: z.array(z.string()).optional(),
+      strengths: z.array(z.string()).optional(),
+    })
+    .nullable()
+    .optional(),
 }).extend({
   canReopen: z.boolean(),
   title: z.string(),
@@ -298,19 +336,8 @@ export const sessionCompletionRequestSchema = z.object({
   transcript: z.array(sessionTurnSchema),
 });
 
-export const lingAnalysisKnowledgeItemSchema = z.object({
-  communicativeFunction: z.enum(communicativeFunctions),
-  count: z.number().int().nonnegative(),
-  example: z.string().trim().min(1),
-  fixednessLevel: z.enum(fixednessLevels),
-  pattern: z.string().trim().min(1),
-  speaker: z.enum(speakerValues),
-  patternType: z.enum(patternTypes),
-  usageExcerpts: z.array(z.string().trim().min(1)),
-});
-
 export const lingAnalysisErrorSchema = z.object({
-  dimension: z.enum(errorDimensions),
+  dimension: z.preprocess(normalizeErrorDimension, z.enum(errorDimensions)),
   errorDescription: z.string().trim().min(1),
   suggestion: z.string().trim().min(1),
   utterance: z.string().trim().min(1),
@@ -318,7 +345,6 @@ export const lingAnalysisErrorSchema = z.object({
 
 export const lingAnalysisResultSchema = z.object({
   errors: z.array(lingAnalysisErrorSchema).min(0),
-  knowledgeItemsUsed: z.array(lingAnalysisKnowledgeItemSchema).min(0),
   rewrittenUserTurns: z.array(rewrittenTranscriptTurnSchema).min(0),
   review: z.string().trim().min(1),
 });

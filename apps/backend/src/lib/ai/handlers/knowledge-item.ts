@@ -5,6 +5,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { providerOptionsForStructuredOutput } from "../provider-options";
 import { languageModel, type ProviderId } from "../registry";
+import { type AiRequestLogContext, recordAiModelRequest } from "../request-logging";
 
 const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema
   .omit({
@@ -41,17 +42,35 @@ function normalizePatternValue(value: string | undefined): string | undefined {
 
 export function createKnowledgeItemHandlers(providerId: ProviderId) {
   return {
-    async generateKnowledgeItem(modelId: string, payload: GenerateKnowledgeItemInput): Promise<GeneratedKnowledgeItem> {
+    async generateKnowledgeItem(
+      modelId: string,
+      payload: GenerateKnowledgeItemInput,
+      context?: AiRequestLogContext,
+    ): Promise<GeneratedKnowledgeItem> {
       const { prompt, system } = buildKnowledgeItemGeneratePrompt({ modelId, providerId, ...payload });
 
-      const { output } = await generateText({
-        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
-        model: languageModel(providerId, modelId),
-        output: Output.object({
-          schema: modelGeneratedKnowledgeItemSchema,
-        }),
-        system,
-        prompt,
+      const { output } = await recordAiModelRequest({
+        context: {
+          ...context,
+          metadata: {
+            ...context?.metadata,
+            payload,
+          },
+        },
+        input: { prompt, system },
+        modelId,
+        operation: "knowledge.generate",
+        providerId,
+        run: () =>
+          generateText({
+            providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+            model: languageModel(providerId, modelId),
+            output: Output.object({
+              schema: modelGeneratedKnowledgeItemSchema,
+            }),
+            system,
+            prompt,
+          }),
       });
 
       return generatedKnowledgeItemSchema.parse({
@@ -63,17 +82,32 @@ export function createKnowledgeItemHandlers(providerId: ProviderId) {
     async generateKnowledgeItemFromOccurrence(
       modelId: string,
       payload: GenerateKnowledgeItemFromOccurrenceInput,
+      context?: AiRequestLogContext,
     ): Promise<GeneratedKnowledgeItem> {
       const { prompt, system } = buildKnowledgeItemFromOccurrencePrompt({ modelId, providerId, ...payload });
 
-      const { output } = await generateText({
-        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
-        model: languageModel(providerId, modelId),
-        output: Output.object({
-          schema: generatedKnowledgeItemSchema,
-        }),
-        system,
-        prompt,
+      const { output } = await recordAiModelRequest({
+        context: {
+          ...context,
+          metadata: {
+            ...context?.metadata,
+            payload,
+          },
+        },
+        input: { prompt, system },
+        modelId,
+        operation: "knowledge.generate.from_occurrence",
+        providerId,
+        run: () =>
+          generateText({
+            providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+            model: languageModel(providerId, modelId),
+            output: Output.object({
+              schema: generatedKnowledgeItemSchema,
+            }),
+            system,
+            prompt,
+          }),
       });
 
       return generatedKnowledgeItemSchema.parse({

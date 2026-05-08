@@ -7,19 +7,19 @@ interface ScenarioExampleDialogueProps {
 
 export function ScenarioExampleDialogue({ turns }: ScenarioExampleDialogueProps) {
   return (
-    <div className="space-y-3">
+    <ol className="divide-y divide-stone-200 border-y border-stone-200">
       {turns.map((turn) => (
-        <article
+        <li
           className={cn(
-            "rounded-[1.5rem] border p-4 shadow-sm",
-            turn.characterIndex === 0 ? "border-amber-200 bg-amber-50/70" : "border-sky-200 bg-sky-50/70",
+            "grid gap-2 py-4 sm:grid-cols-[10rem_minmax(0,1fr)]",
+            turn.characterIndex === 0 ? "text-amber-950" : "text-sky-950",
           )}
           key={turn.id}
         >
-          <p className="text-sm font-semibold text-slate-950">{turn.speakerName}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{turn.text}</p>
-        </article>
+          <p className="text-sm font-semibold">{turn.speakerName}</p>
+          <p className="text-sm leading-6 text-slate-700">{turn.text}</p>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }

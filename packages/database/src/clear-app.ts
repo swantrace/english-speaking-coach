@@ -15,6 +15,8 @@ sqlite.run("PRAGMA busy_timeout = 5000;");
 sqlite.run("PRAGMA foreign_keys = ON;");
 
 sqlite.transaction(() => {
+  sqlite.query("delete from ai_tool_calls").run();
+  sqlite.query("delete from ai_model_requests").run();
   sqlite.query("delete from submission_jobs").run();
   sqlite.query("delete from submissions").run();
 })();

@@ -34,19 +34,27 @@ let knowledgeOccurrenceResolveGeneratorOverride:
 
 async function generateKnowledgeItemFromOccurrence({
   proposedPattern,
+  sessionHistoryId,
   utterance,
 }: {
   proposedPattern: string;
+  sessionHistoryId?: string | null;
   utterance: string;
 }) {
   if (knowledgeOccurrenceResolveGeneratorOverride) {
     return knowledgeOccurrenceResolveGeneratorOverride({ proposedPattern, utterance });
   }
 
-  return knowledgeItemAi.generateKnowledgeItemFromOccurrence(models.KNOWLEDGE_GENERATE_MODEL, {
-    proposedPattern,
-    utterance,
-  });
+  return knowledgeItemAi.generateKnowledgeItemFromOccurrence(
+    models.KNOWLEDGE_GENERATE_MODEL,
+    {
+      proposedPattern,
+      utterance,
+    },
+    {
+      sessionHistoryId,
+    },
+  );
 }
 
 export async function processKnowledgeOccurrenceResolveJob(occurrenceId: string) {
@@ -67,6 +75,7 @@ export async function processKnowledgeOccurrenceResolveJob(occurrenceId: string)
 
   const generatedKnowledgeItem = await generateKnowledgeItemFromOccurrence({
     proposedPattern: occurrence.proposedPattern,
+    sessionHistoryId: occurrence.sessionHistoryId,
     utterance: occurrence.utterance,
   });
   const { knowledgeItemId } = await persistGeneratedKnowledgeItem(generatedKnowledgeItem);

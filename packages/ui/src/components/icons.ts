@@ -18,5 +18,6 @@ export {
   SendHorizontal,
   Sparkles,
   Users,
-  UserCircle
+  UserCircle,
+  Volume2
 } from "lucide-react";

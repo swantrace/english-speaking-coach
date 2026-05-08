@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { Button, Volume2 } from "@english-coach/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ErrorState } from "@/components/app/error-state";
 import { LoadingState } from "@/components/app/loading-state";
@@ -55,16 +55,6 @@ function RouteComponent() {
           <ScenarioHero scenario={scenarioDetailQuery.data} />
 
           <PageSection
-            description="These two roles come directly from the scenario contract and now hand off into the shared role-play session creation flow."
-            title="Choose your role"
-          >
-            <ScenarioRoleButtons
-              characters={scenarioDetailQuery.data.characters}
-              scenarioId={scenarioDetailQuery.data.id}
-            />
-          </PageSection>
-
-          <PageSection
             description="Goals stay learner-facing here: enough structure to guide practice, without exposing admin editing concerns."
             title="Dialogue goals"
           >
@@ -73,9 +63,24 @@ function RouteComponent() {
 
           <PageSection
             description="An example conversation gives the learner a feel for pacing, tone, and the kind of successful exchange this scenario supports."
-            title="Example dialogue"
+            title={
+              <span className="inline-flex items-center gap-2">
+                <Volume2 className="size-5 text-slate-500" aria-hidden="true" />
+                Example dialogue
+              </span>
+            }
           >
             <ScenarioExampleDialogue turns={scenarioDetailQuery.data.exampleDialogue} />
+          </PageSection>
+
+          <PageSection
+            description="These two roles come directly from the scenario contract and now hand off into the shared role-play session creation flow."
+            title="Choose your role"
+          >
+            <ScenarioRoleButtons
+              characters={scenarioDetailQuery.data.characters}
+              scenarioId={scenarioDetailQuery.data.id}
+            />
           </PageSection>
         </>
       ) : null}

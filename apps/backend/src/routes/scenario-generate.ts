@@ -134,7 +134,7 @@ export function registerScenarioGenerateRoutes(app: BackendApp) {
 
           await scenarioGenerateQueue.add(scenarioGenerateJobName, payload, {
             jobId,
-            removeOnComplete: true,
+            removeOnComplete: { age: 86_400, count: 1_000 },
             removeOnFail: false,
           });
 

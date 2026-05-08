@@ -1,7 +1,6 @@
 import { Button } from "@english-coach/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/page-header";
-import { normalizeAdminKnowledgeSearch } from "@/features/knowledge/admin-knowledge-search";
 import { BulkKnowledgeForm } from "@/features/knowledge/forms/bulk-knowledge-form";
 import { createKnowledgeMutationError, useBulkKnowledgeGenerationMutation } from "@/features/knowledge/mutations";
 
@@ -18,9 +17,7 @@ function RouteComponent() {
       <PageHeader
         actions={
           <Button asChild variant="outline">
-            <Link search={normalizeAdminKnowledgeSearch({})} to="/admin/knowledge">
-              Back to knowledge
-            </Link>
+            <Link to="/admin/knowledge">Back to knowledge</Link>
           </Button>
         }
         description="Queue multiple draft knowledge patterns at once. Worker-generated items will be created later and marked pending review for admin follow-up."
@@ -39,8 +36,11 @@ function RouteComponent() {
             );
           }
         }}
-        onSuccess={async () => {
-          await navigate({ search: normalizeAdminKnowledgeSearch({}), to: "/admin/knowledge" });
+        onSuccess={async (result) => {
+          await navigate({
+            params: { submissionId: result.submissionId },
+            to: "/admin/submissions/$submissionId",
+          });
         }}
       />
     </div>

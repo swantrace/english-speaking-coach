@@ -39,8 +39,11 @@ function RouteComponent() {
             );
           }
         }}
-        onSuccess={async () => {
-          await navigate({ search: normalizeAdminScenarioSearch({}), to: "/admin/scenarios" });
+        onSuccess={async (result) => {
+          await navigate({
+            params: { submissionId: result.submissionId },
+            to: "/admin/submissions/$submissionId",
+          });
         }}
       />
     </div>

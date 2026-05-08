@@ -57,8 +57,8 @@ export const scenarioGoalSchema = z.object({
   description: z.string(),
   id: z.string(),
   logic: z.object({
-    required_intents: z.array(z.string()),
-    required_slots: z.array(z.string()),
+    required_intents: z.array(z.string()).default([]),
+    required_slots: z.array(z.string()).default([]),
   }),
   optional: z.boolean().optional(),
 });

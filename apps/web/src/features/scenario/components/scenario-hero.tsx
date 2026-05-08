@@ -7,8 +7,8 @@ interface ScenarioHeroProps {
 
 export function ScenarioHero({ scenario }: ScenarioHeroProps) {
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_20rem]">
-      <div className="rounded-[0.25rem] border border-stone-200 bg-stone-50/60 p-6">
+    <section className="grid gap-8 border-b border-stone-200 pb-8 lg:grid-cols-[minmax(0,1.1fr)_20rem]">
+      <div className="py-2">
         <div className="flex flex-wrap gap-2">
           {scenario.tags.map((tag) => (
             <Badge key={tag} variant="secondary">
@@ -21,11 +21,11 @@ export function ScenarioHero({ scenario }: ScenarioHeroProps) {
       </div>
 
       {scenario.imageUrl ? (
-        <div className="overflow-hidden rounded-[0.25rem] border border-stone-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-sm border border-stone-200 bg-white">
           <img alt={scenario.title} className="h-full w-full object-cover" src={scenario.imageUrl} />
         </div>
       ) : (
-        <div className="rounded-[0.25rem] border border-dashed border-stone-300 bg-stone-50/70 p-6">
+        <div className="border-l border-dashed border-stone-300 pl-6">
           <p className="text-sm font-medium text-slate-700">Scenario image</p>
           <p className="mt-2 text-sm leading-6 text-slate-500">No image has been attached for this scenario yet.</p>
         </div>

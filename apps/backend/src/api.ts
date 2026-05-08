@@ -4,13 +4,9 @@ import { cors } from "hono/cors";
 import type { AppVariables } from "./http/context";
 import { attachRequestSession, registerAccessPolicies } from "./http/guards";
 import { authTrustedOrigins } from "./lib/auth";
-import { knowledgeGenerateWorker, knowledgeOccurrenceResolveWorker, scenarioGenerateWorker } from "./lib/queues";
 import { registerRoutes } from "./routes";
 
 migrateDatabase();
-void knowledgeGenerateWorker;
-void knowledgeOccurrenceResolveWorker;
-void scenarioGenerateWorker;
 
 export const app = new Hono<{ Variables: AppVariables }>();
 const port = Number(process.env.PORT ?? 3001);
@@ -36,6 +32,7 @@ console.log(`backend api listening on http://localhost:${port}`);
 
 export default {
   fetch: app.fetch,
+  idleTimeout: Number(process.env.BUN_IDLE_TIMEOUT_SECONDS ?? 60),
   port,
   hostname: "0.0.0.0",
 };

@@ -97,14 +97,28 @@ export async function getKnowledgeGenerateSnapshots({
   });
 }
 
-async function generateKnowledgeItem(prompt: string): Promise<GeneratedKnowledgeItem> {
+async function generateKnowledgeItem(
+  prompt: string,
+  job: Job<KnowledgeGenerateJobData>,
+): Promise<GeneratedKnowledgeItem> {
   if (knowledgeGeneratorOverride) {
     return knowledgeGeneratorOverride(prompt);
   }
 
-  return knowledgeItemAi.generateKnowledgeItem(models.KNOWLEDGE_GENERATE_MODEL, {
-    input: prompt,
-  });
+  return knowledgeItemAi.generateKnowledgeItem(
+    models.KNOWLEDGE_GENERATE_MODEL,
+    {
+      input: prompt,
+    },
+    {
+      metadata: {
+        cursor: job.data.cursor,
+        queuedAt: job.data.queuedAt,
+      },
+      submissionId: job.data.submissionId,
+      submissionJobId: String(job.id),
+    },
+  );
 }
 
 export function setKnowledgeGeneratorForTests(generator: ((prompt: string) => Promise<GeneratedKnowledgeItem>) | null) {
@@ -119,11 +133,27 @@ async function handleKnowledgeGenerateJob(job: Job<KnowledgeGenerateJobData>) {
     queuedAt: job.data.queuedAt,
     status: "started",
   });
-  await saveKnowledgeGenerateSnapshot(startedMessage);
+  await saveKnowledgeGenerateSnapshot({
+    ...startedMessage,
+    input: { message: job.data.message },
+  } as SubmissionProgressMessage);
   await publishKnowledgeGenerateProgress(startedMessage);
 
   // Step 2: generate the knowledge item
-  const generatedKnowledgeItem = await generateKnowledgeItem(job.data.message);
+  const generatedKnowledgeItem = await generateKnowledgeItem(job.data.message, job);
+  const generatedMessage = createKnowledgeGenerateProgressMessage(String(job.id), job.data, {
+    message: "Knowledge item generated; saving for review",
+    progress: 75,
+    status: "started",
+  });
+
+  await saveKnowledgeGenerateSnapshot({
+    ...generatedMessage,
+    input: { message: job.data.message },
+    output: generatedKnowledgeItem,
+  } as SubmissionProgressMessage);
+  await publishKnowledgeGenerateProgress(generatedMessage);
+
   const persistedKnowledgeItem = await persistGeneratedKnowledgeItem(generatedKnowledgeItem);
 
   // Step 3: publish completion progress
@@ -133,8 +163,15 @@ async function handleKnowledgeGenerateJob(job: Job<KnowledgeGenerateJobData>) {
     progress: 100,
     status: "completed",
   });
-  await saveKnowledgeGenerateSnapshot(completedMessage);
-  await publishKnowledgeGenerateProgress(completedMessage);
+  const completedSnapshot = {
+    ...completedMessage,
+    input: { message: job.data.message },
+    knowledgeItemId: persistedKnowledgeItem.knowledgeItemId,
+    output: generatedKnowledgeItem,
+  } as SubmissionProgressMessage;
+
+  await saveKnowledgeGenerateSnapshot(completedSnapshot);
+  await publishKnowledgeGenerateProgress(completedSnapshot as KnowledgeGenerateProgressMessage);
 
   return persistedKnowledgeItem;
 }
@@ -159,8 +196,13 @@ knowledgeGenerateWorker.on("failed", async (job, error) => {
       progress: 100,
       status: "failed",
     });
-    await saveKnowledgeGenerateSnapshot(failedMessage);
-    await publishKnowledgeGenerateProgress(failedMessage);
+    const failedSnapshot = {
+      ...failedMessage,
+      input: { message: job.data.message },
+    } as SubmissionProgressMessage;
+
+    await saveKnowledgeGenerateSnapshot(failedSnapshot);
+    await publishKnowledgeGenerateProgress(failedSnapshot as KnowledgeGenerateProgressMessage);
   }
 
   logWorkerFailed(knowledgeGenerateJobName, job, error);
@@ -174,7 +216,10 @@ export async function persistQueuedKnowledgeGenerateJob(jobId: string, jobData: 
     status: "queued",
   });
 
-  await saveKnowledgeGenerateSnapshot(queuedMessage);
+  await saveKnowledgeGenerateSnapshot({
+    ...queuedMessage,
+    input: { message: jobData.message },
+  } as SubmissionProgressMessage);
   await publishKnowledgeGenerateProgress(queuedMessage);
 
   return queuedMessage;

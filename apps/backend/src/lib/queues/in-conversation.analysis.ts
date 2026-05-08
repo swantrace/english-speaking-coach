@@ -58,9 +58,19 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
     transcriptTurnIndex: job.transcriptStartIndex + index,
   }));
 
-  const result = await sessionAi.generateInConversationAnalysis(models.CONVERSATION_ANALYSIS_MODEL, {
-    indexedTurns,
-  });
+  const result = await sessionAi.generateInConversationAnalysis(
+    models.CONVERSATION_ANALYSIS_MODEL,
+    {
+      indexedTurns,
+    },
+    {
+      metadata: {
+        roomName: job.roomName,
+        transcriptStartIndex: job.transcriptStartIndex,
+      },
+      sessionHistoryId: job.sessionHistoryId,
+    },
+  );
 
   return inConversationAnalysisResultSchema.parse(result);
 }

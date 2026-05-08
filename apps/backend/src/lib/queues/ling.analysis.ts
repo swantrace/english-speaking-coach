@@ -27,14 +27,20 @@ const models = modelConfig[defaultProviderId];
 
 let lingAnalysisGeneratorOverride: ((turns: TranscriptTurns) => Promise<LingAnalysisResult>) | null = null;
 
-async function generateLingAnalysis(turns: TranscriptTurns) {
+async function generateLingAnalysis(sessionHistoryId: string, turns: TranscriptTurns) {
   if (lingAnalysisGeneratorOverride) {
     return lingAnalysisResultSchema.parse(await lingAnalysisGeneratorOverride(turns));
   }
 
-  const result = await sessionAi.generateLingAnalysis(models.LING_ANALYSIS_MODEL, {
-    turns,
-  });
+  const result = await sessionAi.generateLingAnalysis(
+    models.LING_ANALYSIS_MODEL,
+    {
+      turns,
+    },
+    {
+      sessionHistoryId,
+    },
+  );
 
   return lingAnalysisResultSchema.parse(result);
 }
@@ -50,7 +56,7 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
     throw new Error(`Transcript not found for session ${sessionHistoryId}`);
   }
 
-  const analysis = await generateLingAnalysis(transcriptRecord.turns);
+  const analysis = await generateLingAnalysis(sessionHistoryId, transcriptRecord.turns);
 
   await db.transaction(async (transaction) => {
     await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));

@@ -45,6 +45,7 @@ export const buildScenarioGoalsGeneratePrompt = ({ story }: PromptModelParams & 
     "- Order goals by the most natural flow of the conversation.",
     "- Keep the goal set minimal while still covering the full interaction.",
     "- Every required_intents and required_slots entry must reference names declared in the top-level intents and slots arrays.",
+    "- Every goal logic object must include both required_intents and required_slots arrays. Use an empty required_slots array when the goal does not need slot values.",
     "- Do not include runtime progress or status.",
     "",
     "[INPUT]",

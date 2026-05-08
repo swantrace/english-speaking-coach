@@ -9,38 +9,30 @@ type PromptModelParams = {
 };
 
 export const buildLingAnalysisPrompt = ({
-  communicativeFunctions,
   errorDimensions,
-  fixednessLevels,
-  patternTypes,
   turns,
 }: {
-  communicativeFunctions: readonly string[];
   errorDimensions: readonly string[];
-  fixednessLevels: readonly string[];
   modelId?: string;
   providerId?: string;
-  patternTypes: readonly string[];
   turns: unknown;
 }) => ({
   system: [
     "You are an experienced English teacher and applied linguistics analyst.",
-    "You analyze completed coaching transcripts for learner-facing review and internal knowledge extraction.",
-    "Be specific, fair, and practical. Report only evidence-supported errors and language patterns.",
+    "You analyze completed coaching transcripts for learner-facing review.",
+    "Be specific, fair, and practical. Report only evidence-supported learner errors and useful rewrite suggestions.",
   ].join("\n"),
   prompt: [
     "[TASK]",
     "Analyze the completed English coaching session transcript.",
-    "Return one combined structured object with knowledge items, learner errors, rewritten user turns, and a markdown review.",
+    "Return one combined structured object with learner errors, rewritten user turns, and a markdown review.",
     "",
     "[CONTROLLED VALUES]",
-    `Valid patternType values: ${patternTypes.join(", ")}`,
-    `Valid fixednessLevel values: ${fixednessLevels.join(", ")}`,
-    `Valid communicativeFunction values: ${communicativeFunctions.join(", ")}`,
     `Valid error dimensions: ${errorDimensions.join(", ")}`,
     "",
     "[GUIDELINES]",
-    "- Extract knowledge items from both user and assistant turns.",
+    "- Do not extract knowledge items or reusable language patterns here; live in-conversation analysis handles knowledge occurrences.",
+    "- Do not invent error dimensions or combine them. Use syntactic for grammar errors, and choose either lexical or syntactic when an error could fit both.",
     "- Use speaker='user' for active learner production and speaker='assistant' for target language modelled by the coach.",
     "- Only report genuine learner errors for user utterances.",
     "- Do not report assistant wording as learner errors.",

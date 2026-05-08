@@ -84,7 +84,8 @@ export {
 	SendHorizontal,
 	Sparkles,
 	Users,
-	UserCircle
+	UserCircle,
+	Volume2
 } from "./src/components/icons";
 export { Label } from "./src/components/label";
 export {

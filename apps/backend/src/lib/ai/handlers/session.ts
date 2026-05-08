@@ -1,4 +1,4 @@
-import { communicativeFunctions, errorDimensions, fixednessLevels, patternTypes } from "@english-coach/contract/common";
+import { errorDimensions } from "@english-coach/contract/common";
 import {
   type InConversationAnalysisResult,
   inConversationAnalysisResultSchema,
@@ -10,6 +10,7 @@ import { buildInConversationAnalysisPrompt, buildLingAnalysisPrompt } from "@eng
 import { generateText, Output } from "ai";
 import { providerOptionsForStructuredOutput } from "../provider-options";
 import { languageModel, type ProviderId } from "../registry";
+import { type AiRequestLogContext, recordAiModelRequest } from "../request-logging";
 
 export type IndexedTranscriptTurn = SessionTurn & {
   transcriptTurnIndex: number;
@@ -25,25 +26,40 @@ export type GenerateInConversationAnalysisInput = {
 
 export function createSessionHandlers(providerId: ProviderId) {
   return {
-    async generateLingAnalysis(modelId: string, payload: GenerateLingAnalysisInput): Promise<LingAnalysisResult> {
+    async generateLingAnalysis(
+      modelId: string,
+      payload: GenerateLingAnalysisInput,
+      context?: AiRequestLogContext,
+    ): Promise<LingAnalysisResult> {
       const { prompt, system } = buildLingAnalysisPrompt({
         modelId,
         providerId,
-        communicativeFunctions,
         errorDimensions,
-        fixednessLevels,
-        patternTypes,
         turns: payload.turns,
       });
 
-      const { output } = await generateText({
-        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
-        model: languageModel(providerId, modelId),
-        output: Output.object({
-          schema: lingAnalysisResultSchema,
-        }),
-        system,
-        prompt,
+      const { output } = await recordAiModelRequest({
+        context: {
+          ...context,
+          metadata: {
+            ...context?.metadata,
+            turnCount: payload.turns.length,
+          },
+        },
+        input: { prompt, system },
+        modelId,
+        operation: "session.analysis.ling",
+        providerId,
+        run: () =>
+          generateText({
+            providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+            model: languageModel(providerId, modelId),
+            output: Output.object({
+              schema: lingAnalysisResultSchema,
+            }),
+            system,
+            prompt,
+          }),
       });
 
       return output;
@@ -52,17 +68,32 @@ export function createSessionHandlers(providerId: ProviderId) {
     async generateInConversationAnalysis(
       modelId: string,
       payload: GenerateInConversationAnalysisInput,
+      context?: AiRequestLogContext,
     ): Promise<InConversationAnalysisResult> {
       const { prompt, system } = buildInConversationAnalysisPrompt({ modelId, providerId, ...payload });
 
-      const { output } = await generateText({
-        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
-        model: languageModel(providerId, modelId),
-        output: Output.object({
-          schema: inConversationAnalysisResultSchema,
-        }),
-        system,
-        prompt,
+      const { output } = await recordAiModelRequest({
+        context: {
+          ...context,
+          metadata: {
+            ...context?.metadata,
+            turnCount: payload.indexedTurns.length,
+          },
+        },
+        input: { prompt, system },
+        modelId,
+        operation: "session.analysis.in_conversation",
+        providerId,
+        run: () =>
+          generateText({
+            providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+            model: languageModel(providerId, modelId),
+            output: Output.object({
+              schema: inConversationAnalysisResultSchema,
+            }),
+            system,
+            prompt,
+          }),
       });
 
       return output;

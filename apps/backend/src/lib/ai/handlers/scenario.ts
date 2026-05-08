@@ -13,6 +13,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { providerOptionsForStructuredOutput } from "../provider-options";
 import { languageModel, type ProviderId } from "../registry";
+import { type AiRequestLogContext, recordAiModelRequest } from "../request-logging";
 
 const generatedScenarioSchema = z.object({
   characters: scenarioCharacterSchema.array().length(2),
@@ -52,56 +53,104 @@ export type GenerateScenarioExampleDialogueInput = {
 export type GenerateScenarioInput = GenerateScenarioStoryInput;
 
 async function generateScenarioObject<TSchema extends z.ZodTypeAny>({
+  context,
+  operation,
   promptParts,
   modelId,
   providerId,
   schema,
 }: {
+  context?: AiRequestLogContext;
   modelId: string;
+  operation: string;
   promptParts: { prompt: string; system: string };
   providerId: ProviderId;
   schema: TSchema;
 }): Promise<z.output<TSchema>> {
-  const { output } = await generateText({
-    providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
-    model: languageModel(providerId, modelId),
-    output: Output.object({
-      schema,
-    }),
-    system: promptParts.system,
-    prompt: promptParts.prompt,
+  const { output } = await recordAiModelRequest({
+    context,
+    input: promptParts,
+    modelId,
+    operation,
+    providerId,
+    run: () =>
+      generateText({
+        providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
+        model: languageModel(providerId, modelId),
+        output: Output.object({
+          schema,
+        }),
+        system: promptParts.system,
+        prompt: promptParts.prompt,
+      }),
   });
 
   return schema.parse(output);
 }
 
 export function createScenarioHandlers(providerId: ProviderId) {
-  async function generateScenarioStory(modelId: string, payload: GenerateScenarioStoryInput): Promise<ScenarioStory> {
+  async function generateScenarioStory(
+    modelId: string,
+    payload: GenerateScenarioStoryInput,
+    context?: AiRequestLogContext,
+  ): Promise<ScenarioStory> {
     const promptParts = buildScenarioStoryGeneratePrompt({ modelId, providerId, ...payload });
 
     return generateScenarioObject({
+      context: {
+        ...context,
+        metadata: {
+          ...context?.metadata,
+          payload,
+        },
+      },
       modelId,
+      operation: "scenario.generate.story",
       promptParts,
       providerId,
       schema: scenarioStorySchema,
     });
   }
 
-  async function generateScenarioGoals(modelId: string, payload: GenerateScenarioGoalsInput): Promise<ScenarioGoals> {
+  async function generateScenarioGoals(
+    modelId: string,
+    payload: GenerateScenarioGoalsInput,
+    context?: AiRequestLogContext,
+  ): Promise<ScenarioGoals> {
     const promptParts = buildScenarioGoalsGeneratePrompt({ modelId, providerId, ...payload });
 
     return generateScenarioObject({
+      context: {
+        ...context,
+        metadata: {
+          ...context?.metadata,
+          payload,
+        },
+      },
       modelId,
+      operation: "scenario.generate.goals",
       promptParts,
       providerId,
       schema: scenarioGoalsSchema,
     });
   }
 
-  async function generateScenarioExampleDialogue(modelId: string, payload: GenerateScenarioExampleDialogueInput) {
+  async function generateScenarioExampleDialogue(
+    modelId: string,
+    payload: GenerateScenarioExampleDialogueInput,
+    context?: AiRequestLogContext,
+  ) {
     const promptParts = buildScenarioExampleDialoguePrompt({ modelId, providerId, ...payload });
     const result = await generateScenarioObject({
+      context: {
+        ...context,
+        metadata: {
+          ...context?.metadata,
+          payload,
+        },
+      },
       modelId,
+      operation: "scenario.generate.example_dialogue",
       promptParts,
       providerId,
       schema: scenarioDialogueExampleSchema,
@@ -110,15 +159,27 @@ export function createScenarioHandlers(providerId: ProviderId) {
     return result.exampleDialogue;
   }
 
-  async function generateScenario(modelId: string, payload: GenerateScenarioInput): Promise<GeneratedScenario> {
-    const story = await generateScenarioStory(modelId, payload);
-    const goals = await generateScenarioGoals(modelId, {
-      story,
-    });
-    const exampleDialogue = await generateScenarioExampleDialogue(modelId, {
-      goals,
-      story,
-    });
+  async function generateScenario(
+    modelId: string,
+    payload: GenerateScenarioInput,
+    context?: AiRequestLogContext,
+  ): Promise<GeneratedScenario> {
+    const story = await generateScenarioStory(modelId, payload, context);
+    const goals = await generateScenarioGoals(
+      modelId,
+      {
+        story,
+      },
+      context,
+    );
+    const exampleDialogue = await generateScenarioExampleDialogue(
+      modelId,
+      {
+        goals,
+        story,
+      },
+      context,
+    );
 
     return generatedScenarioSchema.parse({
       characters: story.characters,

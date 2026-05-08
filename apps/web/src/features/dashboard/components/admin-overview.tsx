@@ -1,4 +1,4 @@
-import { Button } from "@english-coach/ui";
+import { Button, ClipboardList, Users } from "@english-coach/ui";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/app/empty-state";
 import { ErrorState } from "@/components/app/error-state";
@@ -22,11 +22,20 @@ export function AdminOverview() {
     <div className="space-y-8">
       <PageHeader
         actions={
-          <Button asChild variant="outline">
-            <Link search={{ page: 1 }} to="/admin/users">
-              Manage users
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild variant="outline">
+              <Link to="/admin/submissions">
+                <ClipboardList />
+                Submissions
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link search={{ page: 1 }} to="/admin/users">
+                <Users />
+                Manage users
+              </Link>
+            </Button>
+          </div>
         }
         description="A conservative admin landing view that summarizes platform usage and keeps room for future management slices."
         eyebrow="Admin Dashboard"

@@ -1,5 +1,46 @@
 import type { AccessArea, AccessState, AuthUser } from "./types";
 
+function normalizeProtectedRedirectPath(redirectTo: string | null | undefined) {
+  if (!redirectTo || !redirectTo.startsWith("/") || redirectTo.startsWith("//")) {
+    return null;
+  }
+
+  try {
+    const url = new URL(redirectTo, "http://localhost");
+    const path = `${url.pathname}${url.search}${url.hash}`;
+
+    if (url.pathname === "/app" || url.pathname.startsWith("/app/")) {
+      return path;
+    }
+
+    if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
+      return path;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function getAllowedProtectedRedirect(accessState: AccessState, redirectTo: string | null | undefined) {
+  const path = normalizeProtectedRedirectPath(redirectTo);
+
+  if (!path) {
+    return null;
+  }
+
+  if (path === "/app" || path.startsWith("/app/")) {
+    return accessState === "student_approved" || accessState === "admin_approved" ? path : null;
+  }
+
+  if (path === "/admin" || path.startsWith("/admin/")) {
+    return accessState === "admin_approved" ? path : null;
+  }
+
+  return null;
+}
+
 export function resolveAccessState(user: AuthUser | null | undefined): AccessState {
   if (!user) {
     return "anonymous";
@@ -25,7 +66,13 @@ export function resolveAccessState(user: AuthUser | null | undefined): AccessSta
   }
 }
 
-export function resolveHomeRoute(accessState: AccessState) {
+export function resolveHomeRoute(accessState: AccessState, redirectTo?: string | null) {
+  const allowedRedirect = getAllowedProtectedRedirect(accessState, redirectTo);
+
+  if (allowedRedirect) {
+    return allowedRedirect;
+  }
+
   switch (accessState) {
     case "student_pending":
       return "/pending";
@@ -40,11 +87,11 @@ export function resolveHomeRoute(accessState: AccessState) {
   }
 }
 
-export function getAuthAreaRedirect(accessState: AccessState) {
-  return accessState === "anonymous" ? null : resolveHomeRoute(accessState);
+export function getAuthAreaRedirect(accessState: AccessState, redirectTo?: string | null) {
+  return accessState === "anonymous" ? null : resolveHomeRoute(accessState, redirectTo);
 }
 
-export function getPendingPageRedirect(accessState: AccessState) {
+export function getPendingPageRedirect(accessState: AccessState, redirectTo?: string | null) {
   switch (accessState) {
     case "student_pending":
       return null;
@@ -53,15 +100,15 @@ export function getPendingPageRedirect(accessState: AccessState) {
     case "student_rejected":
       return "/rejected";
     case "student_approved":
-      return "/app";
+      return getAllowedProtectedRedirect(accessState, redirectTo) ?? "/app";
     case "admin_approved":
-      return "/admin";
+      return getAllowedProtectedRedirect(accessState, redirectTo) ?? "/admin";
     default:
       return "/signup";
   }
 }
 
-export function getRejectedPageRedirect(accessState: AccessState) {
+export function getRejectedPageRedirect(accessState: AccessState, redirectTo?: string | null) {
   switch (accessState) {
     case "student_rejected":
       return null;
@@ -70,9 +117,9 @@ export function getRejectedPageRedirect(accessState: AccessState) {
     case "student_pending":
       return "/pending";
     case "student_approved":
-      return "/app";
+      return getAllowedProtectedRedirect(accessState, redirectTo) ?? "/app";
     case "admin_approved":
-      return "/admin";
+      return getAllowedProtectedRedirect(accessState, redirectTo) ?? "/admin";
     default:
       return "/signup";
   }

@@ -98,14 +98,25 @@ export async function getScenarioGenerateSnapshots({
   });
 }
 
-async function generateScenario(prompt: string): Promise<GeneratedScenario> {
+async function generateScenario(prompt: string, job: Job<ScenarioGenerateJobData>): Promise<GeneratedScenario> {
   if (scenarioGeneratorOverride) {
     return scenarioGeneratorOverride(prompt);
   }
 
-  return scenarioAi.generateScenario(models.SCENARIO_GENERATE_MODEL, {
-    brief: prompt,
-  });
+  return scenarioAi.generateScenario(
+    models.SCENARIO_GENERATE_MODEL,
+    {
+      brief: prompt,
+    },
+    {
+      metadata: {
+        cursor: job.data.cursor,
+        queuedAt: job.data.queuedAt,
+      },
+      submissionId: job.data.submissionId,
+      submissionJobId: String(job.id),
+    },
+  );
 }
 
 async function persistScenario(generatedScenario: GeneratedScenario) {
@@ -142,10 +153,13 @@ async function handleScenarioGenerateJob(job: Job<ScenarioGenerateJobData>) {
     queuedAt: job.data.queuedAt,
     status: "started",
   });
-  await saveScenarioGenerateSnapshot(startedMessage);
+  await saveScenarioGenerateSnapshot({
+    ...startedMessage,
+    input: { message: job.data.message },
+  } as SubmissionProgressMessage);
   await publishScenarioGenerateProgress(startedMessage);
 
-  const generatedScenario = await generateScenario(job.data.message);
+  const generatedScenario = await generateScenario(job.data.message, job);
   const persistedScenario = await persistScenario(generatedScenario);
 
   const completedMessage = createScenarioGenerateProgressMessage(String(job.id), job.data, {
@@ -154,8 +168,15 @@ async function handleScenarioGenerateJob(job: Job<ScenarioGenerateJobData>) {
     progress: 100,
     status: "completed",
   });
-  await saveScenarioGenerateSnapshot(completedMessage);
-  await publishScenarioGenerateProgress(completedMessage);
+  const completedSnapshot = {
+    ...completedMessage,
+    input: { message: job.data.message },
+    output: generatedScenario,
+    scenarioId: persistedScenario.scenarioId,
+  } as SubmissionProgressMessage;
+
+  await saveScenarioGenerateSnapshot(completedSnapshot);
+  await publishScenarioGenerateProgress(completedSnapshot as ScenarioGenerateProgressMessage);
 
   return persistedScenario;
 }
@@ -180,8 +201,13 @@ scenarioGenerateWorker.on("failed", async (job, error) => {
       progress: 100,
       status: "failed",
     });
-    await saveScenarioGenerateSnapshot(failedMessage);
-    await publishScenarioGenerateProgress(failedMessage);
+    const failedSnapshot = {
+      ...failedMessage,
+      input: { message: job.data.message },
+    } as SubmissionProgressMessage;
+
+    await saveScenarioGenerateSnapshot(failedSnapshot);
+    await publishScenarioGenerateProgress(failedSnapshot as ScenarioGenerateProgressMessage);
   }
 
   logWorkerFailed(scenarioGenerateJobName, job, error);
@@ -199,7 +225,10 @@ export async function persistQueuedScenarioGenerateJob(jobId: string, jobData: S
     status: "queued",
   });
 
-  await saveScenarioGenerateSnapshot(queuedMessage);
+  await saveScenarioGenerateSnapshot({
+    ...queuedMessage,
+    input: { message: jobData.message },
+  } as SubmissionProgressMessage);
   await publishScenarioGenerateProgress(queuedMessage);
 
   return queuedMessage;
