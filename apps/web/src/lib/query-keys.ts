@@ -50,6 +50,18 @@ export interface AdminJobListQueryKeyInput {
   status?: string;
 }
 
+export interface AdminAiRequestListQueryKeyInput {
+  from?: string;
+  modelId?: string;
+  operation?: string;
+  page?: number;
+  pageSize?: number;
+  providerId?: string;
+  search?: string;
+  status?: string;
+  to?: string;
+}
+
 function normalizeTextParam(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "";
@@ -129,8 +141,30 @@ export function normalizeAdminJobListQueryKeyInput(input: AdminJobListQueryKeyIn
   };
 }
 
+export function normalizeAdminAiRequestListQueryKeyInput(input: AdminAiRequestListQueryKeyInput = {}) {
+  return {
+    from: normalizeTextParam(input.from),
+    modelId: normalizeTextParam(input.modelId),
+    operation: normalizeTextParam(input.operation),
+    page: input.page ?? 1,
+    pageSize: input.pageSize ?? 20,
+    providerId: normalizeTextParam(input.providerId),
+    search: normalizeTextParam(input.search),
+    status: normalizeTextParam(input.status),
+    to: normalizeTextParam(input.to),
+  };
+}
+
 export const queryKeys = {
   admin: {
+    aiRequests: {
+      all: () => ["admin", "ai-requests"] as const,
+      detail: (requestId: string) => ["admin", "ai-requests", "detail", requestId] as const,
+      list: (input: AdminAiRequestListQueryKeyInput = {}) =>
+        ["admin", "ai-requests", "list", normalizeAdminAiRequestListQueryKeyInput(input)] as const,
+      stats: (input: AdminAiRequestListQueryKeyInput = {}) =>
+        ["admin", "ai-requests", "stats", normalizeAdminAiRequestListQueryKeyInput(input)] as const,
+    },
     dashboard: () => ["admin", "dashboard"] as const,
     knowledge: {
       all: () => ["admin", "knowledge"] as const,

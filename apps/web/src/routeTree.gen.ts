@@ -29,6 +29,7 @@ import { Route as AdminSubmissionsIndexRouteImport } from './routes/admin/submis
 import { Route as AdminScenariosIndexRouteImport } from './routes/admin/scenarios/index'
 import { Route as AdminOccurrencesIndexRouteImport } from './routes/admin/occurrences/index'
 import { Route as AdminKnowledgeIndexRouteImport } from './routes/admin/knowledge/index'
+import { Route as AdminAiRequestsIndexRouteImport } from './routes/admin/ai-requests/index'
 import { Route as AppScenariosScenarioIdRouteImport } from './routes/app/scenarios/$scenarioId'
 import { Route as AppKnowledgeKnowledgeIdRouteImport } from './routes/app/knowledge/$knowledgeId'
 import { Route as AppFreeFormNewRouteImport } from './routes/app/free-form/new'
@@ -36,6 +37,7 @@ import { Route as AdminScenariosNewRouteImport } from './routes/admin/scenarios/
 import { Route as AdminScenariosBulkRouteImport } from './routes/admin/scenarios/bulk'
 import { Route as AdminKnowledgeNewRouteImport } from './routes/admin/knowledge/new'
 import { Route as AdminKnowledgeBulkRouteImport } from './routes/admin/knowledge/bulk'
+import { Route as AdminAiRequestsRequestIdRouteImport } from './routes/admin/ai-requests/$requestId'
 import { Route as AppSessionsSessionIdIndexRouteImport } from './routes/app/sessions/$sessionId/index'
 import { Route as AdminSubmissionsSubmissionIdIndexRouteImport } from './routes/admin/submissions/$submissionId/index'
 import { Route as AppSessionsSessionIdLiveRouteImport } from './routes/app/sessions/$sessionId/live'
@@ -141,6 +143,11 @@ const AdminKnowledgeIndexRoute = AdminKnowledgeIndexRouteImport.update({
   path: '/knowledge/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAiRequestsIndexRoute = AdminAiRequestsIndexRouteImport.update({
+  id: '/ai-requests/',
+  path: '/ai-requests/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AppScenariosScenarioIdRoute = AppScenariosScenarioIdRouteImport.update({
   id: '/scenarios/$scenarioId',
   path: '/scenarios/$scenarioId',
@@ -176,6 +183,12 @@ const AdminKnowledgeBulkRoute = AdminKnowledgeBulkRouteImport.update({
   path: '/knowledge/bulk',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAiRequestsRequestIdRoute =
+  AdminAiRequestsRequestIdRouteImport.update({
+    id: '/ai-requests/$requestId',
+    path: '/ai-requests/$requestId',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const AppSessionsSessionIdIndexRoute =
   AppSessionsSessionIdIndexRouteImport.update({
     id: '/sessions/$sessionId/',
@@ -224,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/': typeof publicIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
+  '/admin/ai-requests/$requestId': typeof AdminAiRequestsRequestIdRoute
   '/admin/knowledge/bulk': typeof AdminKnowledgeBulkRoute
   '/admin/knowledge/new': typeof AdminKnowledgeNewRoute
   '/admin/scenarios/bulk': typeof AdminScenariosBulkRoute
@@ -231,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/app/free-form/new': typeof AppFreeFormNewRoute
   '/app/knowledge/$knowledgeId': typeof AppKnowledgeKnowledgeIdRoute
   '/app/scenarios/$scenarioId': typeof AppScenariosScenarioIdRoute
+  '/admin/ai-requests/': typeof AdminAiRequestsIndexRoute
   '/admin/knowledge/': typeof AdminKnowledgeIndexRoute
   '/admin/occurrences/': typeof AdminOccurrencesIndexRoute
   '/admin/scenarios/': typeof AdminScenariosIndexRoute
@@ -255,6 +270,7 @@ export interface FileRoutesByTo {
   '/': typeof publicIndexRoute
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
+  '/admin/ai-requests/$requestId': typeof AdminAiRequestsRequestIdRoute
   '/admin/knowledge/bulk': typeof AdminKnowledgeBulkRoute
   '/admin/knowledge/new': typeof AdminKnowledgeNewRoute
   '/admin/scenarios/bulk': typeof AdminScenariosBulkRoute
@@ -262,6 +278,7 @@ export interface FileRoutesByTo {
   '/app/free-form/new': typeof AppFreeFormNewRoute
   '/app/knowledge/$knowledgeId': typeof AppKnowledgeKnowledgeIdRoute
   '/app/scenarios/$scenarioId': typeof AppScenariosScenarioIdRoute
+  '/admin/ai-requests': typeof AdminAiRequestsIndexRoute
   '/admin/knowledge': typeof AdminKnowledgeIndexRoute
   '/admin/occurrences': typeof AdminOccurrencesIndexRoute
   '/admin/scenarios': typeof AdminScenariosIndexRoute
@@ -291,6 +308,7 @@ export interface FileRoutesById {
   '/(public)/': typeof publicIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
+  '/admin/ai-requests/$requestId': typeof AdminAiRequestsRequestIdRoute
   '/admin/knowledge/bulk': typeof AdminKnowledgeBulkRoute
   '/admin/knowledge/new': typeof AdminKnowledgeNewRoute
   '/admin/scenarios/bulk': typeof AdminScenariosBulkRoute
@@ -298,6 +316,7 @@ export interface FileRoutesById {
   '/app/free-form/new': typeof AppFreeFormNewRoute
   '/app/knowledge/$knowledgeId': typeof AppKnowledgeKnowledgeIdRoute
   '/app/scenarios/$scenarioId': typeof AppScenariosScenarioIdRoute
+  '/admin/ai-requests/': typeof AdminAiRequestsIndexRoute
   '/admin/knowledge/': typeof AdminKnowledgeIndexRoute
   '/admin/occurrences/': typeof AdminOccurrencesIndexRoute
   '/admin/scenarios/': typeof AdminScenariosIndexRoute
@@ -326,6 +345,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/'
     | '/app/'
+    | '/admin/ai-requests/$requestId'
     | '/admin/knowledge/bulk'
     | '/admin/knowledge/new'
     | '/admin/scenarios/bulk'
@@ -333,6 +353,7 @@ export interface FileRouteTypes {
     | '/app/free-form/new'
     | '/app/knowledge/$knowledgeId'
     | '/app/scenarios/$scenarioId'
+    | '/admin/ai-requests/'
     | '/admin/knowledge/'
     | '/admin/occurrences/'
     | '/admin/scenarios/'
@@ -357,6 +378,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/app'
+    | '/admin/ai-requests/$requestId'
     | '/admin/knowledge/bulk'
     | '/admin/knowledge/new'
     | '/admin/scenarios/bulk'
@@ -364,6 +386,7 @@ export interface FileRouteTypes {
     | '/app/free-form/new'
     | '/app/knowledge/$knowledgeId'
     | '/app/scenarios/$scenarioId'
+    | '/admin/ai-requests'
     | '/admin/knowledge'
     | '/admin/occurrences'
     | '/admin/scenarios'
@@ -392,6 +415,7 @@ export interface FileRouteTypes {
     | '/(public)/'
     | '/admin/'
     | '/app/'
+    | '/admin/ai-requests/$requestId'
     | '/admin/knowledge/bulk'
     | '/admin/knowledge/new'
     | '/admin/scenarios/bulk'
@@ -399,6 +423,7 @@ export interface FileRouteTypes {
     | '/app/free-form/new'
     | '/app/knowledge/$knowledgeId'
     | '/app/scenarios/$scenarioId'
+    | '/admin/ai-requests/'
     | '/admin/knowledge/'
     | '/admin/occurrences/'
     | '/admin/scenarios/'
@@ -564,6 +589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKnowledgeIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/ai-requests/': {
+      id: '/admin/ai-requests/'
+      path: '/ai-requests'
+      fullPath: '/admin/ai-requests/'
+      preLoaderRoute: typeof AdminAiRequestsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/app/scenarios/$scenarioId': {
       id: '/app/scenarios/$scenarioId'
       path: '/scenarios/$scenarioId'
@@ -611,6 +643,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge/bulk'
       fullPath: '/admin/knowledge/bulk'
       preLoaderRoute: typeof AdminKnowledgeBulkRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/ai-requests/$requestId': {
+      id: '/admin/ai-requests/$requestId'
+      path: '/ai-requests/$requestId'
+      fullPath: '/admin/ai-requests/$requestId'
+      preLoaderRoute: typeof AdminAiRequestsRequestIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/app/sessions/$sessionId/': {
@@ -690,10 +729,12 @@ const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
 
 interface AdminRouteRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminAiRequestsRequestIdRoute: typeof AdminAiRequestsRequestIdRoute
   AdminKnowledgeBulkRoute: typeof AdminKnowledgeBulkRoute
   AdminKnowledgeNewRoute: typeof AdminKnowledgeNewRoute
   AdminScenariosBulkRoute: typeof AdminScenariosBulkRoute
   AdminScenariosNewRoute: typeof AdminScenariosNewRoute
+  AdminAiRequestsIndexRoute: typeof AdminAiRequestsIndexRoute
   AdminKnowledgeIndexRoute: typeof AdminKnowledgeIndexRoute
   AdminOccurrencesIndexRoute: typeof AdminOccurrencesIndexRoute
   AdminScenariosIndexRoute: typeof AdminScenariosIndexRoute
@@ -707,10 +748,12 @@ interface AdminRouteRouteChildren {
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminAiRequestsRequestIdRoute: AdminAiRequestsRequestIdRoute,
   AdminKnowledgeBulkRoute: AdminKnowledgeBulkRoute,
   AdminKnowledgeNewRoute: AdminKnowledgeNewRoute,
   AdminScenariosBulkRoute: AdminScenariosBulkRoute,
   AdminScenariosNewRoute: AdminScenariosNewRoute,
+  AdminAiRequestsIndexRoute: AdminAiRequestsIndexRoute,
   AdminKnowledgeIndexRoute: AdminKnowledgeIndexRoute,
   AdminOccurrencesIndexRoute: AdminOccurrencesIndexRoute,
   AdminScenariosIndexRoute: AdminScenariosIndexRoute,

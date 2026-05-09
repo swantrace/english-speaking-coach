@@ -73,7 +73,7 @@ export const inConversationUiPromptSchema = z.object({
   transcriptTurnIndex: z.number().int().min(0).optional(),
 });
 
-export const inConversationKnowledgeOccurrenceSchema = z.object({
+export const sessionKnowledgeOccurrenceSchema = z.object({
   proposedPattern: z.string().trim().min(1),
   transcriptTurnIndex: z.number().int().min(0),
   utterance: z.string().trim().min(1),
@@ -345,12 +345,12 @@ export const lingAnalysisErrorSchema = z.object({
 
 export const lingAnalysisResultSchema = z.object({
   errors: z.array(lingAnalysisErrorSchema).min(0),
+  occurrences: z.array(sessionKnowledgeOccurrenceSchema).min(0).max(24),
   rewrittenUserTurns: z.array(rewrittenTranscriptTurnSchema).min(0),
   review: z.string().trim().min(1),
 });
 
 export const inConversationAnalysisResultSchema = z.object({
-  occurrences: z.array(inConversationKnowledgeOccurrenceSchema).min(0).max(12),
   uiPrompts: z.array(inConversationUiPromptSchema).min(0).max(3),
   workerFeedbackMessage: z.string().trim().min(1),
 });
@@ -366,7 +366,7 @@ export type SessionType = z.infer<typeof sessionTypeSchema>;
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
 export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;
-export type InConversationKnowledgeOccurrence = z.infer<typeof inConversationKnowledgeOccurrenceSchema>;
+export type SessionKnowledgeOccurrence = z.infer<typeof sessionKnowledgeOccurrenceSchema>;
 export type CreateRolePlaySessionInput = z.infer<typeof createRolePlaySessionInputSchema>;
 export type CreateFreeFormSessionInput = z.infer<typeof createFreeFormSessionInputSchema>;
 export type CreateSessionRequest = z.infer<typeof createSessionRequestSchema>;

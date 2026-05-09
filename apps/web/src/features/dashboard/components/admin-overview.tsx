@@ -1,4 +1,4 @@
-import { Button, ClipboardList, Users } from "@english-coach/ui";
+import { Button, ClipboardList, Sparkles, Users } from "@english-coach/ui";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/app/empty-state";
 import { ErrorState } from "@/components/app/error-state";
@@ -17,12 +17,18 @@ function hasAdminDashboardData(data: AdminDashboardOverviewView) {
 
 export function AdminOverview() {
   const dashboardQuery = useAdminDashboardQuery();
-  console.log("dashboardQuery", dashboardQuery);
+
   return (
     <div className="space-y-8">
       <PageHeader
         actions={
           <div className="flex flex-wrap gap-3">
+            <Button asChild variant="outline">
+              <Link search={{ page: 1, pageSize: 20 }} to="/admin/ai-requests">
+                <Sparkles />
+                AI requests
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link to="/admin/submissions">
                 <ClipboardList />

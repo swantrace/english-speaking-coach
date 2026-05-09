@@ -88,6 +88,26 @@ function extractUsage(result: unknown) {
   return getRecordValue(result, "usage") ?? getRecordValue(result, "totalUsage");
 }
 
+function numberFromUnknown(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : null;
+}
+
+function extractTokenUsage(usage: unknown) {
+  const inputTokenDetails = getRecordValue(usage, "inputTokenDetails");
+  const outputTokenDetails = getRecordValue(usage, "outputTokenDetails");
+
+  return {
+    cacheReadTokens: numberFromUnknown(getRecordValue(inputTokenDetails, "cacheReadTokens")),
+    cacheWriteTokens:
+      numberFromUnknown(getRecordValue(inputTokenDetails, "cacheWriteTokens")) ??
+      numberFromUnknown(getRecordValue(inputTokenDetails, "cacheCreationInputTokens")),
+    inputTokens: numberFromUnknown(getRecordValue(usage, "inputTokens")),
+    outputTokens: numberFromUnknown(getRecordValue(usage, "outputTokens")),
+    reasoningTokens: numberFromUnknown(getRecordValue(outputTokenDetails, "reasoningTokens")),
+    totalTokens: numberFromUnknown(getRecordValue(usage, "totalTokens")),
+  };
+}
+
 function extractRawOutput(result: unknown) {
   const rawOutput: JsonRecord = {};
 
@@ -149,16 +169,24 @@ export async function recordAiModelRequest<TResult extends { output?: unknown }>
   try {
     const result = await run();
     const completedAt = new Date().toISOString();
+    const usage = extractUsage(result);
+    const tokenUsage = extractTokenUsage(usage);
 
     await db
       .update(aiModelRequests)
       .set({
+        cacheReadTokens: tokenUsage.cacheReadTokens,
+        cacheWriteTokens: tokenUsage.cacheWriteTokens,
         completedAt,
+        inputTokens: tokenUsage.inputTokens,
         latencyMs: Date.now() - startedAtMs,
+        outputTokens: tokenUsage.outputTokens,
         output: jsonOrNull(result.output),
         rawOutput: jsonOrNull(extractRawOutput(result)),
+        reasoningTokens: tokenUsage.reasoningTokens,
         status: "completed",
-        usage: jsonOrNull(extractUsage(result)),
+        totalTokens: tokenUsage.totalTokens,
+        usage: jsonOrNull(usage),
       })
       .where(eq(aiModelRequests.id, id));
 

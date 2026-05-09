@@ -64,6 +64,96 @@ export const adminSetUserRoleInputSchema = z.object({
   role: z.enum(userRoleValues),
 });
 
+export const adminAiModelRequestStatusValues = ["started", "completed", "failed"] as const;
+
+const nullableTokenCountSchema = z.number().int().min(0).nullable();
+const optionalAiModelRequestStatusSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}, z.enum(adminAiModelRequestStatusValues).optional());
+
+export const adminAiModelRequestTokenUsageSchema = z.object({
+  cacheReadTokens: nullableTokenCountSchema,
+  cacheWriteTokens: nullableTokenCountSchema,
+  inputTokens: nullableTokenCountSchema,
+  outputTokens: nullableTokenCountSchema,
+  reasoningTokens: nullableTokenCountSchema,
+  totalTokens: nullableTokenCountSchema,
+});
+
+export const adminAiModelRequestListQuerySchema = pageListQuerySchema.extend({
+  from: optionalSearchTextSchema,
+  modelId: optionalSearchTextSchema,
+  operation: optionalSearchTextSchema,
+  providerId: optionalSearchTextSchema,
+  search: optionalSearchTextSchema,
+  status: optionalAiModelRequestStatusSchema,
+  to: optionalSearchTextSchema,
+});
+
+export const adminAiModelRequestListItemSchema = z
+  .object({
+    completedAt: z.string().nullable(),
+    error: z.unknown().optional(),
+    id: z.string().min(1),
+    knowledgeItemId: z.string().nullable(),
+    latencyMs: z.number().int().min(0).nullable(),
+    metadata: z.unknown().optional(),
+    modelId: z.string().min(1),
+    operation: z.string().min(1),
+    providerId: z.string().min(1),
+    scenarioId: z.string().nullable(),
+    sessionHistoryId: z.string().nullable(),
+    startedAt: z.string().min(1),
+    status: z.enum(adminAiModelRequestStatusValues),
+    submissionId: z.string().nullable(),
+    submissionJobId: z.string().nullable(),
+  })
+  .merge(adminAiModelRequestTokenUsageSchema);
+
+export const adminAiModelRequestListResponseSchema = createPageListResponseSchema(adminAiModelRequestListItemSchema);
+
+export const adminAiModelRequestDetailSchema = adminAiModelRequestListItemSchema.extend({
+  input: z.unknown().optional(),
+  output: z.unknown().optional(),
+  rawOutput: z.unknown().optional(),
+  usage: z.unknown().optional(),
+});
+
+export const adminAiModelRequestStatsSummarySchema = z.object({
+  averageLatencyMs: z.number().min(0).nullable(),
+  failedRequests: z.number().int().min(0),
+  requests: z.number().int().min(0),
+  successfulRequests: z.number().int().min(0),
+  tokenUsage: adminAiModelRequestTokenUsageSchema,
+});
+
+export const adminAiModelRequestTrendPointSchema = z.object({
+  date: z.string().min(1),
+  requests: z.number().int().min(0),
+  totalTokens: z.number().int().min(0),
+});
+
+export const adminAiModelRequestStatsGroupSchema = z.object({
+  averageLatencyMs: z.number().min(0).nullable(),
+  failedRequests: z.number().int().min(0),
+  key: z.string().min(1),
+  label: z.string().min(1),
+  requests: z.number().int().min(0),
+  tokenUsage: adminAiModelRequestTokenUsageSchema,
+});
+
+export const adminAiModelRequestStatsResponseSchema = z.object({
+  byModel: z.array(adminAiModelRequestStatsGroupSchema).default([]),
+  byOperation: z.array(adminAiModelRequestStatsGroupSchema).default([]),
+  summary: adminAiModelRequestStatsSummarySchema,
+  trend: z.array(adminAiModelRequestTrendPointSchema).default([]),
+});
+
 export type AdminDashboardSummary = z.infer<typeof adminDashboardSummarySchema>;
 export type AdminDashboardUsageTrendPoint = z.infer<typeof adminDashboardUsageTrendPointSchema>;
 export type AdminDashboardContentTrendPoint = z.infer<typeof adminDashboardContentTrendPointSchema>;
@@ -75,3 +165,8 @@ export type AdminApproveUserInput = z.infer<typeof adminApproveUserInputSchema>;
 export type AdminRejectUserInput = z.infer<typeof adminRejectUserInputSchema>;
 export type AdminSoftDeleteUserInput = z.infer<typeof adminSoftDeleteUserInputSchema>;
 export type AdminSetUserRoleInput = z.infer<typeof adminSetUserRoleInputSchema>;
+export type AdminAiModelRequestListQuery = z.infer<typeof adminAiModelRequestListQuerySchema>;
+export type AdminAiModelRequestListItem = z.infer<typeof adminAiModelRequestListItemSchema>;
+export type AdminAiModelRequestListResponse = z.infer<typeof adminAiModelRequestListResponseSchema>;
+export type AdminAiModelRequestDetail = z.infer<typeof adminAiModelRequestDetailSchema>;
+export type AdminAiModelRequestStatsResponse = z.infer<typeof adminAiModelRequestStatsResponseSchema>;

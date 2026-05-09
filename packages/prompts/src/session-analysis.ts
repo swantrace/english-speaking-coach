@@ -16,34 +16,57 @@ export const buildLingAnalysisPrompt = ({
   modelId?: string;
   providerId?: string;
   turns: unknown;
-}) => ({
-  system: [
-    "You are an experienced English teacher and applied linguistics analyst.",
-    "You analyze completed coaching transcripts for learner-facing review.",
-    "Be specific, fair, and practical. Report only evidence-supported learner errors and useful rewrite suggestions.",
-  ].join("\n"),
-  prompt: [
-    "[TASK]",
-    "Analyze the completed English coaching session transcript.",
-    "Return one combined structured object with learner errors, rewritten user turns, and a markdown review.",
-    "",
-    "[CONTROLLED VALUES]",
-    `Valid error dimensions: ${errorDimensions.join(", ")}`,
-    "",
-    "[GUIDELINES]",
-    "- Do not extract knowledge items or reusable language patterns here; live in-conversation analysis handles knowledge occurrences.",
-    "- Do not invent error dimensions or combine them. Use syntactic for grammar errors, and choose either lexical or syntactic when an error could fit both.",
-    "- Use speaker='user' for active learner production and speaker='assistant' for target language modelled by the coach.",
-    "- Only report genuine learner errors for user utterances.",
-    "- Do not report assistant wording as learner errors.",
-    "- Always include rewrittenUserTurns. If there are no rewrites to suggest, return rewrittenUserTurns as [].",
-    "- Keep rewrites faithful to the learner's intended meaning.",
-    "- Make the review concise, encouraging, and actionable.",
-    "",
-    "[TRANSCRIPT]",
-    JSON.stringify(turns),
-  ].join("\n\n"),
-});
+}) => {
+  const transcriptTurns = Array.isArray(turns) ? turns : [];
+  const transcriptText =
+    transcriptTurns.length === 0
+      ? "NO TRANSCRIPT TURNS."
+      : transcriptTurns
+          .map((turn, index) => {
+            const typedTurn = turn as { speaker?: unknown; text?: unknown; timestampMs?: unknown };
+            return `[${index}] ${String(typedTurn.speaker ?? "unknown").toUpperCase()} (${String(
+              typedTurn.timestampMs ?? "unknown",
+            )}ms): ${String(typedTurn.text ?? "")}`;
+          })
+          .join("\n");
+
+  return {
+    system: [
+      "You are an experienced English teacher and applied linguistics analyst.",
+      "You analyze completed coaching transcripts for learner-facing review and later knowledge review.",
+      "Be specific, fair, and practical. Report only evidence-supported learner errors, durable language patterns, and useful rewrite suggestions.",
+    ].join("\n"),
+    prompt: [
+      "[TASK]",
+      "Analyze the completed English coaching session transcript.",
+      "Return one combined structured object with learner errors, knowledge occurrences, rewritten user turns, and a markdown review.",
+      "",
+      "[CONTROLLED VALUES]",
+      `Valid error dimensions: ${errorDimensions.join(", ")}`,
+      "",
+      "[TRANSCRIPT]",
+      "Turns are in chronological order. The number in brackets is transcriptTurnIndex.",
+      "",
+      transcriptText,
+      "",
+      "[GUIDELINES]",
+      "- Do not invent error dimensions or combine them. Use syntactic for grammar errors, and choose either lexical or syntactic when an error could fit both.",
+      "- Use speaker='user' for active learner production and speaker='assistant' for target language modelled by the coach.",
+      "- Only report genuine learner errors for user utterances.",
+      "- Do not report assistant wording as learner errors.",
+      "- Extract useful reusable English patterns from user and assistant turns as occurrences.",
+      "- Include only occurrences whose transcriptTurnIndex points to a turn shown above.",
+      "- Use speaker context implicitly: user turns are learner production; assistant turns are target language modeled by the coach.",
+      '- proposedPattern must be concise reusable notation, for example: "I\'d like <np>", "Could you <vp>?", "Would it be possible to <vp>?".',
+      "- utterance must be the exact or lightly trimmed phrase from that same transcript turn.",
+      "- Prefer meaningful language patterns, not every phrase in the transcript.",
+      "- Always include occurrences. If there are no useful occurrences, return occurrences as [].",
+      "- Always include rewrittenUserTurns. If there are no rewrites to suggest, return rewrittenUserTurns as [].",
+      "- Keep rewrites faithful to the learner's intended meaning.",
+      "- Make the review concise, encouraging, and actionable.",
+    ].join("\n\n"),
+  };
+};
 
 export type InConversationAnalysisPromptTurn = {
   speaker: string;
@@ -81,19 +104,10 @@ export const buildInConversationAnalysisPrompt = ({
       "",
       "[TASK]",
       "Analyze these recent turns and return one object with:",
-      "- up to 12 unresolved knowledge occurrences",
       "- up to 3 transcript-aligned learner-facing UI prompts",
       "- one short worker feedback message for the live voice agent",
       "",
       "[OUTPUT FIELDS]",
-      "occurrences:",
-      "- Extract useful reusable English patterns from user and assistant turns.",
-      "- Include only occurrences whose transcriptTurnIndex points to a turn shown above.",
-      "- Use speaker context implicitly: user turns are learner production; assistant turns are target language modeled by the coach.",
-      '- proposedPattern must be concise reusable notation, for example: "I\'d like <np>", "Could you <vp>?", "Would it be possible to <vp>?".',
-      "- utterance must be the exact or lightly trimmed phrase from that same transcript turn.",
-      "- Prefer unresolved or newly useful language, not every phrase in the transcript.",
-      "",
       "uiPrompts:",
       "- Always include uiPrompts. If there are no useful prompts, return [].",
       "- Each prompt must be brief and learner-facing, not a full explanation.",

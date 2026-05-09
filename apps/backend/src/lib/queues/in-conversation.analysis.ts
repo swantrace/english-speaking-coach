@@ -1,17 +1,13 @@
 import {
   type InConversationAnalysisJob,
   type InConversationAnalysisResult,
-  type InConversationKnowledgeOccurrence,
   inConversationAnalysisJobName,
   inConversationAnalysisJobSchema,
   inConversationAnalysisQueueName,
   inConversationAnalysisResultSchema,
-  type SessionTurn,
   uiUpdatePacketSchema,
   workerFeedbackPacketSchema,
 } from "@english-coach/contract/session";
-import { db } from "@english-coach/database";
-import { sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
 import { type Job, Queue, Worker } from "bullmq";
 import { DataPacket_Kind } from "livekit-server-sdk";
 import { getProvider, modelConfig } from "../ai";
@@ -75,53 +71,6 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
   return inConversationAnalysisResultSchema.parse(result);
 }
 
-async function persistInConversationOccurrences(
-  sessionHistoryId: string,
-  turns: SessionTurn[],
-  transcriptStartIndex: number,
-  occurrences: InConversationKnowledgeOccurrence[],
-) {
-  if (!occurrences.length) {
-    return;
-  }
-
-  const values = occurrences
-    .filter((occurrence) => {
-      const localIndex = occurrence.transcriptTurnIndex - transcriptStartIndex;
-      const turn = turns[localIndex];
-
-      if (!turn) {
-        return false;
-      }
-
-      return turn.text.trim().length > 0;
-    })
-    .map((occurrence) => ({
-      id: crypto.randomUUID(),
-      knowledgeItemId: null,
-      proposedPattern: occurrence.proposedPattern,
-      sessionHistoryId,
-      transcriptTurnIndex: occurrence.transcriptTurnIndex,
-      utterance: occurrence.utterance,
-    }));
-
-  if (!values.length) {
-    return;
-  }
-
-  await db
-    .insert(sessionKnowledgePointOccurrences)
-    .values(values)
-    .onConflictDoNothing({
-      target: [
-        sessionKnowledgePointOccurrences.sessionHistoryId,
-        sessionKnowledgePointOccurrences.transcriptTurnIndex,
-        sessionKnowledgePointOccurrences.proposedPattern,
-        sessionKnowledgePointOccurrences.utterance,
-      ],
-    });
-}
-
 async function handleInConversationAnalysisJob(job: Job<InConversationAnalysisJob>) {
   // Step 1: validate job payload
   const parsedJob = inConversationAnalysisJobSchema.parse(job.data);
@@ -132,15 +81,7 @@ async function handleInConversationAnalysisJob(job: Job<InConversationAnalysisJo
   // Step 3: generate worker feedback and UI prompts
   const result = await generateInConversationFeedback(parsedJob);
 
-  // Step 4: persist any knowledge occurrences discovered
-  await persistInConversationOccurrences(
-    parsedJob.sessionHistoryId,
-    parsedJob.turns,
-    parsedJob.transcriptStartIndex,
-    result.occurrences,
-  );
-
-  // Step 5: publish packets to LiveKit
+  // Step 4: publish packets to LiveKit
   const roomServiceClient = getRoomServiceClient();
 
   const workerFeedbackPacket = workerFeedbackPacketSchema.parse({

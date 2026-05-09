@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "849518fc-8d8b-4e17-9291-c89e7720b2cd",
+  "id": "ada5ce61-2604-4cda-8e04-0df428a8aaf2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "ai_model_requests": {
@@ -10,6 +10,20 @@
         "completed_at": {
           "name": "completed_at",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cache_read_tokens": {
+          "name": "cache_read_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cache_write_tokens": {
+          "name": "cache_write_tokens",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -31,6 +45,13 @@
         "input": {
           "name": "input",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -77,6 +98,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "provider_id": {
           "name": "provider_id",
           "type": "text",
@@ -87,6 +115,13 @@
         "raw_output": {
           "name": "raw_output",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reasoning_tokens": {
+          "name": "reasoning_tokens",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -129,6 +164,13 @@
         "submission_job_id": {
           "name": "submission_job_id",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "total_tokens": {
+          "name": "total_tokens",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
