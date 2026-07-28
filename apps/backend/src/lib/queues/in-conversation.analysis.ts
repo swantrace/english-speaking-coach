@@ -10,8 +10,7 @@ import {
 } from "@english-coach/contract/session";
 import { type Job, Queue, Worker } from "bullmq";
 import { DataPacket_Kind } from "livekit-server-sdk";
-import { getProvider, modelConfig } from "../ai";
-import { defaultProviderId } from "../env";
+import { getProvider, resolveConversationAnalysisModelRoute } from "../ai";
 import { getRoomServiceClient } from "../livekit";
 import { producerRedis, workerRedis } from "../redis";
 import { persistTranscriptBatchForSession as persistTranscriptBatchForSessionImpl } from "./helpers/session-transcripts.persistence";
@@ -23,8 +22,8 @@ export {
   persistTranscriptBatchForSession,
 } from "./helpers/session-transcripts.persistence";
 
-const sessionAi = getProvider(defaultProviderId).session;
-const models = modelConfig[defaultProviderId];
+const conversationAnalysisModelRoute = resolveConversationAnalysisModelRoute();
+const sessionAi = getProvider(conversationAnalysisModelRoute.providerId).session;
 
 export const inConversationAnalysisQueue = new Queue<InConversationAnalysisJob>(inConversationAnalysisQueueName, {
   connection: producerRedis,
@@ -55,7 +54,7 @@ async function generateInConversationFeedback(job: InConversationAnalysisJob) {
   }));
 
   const result = await sessionAi.generateInConversationAnalysis(
-    models.CONVERSATION_ANALYSIS_MODEL,
+    conversationAnalysisModelRoute.modelId,
     {
       indexedTurns,
     },

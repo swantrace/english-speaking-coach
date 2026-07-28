@@ -15,8 +15,7 @@ import {
 import { type Job, Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { getProvider, modelConfig } from "../ai";
-import { defaultProviderId } from "../env";
+import { getProvider, resolveLingAnalysisModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
 import { persistRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
@@ -28,8 +27,8 @@ export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAna
   connection: producerRedis,
 });
 
-const sessionAi = getProvider(defaultProviderId).session;
-const models = modelConfig[defaultProviderId];
+const lingAnalysisModelRoute = resolveLingAnalysisModelRoute();
+const sessionAi = getProvider(lingAnalysisModelRoute.providerId).session;
 
 let lingAnalysisGeneratorOverride: ((turns: TranscriptTurns) => Promise<LingAnalysisResult>) | null = null;
 
@@ -39,7 +38,7 @@ async function generateLingAnalysis(sessionHistoryId: string, turns: TranscriptT
   }
 
   const result = await sessionAi.generateLingAnalysis(
-    models.LING_ANALYSIS_MODEL,
+    lingAnalysisModelRoute.modelId,
     {
       turns,
     },

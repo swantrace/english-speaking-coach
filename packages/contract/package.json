@@ -21,11 +21,11 @@
     "@english-coach/database": "workspace:*",
     "@english-coach/domain": "workspace:*",
     "drizzle-zod": "^0.8.3",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@english-coach/typescript-config": "workspace:*",
     "eslint": "^8.57.0",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   }
 }

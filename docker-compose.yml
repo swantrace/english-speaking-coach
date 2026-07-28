@@ -59,7 +59,7 @@ services:
       sh -c "pnpm install --frozen-lockfile && cd apps/agent && pnpm download-files && pnpm dev"
     env_file:
       - path: ./apps/agent/.env.local
-        required: false
+        required: true
       - path: ./apps/agent/.env.docker
         required: true
     volumes:

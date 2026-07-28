@@ -21,6 +21,42 @@ export type ModelRoute = {
   providerId: ProviderId;
 };
 
+export type AsyncModelRoutes = {
+  conversationAnalysis: ModelRoute;
+  knowledgeGeneration: ModelRoute;
+  lingAnalysis: ModelRoute;
+  scenario: ScenarioGenerationModelRoutes;
+};
+
+export const recommendedAsyncModelRoutes: AsyncModelRoutes = {
+  conversationAnalysis: {
+    modelId: "deepseek-v4-flash",
+    providerId: "deepseek",
+  },
+  knowledgeGeneration: {
+    modelId: "gpt-5.6-terra",
+    providerId: "openai",
+  },
+  lingAnalysis: {
+    modelId: "gpt-5.6-sol",
+    providerId: "openai",
+  },
+  scenario: {
+    dialogue: {
+      modelId: "qwen3.7-plus",
+      providerId: "qwen",
+    },
+    goals: {
+      modelId: "gpt-5.6-terra",
+      providerId: "openai",
+    },
+    story: {
+      modelId: "qwen3.7-plus",
+      providerId: "qwen",
+    },
+  },
+};
+
 function providerModelEnv(providerId: ProviderId, key: keyof AiModelConfig, fallback: string) {
   const providerKey = `${providerId.toUpperCase()}_${key}` as const;
 
@@ -40,13 +76,13 @@ function scenarioStepModelEnv(
 
 export const modelConfig: Record<ProviderId, AiModelConfig> = {
   openai: {
-    KNOWLEDGE_GENERATE_MODEL: providerModelEnv("openai", "KNOWLEDGE_GENERATE_MODEL", "gpt-5.4-mini"),
+    KNOWLEDGE_GENERATE_MODEL: providerModelEnv("openai", "KNOWLEDGE_GENERATE_MODEL", "gpt-5.6-terra"),
     LING_ANALYSIS_MODEL: providerModelEnv("openai", "LING_ANALYSIS_MODEL", "gpt-5.6-terra"),
-    SCENARIO_GENERATE_MODEL: providerModelEnv("openai", "SCENARIO_GENERATE_MODEL", "gpt-5.4-mini"),
-    SCENARIO_STORY_MODEL: scenarioStepModelEnv("openai", "SCENARIO_STORY_MODEL", "gpt-5.4-mini"),
-    SCENARIO_GOALS_MODEL: scenarioStepModelEnv("openai", "SCENARIO_GOALS_MODEL", "gpt-5.4-mini"),
-    SCENARIO_DIALOGUE_MODEL: scenarioStepModelEnv("openai", "SCENARIO_DIALOGUE_MODEL", "gpt-5.4-mini"),
-    CONVERSATION_ANALYSIS_MODEL: providerModelEnv("openai", "CONVERSATION_ANALYSIS_MODEL", "gpt-5.4-nano"),
+    SCENARIO_GENERATE_MODEL: providerModelEnv("openai", "SCENARIO_GENERATE_MODEL", "gpt-5.6-terra"),
+    SCENARIO_STORY_MODEL: scenarioStepModelEnv("openai", "SCENARIO_STORY_MODEL", "gpt-5.6-terra"),
+    SCENARIO_GOALS_MODEL: scenarioStepModelEnv("openai", "SCENARIO_GOALS_MODEL", "gpt-5.6-terra"),
+    SCENARIO_DIALOGUE_MODEL: scenarioStepModelEnv("openai", "SCENARIO_DIALOGUE_MODEL", "gpt-5.6-terra"),
+    CONVERSATION_ANALYSIS_MODEL: providerModelEnv("openai", "CONVERSATION_ANALYSIS_MODEL", "gpt-5.6-luna"),
   },
   qwen: {
     KNOWLEDGE_GENERATE_MODEL: providerModelEnv("qwen", "KNOWLEDGE_GENERATE_MODEL", "qwen3.7-plus"),
@@ -82,25 +118,99 @@ function resolveStepProvider(
   return value as ProviderId;
 }
 
+function resolveModelRoute(
+  env: NodeJS.ProcessEnv,
+  providerEnvName: string,
+  modelEnvName: string,
+  modelConfigKey: keyof AiModelConfig,
+  fallback: ModelRoute,
+): ModelRoute {
+  const providerId = env[providerEnvName]?.trim() || fallback.providerId;
+
+  if (!providerIds.includes(providerId as ProviderId)) {
+    throw new Error(`Invalid ${providerEnvName} "${providerId}". Expected one of: ${providerIds.join(", ")}`);
+  }
+
+  return {
+    modelId:
+      env[modelEnvName]?.trim() ||
+      (providerId === fallback.providerId ? fallback.modelId : modelConfig[providerId as ProviderId][modelConfigKey]),
+    providerId: providerId as ProviderId,
+  };
+}
+
+export function resolveKnowledgeGenerationModelRoute(env: NodeJS.ProcessEnv = process.env): ModelRoute {
+  return resolveModelRoute(
+    env,
+    "KNOWLEDGE_GENERATE_PROVIDER_ID",
+    "KNOWLEDGE_GENERATE_MODEL",
+    "KNOWLEDGE_GENERATE_MODEL",
+    recommendedAsyncModelRoutes.knowledgeGeneration,
+  );
+}
+
+export function resolveLingAnalysisModelRoute(env: NodeJS.ProcessEnv = process.env): ModelRoute {
+  return resolveModelRoute(
+    env,
+    "LING_ANALYSIS_PROVIDER_ID",
+    "LING_ANALYSIS_MODEL",
+    "LING_ANALYSIS_MODEL",
+    recommendedAsyncModelRoutes.lingAnalysis,
+  );
+}
+
+export function resolveConversationAnalysisModelRoute(env: NodeJS.ProcessEnv = process.env): ModelRoute {
+  return resolveModelRoute(
+    env,
+    "CONVERSATION_ANALYSIS_PROVIDER_ID",
+    "CONVERSATION_ANALYSIS_MODEL",
+    "CONVERSATION_ANALYSIS_MODEL",
+    recommendedAsyncModelRoutes.conversationAnalysis,
+  );
+}
+
 export function resolveScenarioGenerationModelRoutes(
-  defaultProviderId: ProviderId,
   env: NodeJS.ProcessEnv = process.env,
 ): ScenarioGenerationModelRoutes {
-  const storyProviderId = resolveStepProvider(env, "SCENARIO_STORY_PROVIDER_ID", defaultProviderId);
-  const goalsProviderId = resolveStepProvider(env, "SCENARIO_GOALS_PROVIDER_ID", defaultProviderId);
-  const dialogueProviderId = resolveStepProvider(env, "SCENARIO_DIALOGUE_PROVIDER_ID", defaultProviderId);
+  const storyProviderId = resolveStepProvider(
+    env,
+    "SCENARIO_STORY_PROVIDER_ID",
+    recommendedAsyncModelRoutes.scenario.story.providerId,
+  );
+  const goalsProviderId = resolveStepProvider(
+    env,
+    "SCENARIO_GOALS_PROVIDER_ID",
+    recommendedAsyncModelRoutes.scenario.goals.providerId,
+  );
+  const dialogueProviderId = resolveStepProvider(
+    env,
+    "SCENARIO_DIALOGUE_PROVIDER_ID",
+    recommendedAsyncModelRoutes.scenario.dialogue.providerId,
+  );
 
   return {
     story: {
-      modelId: env.SCENARIO_STORY_MODEL?.trim() || modelConfig[storyProviderId].SCENARIO_STORY_MODEL,
+      modelId:
+        env.SCENARIO_STORY_MODEL?.trim() ||
+        (storyProviderId === recommendedAsyncModelRoutes.scenario.story.providerId
+          ? recommendedAsyncModelRoutes.scenario.story.modelId
+          : modelConfig[storyProviderId].SCENARIO_STORY_MODEL),
       providerId: storyProviderId,
     },
     goals: {
-      modelId: env.SCENARIO_GOALS_MODEL?.trim() || modelConfig[goalsProviderId].SCENARIO_GOALS_MODEL,
+      modelId:
+        env.SCENARIO_GOALS_MODEL?.trim() ||
+        (goalsProviderId === recommendedAsyncModelRoutes.scenario.goals.providerId
+          ? recommendedAsyncModelRoutes.scenario.goals.modelId
+          : modelConfig[goalsProviderId].SCENARIO_GOALS_MODEL),
       providerId: goalsProviderId,
     },
     dialogue: {
-      modelId: env.SCENARIO_DIALOGUE_MODEL?.trim() || modelConfig[dialogueProviderId].SCENARIO_DIALOGUE_MODEL,
+      modelId:
+        env.SCENARIO_DIALOGUE_MODEL?.trim() ||
+        (dialogueProviderId === recommendedAsyncModelRoutes.scenario.dialogue.providerId
+          ? recommendedAsyncModelRoutes.scenario.dialogue.modelId
+          : modelConfig[dialogueProviderId].SCENARIO_DIALOGUE_MODEL),
       providerId: dialogueProviderId,
     },
   };
