@@ -15,7 +15,9 @@ data/*.sqlite-wal
 .pnpm-store
 .agents
 .vscode
-.github
+.github/*
+!.github/workflows/
+!.github/workflows/**
 apps/ui-reference
 apps/web-archive
 apps/shadcn-admin

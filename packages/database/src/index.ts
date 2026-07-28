@@ -1,40 +1,40 @@
-import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
 
+import { assertSafeDatabaseConfiguration, databaseAuthToken, databaseUrl } from "./config";
 import * as schema from "./schema";
 
-const defaultDatabasePath = fileURLToPath(
-  new URL(
-    process.env.NODE_ENV === "test" ? "../../../data/coach.test.sqlite" : "../../../data/coach.sqlite",
-    import.meta.url,
-  ),
-);
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
-export const databasePath = process.env.DATABASE_PATH ?? defaultDatabasePath;
+assertSafeDatabaseConfiguration();
 
-mkdirSync(dirname(databasePath), { recursive: true });
+if (databaseUrl.startsWith("file:")) {
+  mkdirSync(dirname(fileURLToPath(databaseUrl)), { recursive: true });
+}
 
-export const sqlite = new Database(databasePath);
+export const databaseClient = createClient({
+  authToken: databaseAuthToken,
+  url: databaseUrl,
+});
 
-sqlite.run("PRAGMA journal_mode = WAL;");
-sqlite.run("PRAGMA busy_timeout = 5000;");
+if (databaseUrl.startsWith("file:")) {
+  await databaseClient.batch(
+    ["PRAGMA journal_mode = WAL", "PRAGMA busy_timeout = 5000", "PRAGMA foreign_keys = ON"],
+    "write",
+  );
+}
 
-export const db = drizzle({ client: sqlite, schema });
+export const db = drizzle({ client: databaseClient, schema });
 
 export const { submissionJobs, submissions } = schema;
 
-let migrated = false;
+let migrationPromise: Promise<void> | undefined;
 
-export function migrateDatabase() {
-  if (migrated) {
-    return;
-  }
-
-  migrate(db, { migrationsFolder });
-  migrated = true;
+export async function migrateDatabase() {
+  migrationPromise ??= migrate(db, { migrationsFolder });
+  await migrationPromise;
 }

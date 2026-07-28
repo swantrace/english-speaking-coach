@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  COACHING_TURN_HANDLING,
-  LIVEKIT_INFERENCE_MODELS,
-  PLUGIN_MODELS,
-  withThinkingDisabled,
-} from "./voice-models";
+import { COACHING_TURN_HANDLING, LIVEKIT_INFERENCE_MODELS, PLUGIN_MODELS, withThinkingDisabled } from "./voice-models";
 
 describe("voice model configuration", () => {
   it("uses provider-prefixed IDs only for LiveKit Inference", () => {

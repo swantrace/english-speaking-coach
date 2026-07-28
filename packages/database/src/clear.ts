@@ -1,11 +1,11 @@
-import { Database } from "bun:sqlite";
 import { mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertDestructiveDatabaseOperationAllowed, databaseUrl } from "./config";
 
-const defaultDatabasePath = fileURLToPath(new URL("../../../data/coach.sqlite", import.meta.url));
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
-const databasePath = process.env.DATABASE_PATH ?? defaultDatabasePath;
+assertDestructiveDatabaseOperationAllowed();
+const databasePath = fileURLToPath(databaseUrl);
 
 function removeIfExists(path: string) {
   rmSync(path, { force: true, recursive: true });
@@ -26,10 +26,5 @@ removeIfExists(databasePath);
 removeIfExists(`${databasePath}-wal`);
 removeIfExists(`${databasePath}-shm`);
 clearMigrationsFolder(migrationsFolder);
-
-const sqlite = new Database(databasePath);
-sqlite.run("PRAGMA journal_mode = WAL;");
-sqlite.run("PRAGMA busy_timeout = 5000;");
-sqlite.close();
 
 console.log(`Cleared database and removed migrations at ${databasePath}`);

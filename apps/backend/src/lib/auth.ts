@@ -2,36 +2,39 @@ import { db } from "@english-coach/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
-export const authTrustedOrigins = ["http://localhost:5173", "https://english-speaking-coach.com"];
+const defaultTrustedOrigins = ["http://localhost:5173", "https://english-speacking-coach.vercel.app"];
+
+export const authTrustedOrigins = (process.env.AUTH_TRUSTED_ORIGINS ?? defaultTrustedOrigins.join(","))
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const isProduction = process.env.NODE_ENV === "production";
-const localCookieAttributes = {
-  sameSite: "lax",
-  secure: false,
-} as const;
+const authBaseUrl = process.env.BETTER_AUTH_URL ?? (isProduction ? undefined : "http://localhost:3001");
+const authSecret =
+  process.env.BETTER_AUTH_SECRET ?? (isProduction ? undefined : "development-secret-change-me-before-production-1234");
 
-const productionCookieAttributes = {
-  domain: "english-speaking-coach.com",
-  sameSite: "none",
-  secure: true,
+if (!authBaseUrl || !authSecret) {
+  throw new Error("Production auth requires BETTER_AUTH_URL and BETTER_AUTH_SECRET.");
+}
+
+const cookieAttributes = {
+  sameSite: "lax",
+  secure: isProduction,
 } as const;
 
 export const auth = betterAuth({
   advanced: {
-    crossSubDomainCookies: {
-      enabled: isProduction,
-      domain: "english-speaking-coach.com",
-    },
-    defaultCookieAttributes: isProduction ? productionCookieAttributes : localCookieAttributes,
+    defaultCookieAttributes: cookieAttributes,
     useSecureCookies: isProduction,
   },
   appName: "English Speaking Coach",
   basePath: "/api/auth",
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
+  baseURL: authBaseUrl,
   emailAndPassword: {
     enabled: true,
   },
-  secret: process.env.BETTER_AUTH_SECRET ?? "development-secret-change-me-before-production-1234",
+  secret: authSecret,
   trustedOrigins: authTrustedOrigins,
   user: {
     additionalFields: {

@@ -1,7 +1,7 @@
 import type { AccessArea, AccessState, AuthUser } from "./types";
 
 function normalizeProtectedRedirectPath(redirectTo: string | null | undefined) {
-  if (!redirectTo || !redirectTo.startsWith("/") || redirectTo.startsWith("//")) {
+  if (!redirectTo?.startsWith("/") || redirectTo.startsWith("//")) {
     return null;
   }
 

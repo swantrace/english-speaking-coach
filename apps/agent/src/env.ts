@@ -23,6 +23,10 @@ export function getRequiredEnv(name: string, env: NodeJS.ProcessEnv = process.en
   throw new Error(`Missing required environment variable: ${name}`);
 }
 
+export function shouldValidateAgentEnvironment(argv: string[] = process.argv) {
+  return !argv.includes("download-files");
+}
+
 const defaultDevelopmentApiToken = "english-coach-local-api-token";
 
 function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env) {

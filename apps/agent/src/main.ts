@@ -4,11 +4,18 @@ import * as silero from "@livekit/agents-plugin-silero";
 import { BackgroundVoiceCancellation } from "@livekit/noise-cancellation-node";
 
 import { prepareAgent } from "./agent";
-import { loadAgentEnv, resolveAgentModelProvider, validateAgentEnvironment } from "./env";
+import {
+  loadAgentEnv,
+  resolveAgentModelProvider,
+  shouldValidateAgentEnvironment,
+  validateAgentEnvironment,
+} from "./env";
 import { COACHING_TURN_HANDLING, createVoiceModels } from "./voice-models";
 
 loadAgentEnv();
-validateAgentEnvironment();
+if (shouldValidateAgentEnvironment()) {
+  validateAgentEnvironment();
+}
 
 const agentModelProvider = resolveAgentModelProvider();
 const useLiveKitInference = agentModelProvider === "livekit";

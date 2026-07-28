@@ -1,0 +1,33 @@
+app = "english-speaking-coach"
+primary_region = "sea"
+
+[build]
+  dockerfile = "apps/backend/Dockerfile"
+
+[deploy]
+  release_command = "pnpm --filter @english-coach/database db:migrate"
+
+[env]
+  APP_ENV = "practice"
+  MIGRATE_ON_STARTUP = "false"
+  NODE_ENV = "production"
+  PORT = "3001"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

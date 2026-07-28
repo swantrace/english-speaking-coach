@@ -12,10 +12,13 @@
     "db:clear:app": "bun run ./src/clear-app.ts",
     "db:clear": "bun run ./src/clear.ts && drizzle-kit generate && bun run db:migrate",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun -e \"import { migrateDatabase } from './src/index.ts'; migrateDatabase(); console.log('migrations applied');\"",
-    "db:push": "drizzle-kit push"
+    "db:migrate": "bun -e \"import { migrateDatabase } from './src/index.ts'; await migrateDatabase(); console.log('migrations applied');\"",
+    "db:push": "drizzle-kit push",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {

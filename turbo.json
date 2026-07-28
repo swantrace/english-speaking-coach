@@ -23,7 +23,16 @@
     "db:push": {
       "cache": false
     },
-    "lint": {},
+    "lint": {
+      "dependsOn": ["transit"]
+    },
+    "lint:fix": {
+      "cache": false,
+      "dependsOn": ["transit"]
+    },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
@@ -35,10 +44,6 @@
     "dev:worker": {
       "cache": false,
       "persistent": true
-    },
-    "//#format-and-lint": {},
-    "//#format-and-lint:fix": {
-      "cache": false
     }
   }
 }
