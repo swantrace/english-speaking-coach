@@ -98,7 +98,9 @@ export function validateAgentEnvironment(env: NodeJS.ProcessEnv = process.env) {
   const missingVariables = ["API_TOKEN"].filter(() => !getAgentApiToken(env));
 
   if (provider === "plugins") {
-    missingVariables.push(...["OPENAI_API_KEY"].filter((name) => !env[name]?.trim()));
+    missingVariables.push(
+      ...["DEEPSEEK_API_KEY", "DEEPGRAM_API_KEY", "CARTESIA_API_KEY"].filter((name) => !env[name]?.trim()),
+    );
   }
 
   if (missingVariables.length === 0) {

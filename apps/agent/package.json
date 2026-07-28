@@ -21,22 +21,24 @@
   "dependencies": {
     "@english-coach/contract": "workspace:*",
     "@english-coach/prompts": "workspace:*",
-    "@livekit/agents": "^1.0.46",
-    "@livekit/agents-plugin-livekit": "^1.0.46",
-    "@livekit/agents-plugin-openai": "^1.0.46",
-    "@livekit/agents-plugin-silero": "^1.0.46",
-    "@livekit/noise-cancellation-node": "^0.1.9",
-    "bullmq": "^5.61.2",
-    "dotenv": "^17.3.1",
-    "ioredis": "^5.8.2",
-    "zod": "^4.3.6"
+    "@livekit/agents": "^1.6.0",
+    "@livekit/agents-plugin-cartesia": "^1.6.0",
+    "@livekit/agents-plugin-deepgram": "^1.6.0",
+    "@livekit/agents-plugin-openai": "^1.6.0",
+    "@livekit/agents-plugin-silero": "^1.6.0",
+    "@livekit/noise-cancellation-node": "^0.2.0",
+    "@livekit/rtc-node": "^0.13.32",
+    "bullmq": "^5.81.2",
+    "dotenv": "^17.4.2",
+    "ioredis": "^5.11.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
-    "nodemon": "^3.1.10",
-    "@types/node": "^24.12.0",
-    "typescript": "5.9.3",
-    "vite": "^8.0.0",
-    "vitest": "^4.0.18"
+    "@types/node": "^26.1.2",
+    "concurrently": "^10.0.4",
+    "nodemon": "^3.1.14",
+    "typescript": "7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
   }
 }

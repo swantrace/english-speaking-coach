@@ -13,12 +13,20 @@ export const qwen = createOpenAICompatible({
   supportsStructuredOutputs: true,
 });
 
+export const deepseek = createOpenAICompatible({
+  name: "deepseek",
+  baseURL: process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com",
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  supportsStructuredOutputs: false,
+});
+
 export const registry = createProviderRegistry({
+  deepseek,
   openai,
   qwen,
 });
 
-export const providerIds = ["openai", "qwen"] as const;
+export const providerIds = ["openai", "qwen", "deepseek"] as const;
 
 export type ProviderId = (typeof providerIds)[number];
 
