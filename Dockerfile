@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build with the repository root as context:
-# docker build -f apps/agent/Dockerfile .
+# LiveKit Cloud Agent image. Fly uses apps/backend/Dockerfile explicitly.
 FROM node:22-slim
 
 ENV PNPM_HOME="/pnpm"

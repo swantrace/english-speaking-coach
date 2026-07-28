@@ -7,6 +7,7 @@ import {
   getRedisConnectionOptions,
   getRequiredEnv,
   resolveAgentModelProvider,
+  shouldValidateAgentEnvironment,
   validateAgentEnvironment,
 } from "./env";
 
@@ -17,6 +18,14 @@ describe("getRequiredEnv", () => {
 
   it("throws when a required environment variable is missing", () => {
     expect(() => getRequiredEnv("OPENAI_API_KEY", {})).toThrow("Missing required environment variable: OPENAI_API_KEY");
+  });
+});
+
+describe("shouldValidateAgentEnvironment", () => {
+  it("skips runtime secrets only while pre-downloading model files", () => {
+    expect(shouldValidateAgentEnvironment(["node", "dist/main.js", "download-files"])).toBe(false);
+    expect(shouldValidateAgentEnvironment(["node", "dist/main.js", "start"])).toBe(true);
+    expect(shouldValidateAgentEnvironment(["node", "dist/main.js", "dev"])).toBe(true);
   });
 });
 

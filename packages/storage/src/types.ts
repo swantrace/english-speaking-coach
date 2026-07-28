@@ -2,7 +2,7 @@
  * Configuration for S3-compatible storage
  */
 export interface StorageConfig {
-  /** S3 endpoint URL (e.g., http://minio:9000, https://fly.storage.tigris.dev) */
+  /** S3 endpoint URL (e.g., MinIO locally or a Cloudflare R2 S3 endpoint) */
   endpoint: string;
   /** AWS region */
   region: string;
@@ -18,7 +18,7 @@ export interface StorageConfig {
 
 /**
  * Storage provider abstraction for S3-compatible storage
- * Supports MinIO (local dev) and Tigris (production)
+ * Supports MinIO (local development) and Cloudflare R2 (shared practice data)
  */
 export interface StorageProvider {
   /**

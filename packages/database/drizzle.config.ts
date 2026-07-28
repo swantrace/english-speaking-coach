@@ -1,15 +1,15 @@
 import "dotenv/config";
 
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "drizzle-kit";
-
-const defaultDatabasePath = fileURLToPath(new URL("../../data/coach.sqlite", import.meta.url));
 
 export default defineConfig({
   dbCredentials: {
-    url: process.env.DATABASE_PATH ?? defaultDatabasePath,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+    url:
+      process.env.TURSO_DATABASE_URL ??
+      (process.env.DATABASE_PATH ? `file:${process.env.DATABASE_PATH}` : "file:../../data/coach.sqlite"),
   },
-  dialect: "sqlite",
+  dialect: "turso",
   out: "./drizzle",
   schema: "./src/schema.ts",
 });

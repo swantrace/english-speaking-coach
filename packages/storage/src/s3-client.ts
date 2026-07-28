@@ -11,7 +11,7 @@ import type { StorageConfig, StorageProvider } from "./types";
 
 /**
  * S3-compatible storage implementation
- * Works with MinIO (local dev) and Tigris (production)
+ * Works with MinIO (local development) and Cloudflare R2 (shared practice data).
  */
 export class S3StorageProvider implements StorageProvider {
   private client: AWSS3Client;

@@ -2,11 +2,11 @@ import type { StorageConfig } from "./types";
 
 /**
  * Load storage configuration from environment variables
- * Supports both MinIO (local dev) and Tigris (production)
+ * Supports both MinIO (local development) and Cloudflare R2 (shared practice data).
  */
 export function getStorageConfig(): StorageConfig {
   const endpoint = process.env.S3_ENDPOINT;
-  const region = process.env.S3_REGION;
+  const region = process.env.S3_REGION ?? (process.env.S3_PROVIDER === "r2" ? "auto" : undefined);
   const bucket = process.env.S3_BUCKET;
   const accessKey = process.env.S3_ACCESS_KEY;
   const secretKey = process.env.S3_SECRET_KEY;

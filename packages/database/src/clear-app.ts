@@ -1,26 +1,17 @@
-import { Database } from "bun:sqlite";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { assertDestructiveDatabaseOperationAllowed, databaseUrl } from "./config";
+import { databaseClient } from "./index";
 
-const defaultDatabasePath = fileURLToPath(new URL("../../../data/coach.sqlite", import.meta.url));
-const databasePath = process.env.DATABASE_PATH ?? defaultDatabasePath;
+assertDestructiveDatabaseOperationAllowed();
 
-mkdirSync(dirname(databasePath), { recursive: true });
+await databaseClient.batch(
+  [
+    "delete from ai_tool_calls",
+    "delete from ai_model_requests",
+    "delete from submission_jobs",
+    "delete from submissions",
+  ],
+  "write",
+);
+databaseClient.close();
 
-const sqlite = new Database(databasePath);
-
-sqlite.run("PRAGMA journal_mode = WAL;");
-sqlite.run("PRAGMA busy_timeout = 5000;");
-sqlite.run("PRAGMA foreign_keys = ON;");
-
-sqlite.transaction(() => {
-  sqlite.query("delete from ai_tool_calls").run();
-  sqlite.query("delete from ai_model_requests").run();
-  sqlite.query("delete from submission_jobs").run();
-  sqlite.query("delete from submissions").run();
-})();
-
-sqlite.close();
-
-console.log(`Cleared application data tables at ${databasePath} while preserving auth data`);
+console.log(`Cleared application data tables at ${databaseUrl} while preserving auth data`);

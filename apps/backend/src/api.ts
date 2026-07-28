@@ -6,7 +6,9 @@ import { attachRequestSession, registerAccessPolicies } from "./http/guards";
 import { authTrustedOrigins } from "./lib/auth";
 import { registerRoutes } from "./routes";
 
-migrateDatabase();
+if (process.env.MIGRATE_ON_STARTUP !== "false") {
+  await migrateDatabase();
+}
 
 export const app = new Hono<{ Variables: AppVariables }>();
 const port = Number(process.env.PORT ?? 3001);
