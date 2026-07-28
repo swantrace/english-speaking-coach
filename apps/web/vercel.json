@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "cd ../.. && pnpm exec turbo query affected --packages web --exit-code",
   "headers": [
     {
       "source": "/(.*)",

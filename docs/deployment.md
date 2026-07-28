@@ -30,7 +30,9 @@ For local practice, put the shared cloud values in the ignored
 Set the Vercel Root Directory to `apps/web`. Leave `VITE_API_BASE_URL` unset so
 the browser uses `/api`; `vercel.json` proxies it to Fly and supplies the SPA
 fallback. Search indexing is discouraged using `robots.txt`, a robots meta tag,
-and `X-Robots-Tag`. This is not access control.
+and `X-Robots-Tag`. This is not access control. The checked-in `ignoreCommand`
+uses `turbo query affected`, so Vercel skips deployments when neither `web` nor
+one of its workspace dependencies changed.
 
 ## API and worker on Fly
 
@@ -91,3 +93,49 @@ Set `BACKEND_BASE_URL=https://english-speaking-coach.fly.dev` and use the same
 `API_TOKEN`, Redis URL, LiveKit credentials, and voice-model provider keys as
 the backend/practice environment. LiveKit Cloud does not upload `.env*` files;
 configure secrets in the LiveKit deployment instead.
+
+## GitHub CI/CD
+
+`.github/workflows/pipeline.yml` runs on pull requests and pushes to `main`.
+It formats-checks the whole repository, then uses Turborepo's affected package
+graph for builds, lint, and tests. On `main`, Fly and LiveKit deploy only when
+their application package or a workspace dependency changed. Documentation-only
+changes do not deploy services.
+
+The workflow can also be started manually with `ci-only`, `fly`, `livekit`, or
+`all`. Configure a GitHub `production` environment and add:
+
+- `FLY_API_TOKEN`
+- `LIVEKIT_URL`
+- `LIVEKIT_API_KEY`
+- `LIVEKIT_API_SECRET`
+- `LIVEKIT_AGENT_SECRET_LIST`
+
+`LIVEKIT_AGENT_SECRET_LIST` contains the runtime secrets passed to the official
+LiveKit deployment action. LiveKit supplies its own `LIVEKIT_*` credentials to
+the deployed Agent.
+
+The workflow caches `.turbo` with GitHub Actions. GitHub caches are scoped by
+branch, so optionally configure Vercel Remote Cache to share task artifacts
+between PR branches and `main`:
+
+- Actions secret: `TURBO_TOKEN`
+- Actions variable: `TURBO_TEAM`
+
+Without these optional values, the branch-local `.turbo` cache still works.
+
+Protect `main` with a GitHub branch ruleset:
+
+1. Go to **Settings → Rules → Rulesets** and create a branch ruleset for `main`.
+2. Enable **Require a pull request before merging**.
+3. Require the `Quality and affected services` status check.
+4. Block force pushes and branch deletion.
+5. For this personal repository, required approvals can remain at zero.
+
+Before automatic LiveKit deployments can run, create the Agent once locally and
+commit the generated root `livekit.toml`:
+
+```sh
+lk agent create .
+git add livekit.toml
+```

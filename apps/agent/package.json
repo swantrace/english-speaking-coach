@@ -9,6 +9,8 @@
     "clean": "rm -rf dist",
     "dev": "pnpm run build && pnpm exec concurrently -k -n build,agent -c yellow,green \"pnpm run build:watch\" \"pnpm exec nodemon --watch dist --ext js,mjs --signal SIGTERM --exec 'node dist/main.js dev'\"",
     "download-files": "pnpm run build && node dist/main.js download-files",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
     "start": "pnpm run build && node dist/main.js start",
     "test": "vitest --run",
     "test:watch": "vitest",

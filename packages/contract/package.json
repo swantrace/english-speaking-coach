@@ -15,7 +15,9 @@
     "./session": "./src/session/index.ts"
   },
   "scripts": {
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write"
   },
   "dependencies": {
     "@english-coach/database": "workspace:*",

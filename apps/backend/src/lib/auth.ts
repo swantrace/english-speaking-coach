@@ -12,8 +12,7 @@ export const authTrustedOrigins = (process.env.AUTH_TRUSTED_ORIGINS ?? defaultTr
 const isProduction = process.env.NODE_ENV === "production";
 const authBaseUrl = process.env.BETTER_AUTH_URL ?? (isProduction ? undefined : "http://localhost:3001");
 const authSecret =
-  process.env.BETTER_AUTH_SECRET ??
-  (isProduction ? undefined : "development-secret-change-me-before-production-1234");
+  process.env.BETTER_AUTH_SECRET ?? (isProduction ? undefined : "development-secret-change-me-before-production-1234");
 
 if (!authBaseUrl || !authSecret) {
   throw new Error("Production auth requires BETTER_AUTH_URL and BETTER_AUTH_SECRET.");

@@ -1,0 +1,200 @@
+name: CI and Deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: Service to deploy after CI passes
+        required: true
+        default: ci-only
+        type: choice
+        options:
+          - ci-only
+          - fly
+          - livekit
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality and affected services
+    runs-on: ubuntu-latest
+    concurrency:
+      group: quality-${{ github.ref }}
+      cancel-in-progress: true
+    outputs:
+      agent: ${{ steps.affected.outputs.agent }}
+      agent_configured: ${{ steps.affected.outputs.agent_configured }}
+      fly: ${{ steps.affected.outputs.fly }}
+      web: ${{ steps.affected.outputs.web }}
+    env:
+      HUSKY: "0"
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Turborepo local cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', '**/turbo.json') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', '**/turbo.json') }}-
+            turbo-${{ runner.os }}-
+
+      - name: Check formatting and lint
+        run: pnpm format-and-lint
+
+      - name: Build, lint, and test affected packages
+        if: github.event_name != 'workflow_dispatch'
+        run: pnpm exec turbo run build lint test --affected
+
+      - name: Build, lint, and test all packages
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm exec turbo run build lint test
+
+      - name: Verify database migrations are committed
+        env:
+          APP_ENV: test
+          TURSO_DATABASE_URL: file:/tmp/english-coach-ci.sqlite
+        run: |
+          pnpm --filter @english-coach/database db:generate
+          git diff --exit-code -- packages/database/drizzle
+
+      - name: Detect affected deployment targets
+        id: affected
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          DEPLOY_TARGET: ${{ inputs.deploy_target }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          web=false
+          fly=false
+          agent=false
+          agent_configured=false
+
+          if [ -f livekit.toml ]; then
+            agent_configured=true
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "$DEPLOY_TARGET" in
+              fly) fly=true ;;
+              livekit) agent=true ;;
+              all)
+                web=true
+                fly=true
+                agent=true
+                ;;
+            esac
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            base="$BEFORE_SHA"
+            if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+              base="$(git rev-parse "$HEAD_SHA^")"
+            fi
+
+            TURBO_SCM_BASE="$base" TURBO_SCM_HEAD="$HEAD_SHA" \
+              pnpm exec turbo run build --affected --dry=json > /tmp/affected.json
+
+            packages="$(jq -r '.packages[]' /tmp/affected.json)"
+            files="$(git diff --name-only "$base" "$HEAD_SHA")"
+
+            if grep -Fxq "web" <<<"$packages"; then web=true; fi
+            if grep -Fxq "@english-coach/backend" <<<"$packages"; then fly=true; fi
+            if grep -Fxq "assistant" <<<"$packages"; then agent=true; fi
+
+            if grep -Eq '^apps/web/vercel\.json$' <<<"$files"; then web=true; fi
+            if grep -Eq '^apps/backend/(Dockerfile|fly\.toml)$' <<<"$files"; then fly=true; fi
+            if grep -Eq '^(\.dockerignore|Dockerfile|apps/agent/Dockerfile)$' <<<"$files"; then agent=true; fi
+          fi
+
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "fly=$fly" >> "$GITHUB_OUTPUT"
+          echo "agent=$agent" >> "$GITHUB_OUTPUT"
+          echo "agent_configured=$agent_configured" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Deployment plan"
+            echo
+            echo "- Vercel web affected: \`$web\` (Vercel Git integration handles deployment)"
+            echo "- Fly backend affected: \`$fly\`"
+            echo "- LiveKit Agent affected: \`$agent\`"
+            echo "- LiveKit Agent configured: \`$agent_configured\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-fly:
+    name: Deploy backend to Fly.io
+    needs: quality
+    if: github.event_name != 'pull_request' && needs.quality.outputs.fly == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-fly-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API and worker
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only --config apps/backend/fly.toml .
+
+  deploy-agent:
+    name: Deploy Agent to LiveKit Cloud
+    needs: quality
+    if: >-
+      github.event_name != 'pull_request' &&
+      needs.quality.outputs.agent == 'true' &&
+      needs.quality.outputs.agent_configured == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-livekit-agent-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # UNVERIFIED: LiveKit Docs MCP was unavailable; this action and inputs were
+      # checked against the current official LiveKit deploy-action documentation.
+      - name: Deploy LiveKit Cloud Agent
+        uses: livekit/deploy-action@v2.12.1
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          SECRET_LIST: ${{ secrets.LIVEKIT_AGENT_SECRET_LIST }}
+        with:
+          OPERATION: deploy
+          WORKING_DIRECTORY: .
