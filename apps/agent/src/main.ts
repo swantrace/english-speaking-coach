@@ -1,12 +1,11 @@
 import { fileURLToPath } from "node:url";
-import { cli, defineAgent, inference, type JobContext, type JobProcess, ServerOptions, voice } from "@livekit/agents";
-import * as livekit from "@livekit/agents-plugin-livekit";
-import * as openai from "@livekit/agents-plugin-openai";
+import { cli, defineAgent, type JobContext, type JobProcess, ServerOptions, voice } from "@livekit/agents";
 import * as silero from "@livekit/agents-plugin-silero";
 import { BackgroundVoiceCancellation } from "@livekit/noise-cancellation-node";
 
 import { prepareAgent } from "./agent";
-import { getRequiredEnv, loadAgentEnv, resolveAgentModelProvider, validateAgentEnvironment } from "./env";
+import { loadAgentEnv, resolveAgentModelProvider, validateAgentEnvironment } from "./env";
+import { COACHING_TURN_HANDLING, createVoiceModels } from "./voice-models";
 
 loadAgentEnv();
 validateAgentEnvironment();
@@ -33,39 +32,12 @@ export default defineAgent({
 
     let finalized = false;
     let lastAnalysisTurnIndex = 0;
+    const voiceModels = createVoiceModels(agentModelProvider);
 
     const session = new voice.AgentSession({
-      stt: useLiveKitInference
-        ? new inference.STT({
-            language: "multi",
-            model: "deepgram/nova-3",
-          })
-        : new openai.STT({
-            apiKey: getRequiredEnv("OPENAI_API_KEY"),
-            model: "whisper-1",
-          }),
-      llm: useLiveKitInference
-        ? new inference.LLM({
-            model: "openai/gpt-4.1-mini",
-          })
-        : new openai.LLM({
-            apiKey: getRequiredEnv("OPENAI_API_KEY"),
-            model: "gpt-4.1-mini",
-          }),
-      tts: useLiveKitInference
-        ? new inference.TTS({
-            model: "cartesia/sonic-3",
-            voice: "9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
-          })
-        : new openai.TTS({
-            apiKey: getRequiredEnv("OPENAI_API_KEY"),
-            model: "tts-1",
-          }),
-      turnDetection: new livekit.turnDetector.MultilingualModel(),
+      ...voiceModels,
+      turnHandling: COACHING_TURN_HANDLING,
       vad,
-      voiceOptions: {
-        preemptiveGeneration: true,
-      },
     });
 
     ctx.addShutdownCallback(async () => {

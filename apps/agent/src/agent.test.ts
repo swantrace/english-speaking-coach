@@ -218,7 +218,9 @@ describe("Agent analysis", () => {
         ],
       },
       {
+        jobId: "inConversationAnalysis-history-1-0",
         removeOnComplete: true,
+        removeOnFail: false,
       },
     );
     expect(dependencyMocks.addSessionCompletionJob).not.toHaveBeenCalled();
@@ -244,7 +246,7 @@ describe("Agent analysis", () => {
         sessionHistoryId: "history-1",
         transcript: [{ speaker: "user", text: "Newest user turn", timestampMs: 3 }],
       },
-      { jobId: "sessionCompletion-history-1", removeOnComplete: true },
+      { jobId: "sessionCompletion-history-1", removeOnComplete: true, removeOnFail: false },
     );
   });
 });

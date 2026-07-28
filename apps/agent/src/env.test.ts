@@ -54,7 +54,9 @@ describe("validateAgentEnvironment", () => {
         LIVEKIT_API_KEY: "key",
         LIVEKIT_API_SECRET: "secret",
         LIVEKIT_URL: "wss://demo.livekit.cloud",
-        OPENAI_API_KEY: "openai-key",
+        CARTESIA_API_KEY: "cartesia-key",
+        DEEPGRAM_API_KEY: "deepgram-key",
+        DEEPSEEK_API_KEY: "deepseek-key",
       }),
     ).not.toThrow();
   });
@@ -68,7 +70,9 @@ describe("validateAgentEnvironment", () => {
         LIVEKIT_API_SECRET: "secret",
         LIVEKIT_URL: "wss://demo.livekit.cloud",
       }),
-    ).toThrow("Agent requires the following environment variables: OPENAI_API_KEY");
+    ).toThrow(
+      "Agent requires the following environment variables: DEEPSEEK_API_KEY, DEEPGRAM_API_KEY, CARTESIA_API_KEY",
+    );
   });
 
   it("uses a local-development API token fallback when API_TOKEN is unset", () => {

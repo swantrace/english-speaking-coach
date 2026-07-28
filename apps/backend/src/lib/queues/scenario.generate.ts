@@ -11,7 +11,7 @@ import {
 import { db } from "@english-coach/database";
 import { scenarios } from "@english-coach/database/schema";
 import { type Job, Queue, Worker } from "bullmq";
-import { type GeneratedScenario, getProvider, modelConfig } from "../ai";
+import { type GeneratedScenario, getProvider, resolveScenarioGenerationModelRoutes } from "../ai";
 import { defaultProviderId } from "../env";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import { type JobProgressBaseMessage, publishJobProgress } from "./helpers/progress";
@@ -40,7 +40,7 @@ export const scenarioGenerateQueue = new Queue<ScenarioGenerateJobData>(scenario
 });
 
 const scenarioAi = getProvider(defaultProviderId).scenario;
-const models = modelConfig[defaultProviderId];
+const scenarioModelRoutes = resolveScenarioGenerationModelRoutes(defaultProviderId);
 
 let scenarioGeneratorOverride: ((prompt: string) => Promise<GeneratedScenario>) | null = null;
 
@@ -104,7 +104,7 @@ async function generateScenario(prompt: string, job: Job<ScenarioGenerateJobData
   }
 
   return scenarioAi.generateScenario(
-    models.SCENARIO_GENERATE_MODEL,
+    scenarioModelRoutes,
     {
       brief: prompt,
     },
