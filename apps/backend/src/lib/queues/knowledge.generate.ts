@@ -9,8 +9,7 @@ import {
 } from "@english-coach/contract/knowledge";
 
 import { type Job, Queue, Worker } from "bullmq";
-import { type GeneratedKnowledgeItem, getProvider, modelConfig } from "../ai";
-import { defaultProviderId } from "../env";
+import { type GeneratedKnowledgeItem, getProvider, resolveKnowledgeGenerationModelRoute } from "../ai";
 import { producerRedis, pubsubPublisherRedis, workerRedis } from "../redis";
 import { persistGeneratedKnowledgeItem } from "./helpers/knowledge-items.persistence";
 import { type JobProgressBaseMessage, publishJobProgress } from "./helpers/progress";
@@ -38,8 +37,8 @@ export const knowledgeGenerateQueue = new Queue<KnowledgeGenerateJobData>(knowle
   connection: producerRedis,
 });
 
-const knowledgeItemAi = getProvider(defaultProviderId).knowledgeItem;
-const models = modelConfig[defaultProviderId];
+const knowledgeModelRoute = resolveKnowledgeGenerationModelRoute();
+const knowledgeItemAi = getProvider(knowledgeModelRoute.providerId).knowledgeItem;
 
 let knowledgeGeneratorOverride: ((prompt: string) => Promise<GeneratedKnowledgeItem>) | null = null;
 
@@ -106,7 +105,7 @@ async function generateKnowledgeItem(
   }
 
   return knowledgeItemAi.generateKnowledgeItem(
-    models.KNOWLEDGE_GENERATE_MODEL,
+    knowledgeModelRoute.modelId,
     {
       input: prompt,
     },

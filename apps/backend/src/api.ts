@@ -28,11 +28,13 @@ registerAccessPolicies(app);
 
 registerRoutes(app);
 
-console.log(`backend api listening on http://localhost:${port}`);
+if (import.meta.main) {
+  const server = Bun.serve({
+    fetch: app.fetch,
+    idleTimeout: Number(process.env.BUN_IDLE_TIMEOUT_SECONDS ?? 60),
+    port,
+    hostname: "0.0.0.0",
+  });
 
-export default {
-  fetch: app.fetch,
-  idleTimeout: Number(process.env.BUN_IDLE_TIMEOUT_SECONDS ?? 60),
-  port,
-  hostname: "0.0.0.0",
-};
+  console.log(`backend api listening on ${server.url}`);
+}

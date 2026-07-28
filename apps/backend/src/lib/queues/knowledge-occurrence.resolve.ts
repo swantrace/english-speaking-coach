@@ -8,8 +8,7 @@ import { db } from "@english-coach/database";
 import { sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
 import { type Job, Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
-import { type GeneratedKnowledgeItem, getProvider, modelConfig } from "../ai";
-import { defaultProviderId } from "../env";
+import { type GeneratedKnowledgeItem, getProvider, resolveKnowledgeGenerationModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
 import { persistGeneratedKnowledgeItem } from "./helpers/knowledge-items.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
@@ -19,8 +18,8 @@ export const knowledgeOccurrenceResolveQueue = new Queue<KnowledgeOccurrenceReso
   { connection: producerRedis },
 );
 
-const knowledgeItemAi = getProvider(defaultProviderId).knowledgeItem;
-const models = modelConfig[defaultProviderId];
+const knowledgeModelRoute = resolveKnowledgeGenerationModelRoute();
+const knowledgeItemAi = getProvider(knowledgeModelRoute.providerId).knowledgeItem;
 
 let knowledgeOccurrenceResolveGeneratorOverride:
   | (({
@@ -46,7 +45,7 @@ async function generateKnowledgeItemFromOccurrence({
   }
 
   return knowledgeItemAi.generateKnowledgeItemFromOccurrence(
-    models.KNOWLEDGE_GENERATE_MODEL,
+    knowledgeModelRoute.modelId,
     {
       proposedPattern,
       utterance,

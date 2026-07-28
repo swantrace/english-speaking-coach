@@ -8,8 +8,15 @@ export function providerOptionsForStructuredOutput({
   providerId,
 }: PromptModelContext): ProviderOptions | undefined {
   if (providerId === "openai") {
+    const reasoningEffort = modelId.includes("5.6-sol")
+      ? "medium"
+      : modelId.includes("5.6-terra")
+        ? "low"
+        : "none";
+
     return {
       openai: {
+        reasoningEffort,
         strictJsonSchema: false,
       },
     };
@@ -18,6 +25,7 @@ export function providerOptionsForStructuredOutput({
   if (providerId === "qwen") {
     return {
       qwen: {
+        enable_thinking: false,
         strictJsonSchema: false,
       },
     };
