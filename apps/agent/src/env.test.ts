@@ -140,7 +140,19 @@ describe("getRedisConnectionOptions", () => {
       host: "redis",
       password: undefined,
       port: 6379,
+      tls: undefined,
       username: undefined,
+    });
+  });
+
+  it("enables TLS for a rediss URL", () => {
+    expect(getRedisConnectionOptions({ REDIS_URL: "rediss://coach:secret@redis.example.com:6380/4" })).toEqual({
+      db: 4,
+      host: "redis.example.com",
+      password: "secret",
+      port: 6380,
+      tls: {},
+      username: "coach",
     });
   });
 

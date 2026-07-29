@@ -63,6 +63,7 @@ export function getRedisConnectionOptions(env: NodeJS.ProcessEnv = process.env) 
       host: parsedUrl.hostname,
       password: parsedUrl.password || undefined,
       port: parsedUrl.port ? Number(parsedUrl.port) : 6379,
+      tls: parsedUrl.protocol === "rediss:" ? {} : undefined,
       username: parsedUrl.username || undefined,
     };
   }
