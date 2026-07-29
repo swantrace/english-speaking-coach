@@ -1,9 +1,9 @@
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import dotenv from "dotenv";
 
 export type AgentModelProvider = "livekit" | "plugins";
 
-const envFilePath = fileURLToPath(new URL("../.env.local", import.meta.url));
+const envFilePath = resolve(process.cwd(), ".env.local");
 
 export function loadAgentEnv() {
   dotenv.config({ path: envFilePath, quiet: true });
@@ -28,6 +28,7 @@ export function shouldValidateAgentEnvironment(argv: string[] = process.argv) {
 }
 
 const defaultDevelopmentApiToken = "english-coach-local-api-token";
+export const defaultLiveKitAgentName = "english-speaking-coach-agent";
 
 function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env) {
   return env.NODE_ENV?.trim().toLowerCase() === "production";
@@ -51,6 +52,10 @@ export function getBackendBaseUrl(env: NodeJS.ProcessEnv = process.env) {
   return (env.BACKEND_BASE_URL ?? env.API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 }
 
+export function getLiveKitAgentName(env: NodeJS.ProcessEnv = process.env) {
+  return env.LIVEKIT_AGENT_NAME?.trim() || defaultLiveKitAgentName;
+}
+
 export function getRedisConnectionOptions(env: NodeJS.ProcessEnv = process.env) {
   const redisUrl = env.REDIS_URL?.trim();
 
@@ -63,6 +68,7 @@ export function getRedisConnectionOptions(env: NodeJS.ProcessEnv = process.env) 
       host: parsedUrl.hostname,
       password: parsedUrl.password || undefined,
       port: parsedUrl.port ? Number(parsedUrl.port) : 6379,
+      tls: parsedUrl.protocol === "rediss:" ? {} : undefined,
       username: parsedUrl.username || undefined,
     };
   }

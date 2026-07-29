@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "tsc --noEmit && bun build ./src/api.ts ./src/worker.ts --outdir ./dist --target bun",
-    "dev:api": "bun --watch ./src/api.ts",
-    "dev:worker": "bun run --hot ./src/worker.ts",
+    "dev:api": "bun --env-file=.env.local --watch ./src/api.ts",
+    "dev:worker": "bun --env-file=.env.local --hot ./src/worker.ts",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "start": "concurrently -k -n api,worker \"bun run ./src/api.ts\" \"bun run ./src/worker.ts\"",

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  defaultLiveKitAgentName,
   getAgentApiToken,
   getAgentEnvFilePath,
   getBackendBaseUrl,
+  getLiveKitAgentName,
   getRedisConnectionOptions,
   getRequiredEnv,
   resolveAgentModelProvider,
@@ -133,6 +135,18 @@ describe("getBackendBaseUrl", () => {
   });
 });
 
+describe("getLiveKitAgentName", () => {
+  it("uses the production dispatch name by default", () => {
+    expect(getLiveKitAgentName({})).toBe(defaultLiveKitAgentName);
+  });
+
+  it("uses a profile-specific dispatch name when configured", () => {
+    expect(getLiveKitAgentName({ LIVEKIT_AGENT_NAME: "english-speaking-coach-agent-local-practice" })).toBe(
+      "english-speaking-coach-agent-local-practice",
+    );
+  });
+});
+
 describe("getRedisConnectionOptions", () => {
   it("prefers REDIS_URL when provided", () => {
     expect(getRedisConnectionOptions({ REDIS_URL: "redis://redis:6379/2" })).toEqual({
@@ -140,7 +154,19 @@ describe("getRedisConnectionOptions", () => {
       host: "redis",
       password: undefined,
       port: 6379,
+      tls: undefined,
       username: undefined,
+    });
+  });
+
+  it("enables TLS for a rediss URL", () => {
+    expect(getRedisConnectionOptions({ REDIS_URL: "rediss://coach:secret@redis.example.com:6380/4" })).toEqual({
+      db: 4,
+      host: "redis.example.com",
+      password: "secret",
+      port: 6380,
+      tls: {},
+      username: "coach",
     });
   });
 

@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import { AccessToken, RoomAgentDispatch, RoomConfiguration } from "livekit-server-sdk";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser, parseJsonBody } from "../http/context";
+import { getLiveKitAgentName } from "../lib/livekit-agent-name";
 
 function createSessionToken(params: {
   roomName: string;
@@ -39,7 +40,7 @@ function createSessionToken(params: {
 
   roomConfig.agents = [
     new RoomAgentDispatch({
-      agentName: "english-speaking-coach-agent",
+      agentName: getLiveKitAgentName(),
       metadata: JSON.stringify(sessionDispatchMetadataSchema.parse({ sessionHistoryId: params.sessionHistoryId })),
     }),
   ];
