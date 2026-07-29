@@ -1,37 +1,80 @@
 # English Speaking Coach
 
-A personal English-speaking practice application built around real-time voice
-conversation, reusable learning scenarios, knowledge items, and asynchronous
-session analysis.
+English Speaking Coach is a full-stack, AI-assisted language-learning platform
+for realistic spoken-English practice. It combines low-latency voice
+conversation with reusable scenarios, structured learning material, persistent
+practice history, and asynchronous feedback.
 
-The project is designed for two ways of working:
+The repository is both a working personal learning tool and a reference
+implementation for developers interested in production-oriented voice AI,
+multi-model orchestration, and TypeScript monorepo architecture.
 
-- **Local development** uses Docker-hosted LiveKit, Redis, and MinIO with a local
-  SQLite database.
-- **Shared practice** uses LiveKit Cloud, Turso, Upstash Redis, and Cloudflare R2,
-  so practice data remains available from both the local application and the
-  deployed website.
+## Product experience
 
-## What it includes
+- Practise spoken English in real time with an interruptible LiveKit voice Agent
+- Create reusable scenarios with separate story, learning-goal, and dialogue
+  generation stages
+- Organise knowledge items and track their use across practice sessions
+- Review linguistic and conversational analysis after a session
+- Keep practice history available across local and deployed environments
+- Manage users, generation jobs, model requests, and failures through
+  administrative views
 
-- Real-time voice practice with a LiveKit Agent
-- Deepgram `flux-general-en` speech-to-text
-- DeepSeek `deepseek-v4-flash` conversation model with thinking disabled
-- Cartesia `sonic-3.5` text-to-speech
-- Scenario and knowledge generation
-- Background linguistic and conversation analysis
-- Email/password authentication
-- Persistent practice history and S3-compatible file storage
+## Engineering highlights
 
-## Repository structure
+- **Realtime voice pipeline:** Deepgram Flux STT, a non-thinking DeepSeek
+  conversation model, and Cartesia Sonic TTS, connected through LiveKit Agents
+- **Fine-grained model routing:** OpenAI, Qwen, and DeepSeek can be selected
+  independently for knowledge generation, linguistic analysis, conversation
+  analysis, and each scenario-generation stage
+- **Asynchronous processing:** BullMQ workers keep generation and analysis work
+  outside latency-sensitive API and voice paths
+- **Shared contracts:** Zod schemas and workspace packages keep the React client,
+  Hono backend, and Agent aligned
+- **Portable infrastructure:** local Docker services for development and managed
+  Turso, Upstash, Cloudflare R2, LiveKit Cloud, Fly.io, and Vercel for shared
+  practice
+- **Quality gates:** TypeScript, Biome, Vitest, Turborepo caching, and
+  change-aware GitHub Actions
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Browser["React web app"] -->|HTTP / SSE| API["Hono API"]
+  Browser <-->|WebRTC| LK["LiveKit"]
+  Agent["LiveKit voice Agent"] <-->|audio and data| LK
+  Agent -->|internal API| API
+  API --> DB[("Turso / libSQL")]
+  API --> R2[("R2 / MinIO")]
+  API --> Queue[("Upstash / Redis")]
+  Worker["BullMQ worker"] --> Queue
+  Worker --> DB
+  Worker --> Models["OpenAI / Qwen / DeepSeek"]
+```
+
+## Technology
+
+| Area | Stack |
+| --- | --- |
+| Web | React 19, Vite, TanStack Router and Query, Tailwind CSS |
+| API | Hono, Bun, Better Auth |
+| Voice Agent | LiveKit Agents for Node.js |
+| Data | Drizzle ORM, libSQL/Turso |
+| Jobs | BullMQ, Redis/Upstash |
+| Storage | S3-compatible MinIO/Cloudflare R2 |
+| Monorepo | pnpm workspaces, Turborepo, TypeScript |
+| Testing and quality | Vitest, Bun Test, Biome, GitHub Actions |
+
+## Repository layout
 
 ```text
 apps/
-  web/       React and Vite browser application
-  backend/   Hono API and BullMQ background worker
-  agent/     LiveKit voice agent
+  web/       React browser application
+  backend/   Hono API and BullMQ worker
+  agent/     LiveKit voice Agent
 packages/
-  contract/  Shared API contracts and schemas
+  contract/  Shared API contracts and validation schemas
   database/  Drizzle schema, migrations, and libSQL client
   domain/    Shared domain constants and types
   prompts/   Generation and analysis prompts
@@ -39,59 +82,42 @@ packages/
   ui/        Shared React components
 ```
 
-The monorepo uses pnpm workspaces and Turborepo.
+## Develop locally
 
-## Prerequisites
+### Prerequisites
 
-Install:
-
-- Node.js LTS, preferably through [fnm](https://github.com/Schniz/fnm)
+- Node.js 20 or newer; the latest LTS through
+  [fnm](https://github.com/Schniz/fnm) is recommended
 - pnpm 10 or newer
-- [Bun](https://bun.sh/) for the backend
+- [Bun](https://bun.sh/)
 - Docker with Docker Compose
 
-Confirm the tools are available:
-
-```sh
-node --version
-pnpm --version
-bun --version
-docker compose version
-```
-
-## Local setup
-
-Install dependencies:
+Install dependencies and create local configuration:
 
 ```sh
 pnpm install
-```
-
-Create local environment files from the committed templates:
-
-```sh
 cp apps/backend/.env.example apps/backend/.env.local
 cp apps/agent/.env.example apps/agent/.env.local
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-Fill in the required provider keys and generate private values for
-`BETTER_AUTH_SECRET` and `API_TOKEN`. The backend and Agent must use the same
-`API_TOKEN`. Never commit `.env.local` files.
+The committed examples provide safe local infrastructure defaults and document
+the credentials that still need to be supplied. Add provider credentials for
+the AI routes you intend to exercise; never commit `.env.local` files.
 
-Start the local infrastructure, web application, API, and worker:
+Start LiveKit, Redis, MinIO, the web app, API, and worker:
 
 ```sh
 pnpm run dev:full
 ```
 
-Run the voice Agent in a separate terminal:
+Run the voice Agent in another terminal:
 
 ```sh
 pnpm run dev:agent
 ```
 
-The default local services are:
+Local endpoints:
 
 | Service | Address |
 | --- | --- |
@@ -100,49 +126,43 @@ The default local services are:
 | LiveKit | `ws://localhost:7880` |
 | Redis | `redis://localhost:6379` |
 | MinIO API | `http://localhost:9000` |
-| MinIO Console | `http://localhost:9001` |
+| MinIO console | `http://localhost:9001` |
 
-To run the Agent in Docker instead:
+## Environment profiles
 
-```sh
-pnpm run dev:agent:docker
-```
+The project supports two local workflows:
 
-## Shared practice environment
+- `pnpm run dev:development` selects local-service configuration for feature
+  development.
+- `pnpm run dev:practice` selects cloud-backed configuration so practice data is
+  available from multiple computers.
 
-For persistent data across computers, configure the ignored backend and Agent
-environment files with:
+Create the ignored `.env.development.local` and `.env.practice.local` files for
+the backend and Agent before using these commands. The profile script copies the
+selected values into each app's `.env.local`.
 
-- a Turso database and authentication token
-- an Upstash TLS Redis URL
-- a private Cloudflare R2 bucket and bucket-scoped S3 credentials
-- a LiveKit Cloud project
-- OpenAI, Qwen, DeepSeek, Deepgram, and Cartesia API credentials
+Each environment example documents only the variables owned by that component:
 
-Local practice and the deployed application can use the same cloud resources and
-model configuration. Local feature development can continue using the Docker
-services.
-
-See [Personal practice deployment](docs/deployment.md) for the complete
-environment-variable and deployment checklist.
+- [`apps/backend/.env.example`](apps/backend/.env.example)
+- [`apps/agent/.env.example`](apps/agent/.env.example)
+- [`apps/web/.env.example`](apps/web/.env.example)
+- [`packages/database/.env.example`](packages/database/.env.example)
 
 ## Useful commands
 
 ```sh
-pnpm run dev:full             # infrastructure + web + API + worker
-pnpm run dev:agent            # local LiveKit Agent
-pnpm run infra:up             # start Docker infrastructure
-pnpm run infra:down           # stop Docker infrastructure
-pnpm run build                # build all affected workspace packages
-pnpm run test                 # run tests
-pnpm run lint                 # run workspace lint tasks
-pnpm run format-and-lint      # check formatting and linting
-pnpm run format-and-lint:fix  # apply safe formatting and lint fixes
-pnpm run db:generate          # generate database migrations
-pnpm run db:push              # push the database schema
+pnpm run build
+pnpm run test
+pnpm run lint
+pnpm run format-and-lint
+pnpm run format-and-lint:fix
+pnpm run db:generate
+pnpm run db:push
+pnpm run infra:up
+pnpm run infra:down
 ```
 
-Before committing, run:
+Before opening a pull request:
 
 ```sh
 pnpm run format-and-lint:fix
@@ -152,30 +172,33 @@ pnpm run test
 
 ## Deployment
 
-The intended personal deployment is:
+The reference deployment uses Vercel for the web app, Fly.io for the API and
+worker, LiveKit Cloud for the Agent, Turso for the database, Upstash for Redis,
+and Cloudflare R2 for object storage.
 
-| Component | Platform |
-| --- | --- |
-| Web | Vercel |
-| API and worker | Fly.io |
-| Voice Agent | LiveKit Cloud |
-| Database | Turso |
-| Redis and job queue | Upstash |
-| Object storage | Cloudflare R2 |
+GitHub Actions validates pull requests and deploys only affected services after
+changes reach `main`. See the
+[deployment guide](docs/deployment.md) for account setup, secrets, environment
+variables, and deployment commands.
 
-Pull requests run formatting, affected builds, linting, and tests. After a change
-is merged to `main`, GitHub Actions deploys only the services affected by that
-change. Vercel independently skips web deployments when the web application and
-its workspace dependencies are unaffected.
+The hosted instance is intentionally a personal environment and discourages
+search-engine indexing. Developers should deploy their own infrastructure and
+credentials rather than rely on that instance.
 
-The deployed website discourages search-engine indexing, but that is not access
-control. Anyone who knows the URL may still be able to reach it.
+## Extending the project
 
-## Security
+Good starting points include:
 
-- Keep all `.env.local` and cloud credentials out of Git.
-- Scope the R2 API token to the practice bucket.
-- Use TLS (`rediss://`) for Upstash.
-- Use the same strong `API_TOKEN` only where backend-to-Agent access requires it.
-- Rotate any credential that is accidentally printed, shared, or committed.
+- adding a model provider in
+  [`apps/backend/src/lib/ai/registry.ts`](apps/backend/src/lib/ai/registry.ts)
+- changing asynchronous model routes in
+  [`apps/backend/src/lib/ai/model-config.ts`](apps/backend/src/lib/ai/model-config.ts)
+- adapting voice models and turn handling in
+  [`apps/agent/src/voice-models.ts`](apps/agent/src/voice-models.ts)
+- creating new learning workflows under
+  [`apps/web/src/features`](apps/web/src/features)
+- evolving shared schemas in [`packages/contract`](packages/contract)
 
+Contributions and experiments are welcome. Please keep provider credentials out
+of Git and include tests for behavior changes, especially changes to the voice
+Agent.

@@ -5,7 +5,6 @@ packages:
 
 onlyBuiltDependencies:
   - '@ffmpeg-installer/linux-x64'
-  - better-sqlite3
   - esbuild
   - msgpackr-extract
   - onnxruntime-node

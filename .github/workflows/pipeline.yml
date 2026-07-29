@@ -132,7 +132,7 @@ jobs:
 
             if grep -Eq '^apps/web/vercel\.json$' <<<"$files"; then web=true; fi
             if grep -Eq '^apps/backend/(Dockerfile|fly\.toml)$' <<<"$files"; then fly=true; fi
-            if grep -Eq '^(\.dockerignore|Dockerfile|apps/agent/Dockerfile)$' <<<"$files"; then agent=true; fi
+            if grep -Eq '^(\.dockerignore|Dockerfile)$' <<<"$files"; then agent=true; fi
           fi
 
           echo "web=$web" >> "$GITHUB_OUTPUT"
