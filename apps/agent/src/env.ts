@@ -28,6 +28,7 @@ export function shouldValidateAgentEnvironment(argv: string[] = process.argv) {
 }
 
 const defaultDevelopmentApiToken = "english-coach-local-api-token";
+export const defaultLiveKitAgentName = "english-speaking-coach-agent";
 
 function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env) {
   return env.NODE_ENV?.trim().toLowerCase() === "production";
@@ -49,6 +50,10 @@ export function getAgentApiToken(env: NodeJS.ProcessEnv = process.env) {
 
 export function getBackendBaseUrl(env: NodeJS.ProcessEnv = process.env) {
   return (env.BACKEND_BASE_URL ?? env.API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+}
+
+export function getLiveKitAgentName(env: NodeJS.ProcessEnv = process.env) {
+  return env.LIVEKIT_AGENT_NAME?.trim() || defaultLiveKitAgentName;
 }
 
 export function getRedisConnectionOptions(env: NodeJS.ProcessEnv = process.env) {

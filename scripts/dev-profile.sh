@@ -34,4 +34,9 @@ cp "$backend_source" apps/backend/.env.local
 cp "$agent_source" apps/agent/.env.local
 
 echo "Using the ${profile} environment profile."
+
+if [ "$profile" = "practice" ]; then
+  exec pnpm run dev:full:agent
+fi
+
 exec pnpm run dev:full

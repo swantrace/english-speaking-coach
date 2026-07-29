@@ -5,6 +5,7 @@ import { BackgroundVoiceCancellation } from "@livekit/noise-cancellation-node";
 
 import { prepareAgent } from "./agent";
 import {
+  getLiveKitAgentName,
   loadAgentEnv,
   resolveAgentModelProvider,
   shouldValidateAgentEnvironment,
@@ -92,6 +93,6 @@ export default defineAgent({
 cli.runApp(
   new ServerOptions({
     agent: fileURLToPath(import.meta.url),
-    agentName: "english-speaking-coach-agent",
+    agentName: getLiveKitAgentName(),
   }),
 );

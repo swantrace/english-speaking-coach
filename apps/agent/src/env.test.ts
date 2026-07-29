@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  defaultLiveKitAgentName,
   getAgentApiToken,
   getAgentEnvFilePath,
   getBackendBaseUrl,
+  getLiveKitAgentName,
   getRedisConnectionOptions,
   getRequiredEnv,
   resolveAgentModelProvider,
@@ -130,6 +132,18 @@ describe("getBackendBaseUrl", () => {
 
   it("strips a trailing slash from configured origins", () => {
     expect(getBackendBaseUrl({ BACKEND_BASE_URL: "https://coach.example/" })).toBe("https://coach.example");
+  });
+});
+
+describe("getLiveKitAgentName", () => {
+  it("uses the production dispatch name by default", () => {
+    expect(getLiveKitAgentName({})).toBe(defaultLiveKitAgentName);
+  });
+
+  it("uses a profile-specific dispatch name when configured", () => {
+    expect(getLiveKitAgentName({ LIVEKIT_AGENT_NAME: "english-speaking-coach-agent-local-practice" })).toBe(
+      "english-speaking-coach-agent-local-practice",
+    );
   });
 });
 

@@ -135,7 +135,9 @@ The project supports two local workflows:
 - `pnpm run dev:development` selects local-service configuration for feature
   development.
 - `pnpm run dev:practice` selects cloud-backed configuration so practice data is
-  available from multiple computers.
+  available from multiple computers, and runs the Agent locally so it can call
+  the local backend directly. The LiveKit Cloud Agent deployment is not used by
+  this command.
 
 Create the ignored `.env.development.local` and `.env.practice.local` files for
 the backend and Agent before using these commands. The profile script copies the
