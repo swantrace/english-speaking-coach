@@ -1,33 +1,59 @@
-app = "english-speaking-coach"
-primary_region = "sea"
+# fly.toml app configuration file generated for english-speaking-coach on 2026-07-28T17:40:50-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'english-speaking-coach'
+primary_region = 'sjc'
 
 [build]
-  dockerfile = "apps/backend/Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [deploy]
-  release_command = "pnpm --filter @english-coach/database db:migrate"
+  release_command = 'pnpm --filter @english-coach/database db:migrate'
 
 [env]
-  APP_ENV = "practice"
-  MIGRATE_ON_STARTUP = "false"
-  NODE_ENV = "production"
-  PORT = "3001"
+  APP_ENV = 'practice'
+  MIGRATE_ON_STARTUP = 'false'
+  NODE_ENV = 'production'
+  PORT = '3001'
+
+  QWEN_BASE_URL='https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+  DEEPSEEK_BASE_URL='https://api.deepseek.com'
+
+  KNOWLEDGE_GENERATE_PROVIDER_ID = 'openai'
+  KNOWLEDGE_GENERATE_MODEL = 'gpt-5.6-terra'
+
+  LING_ANALYSIS_PROVIDER_ID = 'openai'
+  LING_ANALYSIS_MODEL = 'gpt-5.6-sol'
+
+  CONVERSATION_ANALYSIS_PROVIDER_ID = 'deepseek'
+  CONVERSATION_ANALYSIS_MODEL = 'deepseek-v4-flash'
+
+  SCENARIO_STORY_PROVIDER_ID = 'qwen'
+  SCENARIO_STORY_MODEL = 'qwen3.7-plus'
+
+  SCENARIO_GOALS_PROVIDER_ID = 'openai'
+  SCENARIO_GOALS_MODEL = 'gpt-5.6-terra'
+
+  SCENARIO_DIALOGUE_PROVIDER_ID = 'qwen'
+  SCENARIO_DIALOGUE_MODEL = 'qwen3.7-plus'
 
 [http_service]
   internal_port = 3001
   force_https = true
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 0
 
   [[http_service.checks]]
-    grace_period = "20s"
-    interval = "30s"
-    method = "GET"
-    path = "/health"
-    timeout = "5s"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '20s'
+    method = 'GET'
+    path = '/health'
 
 [[vm]]
-  cpu_kind = "shared"
+  memory = '1gb'
   cpus = 1
-  memory = "1gb"
+  memory_mb = 1024

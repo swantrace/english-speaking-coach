@@ -52,8 +52,8 @@ S3_ENDPOINT
 S3_BUCKET
 S3_ACCESS_KEY
 S3_SECRET_KEY
-BETTER_AUTH_URL=https://english-speacking-coach.vercel.app
-AUTH_TRUSTED_ORIGINS=https://english-speacking-coach.vercel.app
+BETTER_AUTH_URL=https://english-speaking-coach-2.vercel.app
+AUTH_TRUSTED_ORIGINS=https://english-speaking-coach-2s.vercel.app
 BETTER_AUTH_SECRET
 API_TOKEN
 LIVEKIT_URL

@@ -17,6 +17,8 @@
     "dev:backend:worker": "turbo run dev:worker --filter=@english-coach/backend",
     "dev:backend": "pnpm dev:backend:api",
     "dev:full": "pnpm infra:up && concurrently -k -n web,api,worker -c cyan,blue,green \"pnpm --filter web dev\" \"pnpm dev:backend:api\" \"pnpm dev:backend:worker\"",
+    "dev:development": "sh scripts/dev-profile.sh development",
+    "dev:practice": "sh scripts/dev-profile.sh practice",
     "db:clear:app": "turbo run db:clear:app --filter=@english-coach/database",
     "db:clear": "turbo run db:clear --filter=@english-coach/database",
     "db:generate": "turbo run db:generate --filter=@english-coach/database",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.10",
+    "@livekit/agents": "^1.6.0",
     "concurrently": "^10.0.4",
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0",

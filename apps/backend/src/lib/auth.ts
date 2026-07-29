@@ -2,7 +2,7 @@ import { db } from "@english-coach/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
-const defaultTrustedOrigins = ["http://localhost:5173", "https://english-speacking-coach.vercel.app"];
+const defaultTrustedOrigins = ["http://localhost:5173", "https://english-speaking-coach-2.vercel.app"];
 
 export const authTrustedOrigins = (process.env.AUTH_TRUSTED_ORIGINS ?? defaultTrustedOrigins.join(","))
   .split(",")

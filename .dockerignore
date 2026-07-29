@@ -1,4 +1,5 @@
 .git
+.pnpm-store
 .turbo
 **/.env
 **/.env.*
