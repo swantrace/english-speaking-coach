@@ -1,9 +1,9 @@
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import dotenv from "dotenv";
 
 export type AgentModelProvider = "livekit" | "plugins";
 
-const envFilePath = fileURLToPath(new URL("../.env.local", import.meta.url));
+const envFilePath = resolve(process.cwd(), ".env.local");
 
 export function loadAgentEnv() {
   dotenv.config({ path: envFilePath, quiet: true });

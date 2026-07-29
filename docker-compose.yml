@@ -48,48 +48,9 @@ services:
     networks:
       - agent_network
 
-  # Optional LiveKit agent service for local self-hosted development.
-  agent:
-    profiles: ["agent"]
-    build:
-      context: .
-      dockerfile: apps/agent/Dockerfile.dev
-    container_name: coach-agent
-    working_dir: /workspace
-    command: >-
-      sh -c "pnpm install --frozen-lockfile && cd apps/agent && pnpm download-files && pnpm dev"
-    env_file:
-      - path: ./apps/agent/.env.local
-        required: true
-      - path: ./apps/agent/.env.docker
-        required: true
-    volumes:
-      - .:/workspace
-      - agent_node_modules:/workspace/node_modules
-      - agent_app_node_modules:/workspace/apps/agent/node_modules
-      - agent_pnpm_store:/pnpm/store
-      - agent_cache:/root/.cache
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      livekit:
-        condition: service_started
-      minio:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    init: true
-    networks:
-      - agent_network
-
 volumes:
   minio_data:
   redis_data:
-  agent_node_modules:
-  agent_app_node_modules:
-  agent_pnpm_store:
-  agent_cache:
 
 networks:
   agent_network:
