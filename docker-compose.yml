@@ -50,6 +50,7 @@ services:
 
   # Optional LiveKit agent service for local self-hosted development.
   agent:
+    profiles: ["agent"]
     build:
       context: .
       dockerfile: apps/agent/Dockerfile.dev
