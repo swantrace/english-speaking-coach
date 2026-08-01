@@ -133,7 +133,7 @@ Local endpoints:
 The project supports two local workflows:
 
 - `pnpm run dev:development` selects local-service configuration for feature
-  development.
+  development and runs the Agent against the local LiveKit server.
 - `pnpm run dev:practice` selects cloud-backed configuration so practice data is
   available from multiple computers, and runs the Agent locally so it can call
   the local backend directly. The LiveKit Cloud Agent deployment is not used by

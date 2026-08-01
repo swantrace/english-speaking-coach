@@ -100,7 +100,6 @@ export interface KnowledgeSenseFormValue {
 export interface KnowledgeFormValues {
   communicativeFunction: CommunicativeFunction | "";
   fixednessLevel: FixednessLevel | "";
-  isPendingReview: boolean;
   pattern: string;
   senses: KnowledgeSenseFormValue[];
   patternType: PatternType | "";
@@ -109,7 +108,6 @@ export interface KnowledgeFormValues {
 export interface AdminKnowledgeWritePayload {
   communicativeFunction: CommunicativeFunction | null;
   fixednessLevel: FixednessLevel | null;
-  isPendingReview: boolean;
   pattern: string;
   senses: Array<{
     example: string;

@@ -1,13 +1,9 @@
 import { db } from "@english-coach/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { resolveAuthTrustedOrigins } from "./origin-config";
 
-const defaultTrustedOrigins = ["http://localhost:5173", "https://english-speaking-coach-2.vercel.app"];
-
-export const authTrustedOrigins = (process.env.AUTH_TRUSTED_ORIGINS ?? defaultTrustedOrigins.join(","))
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+export const authTrustedOrigins = resolveAuthTrustedOrigins();
 
 const isProduction = process.env.NODE_ENV === "production";
 const authBaseUrl = process.env.BETTER_AUTH_URL ?? (isProduction ? undefined : "http://localhost:3001");

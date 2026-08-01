@@ -41,6 +41,18 @@ export const knowledgeSenseSchema = z.object({
   order: z.number().int().min(1),
 });
 
+/**
+ * Complete AI-enriched draft stored on an occurrence before an administrator
+ * approves it or links it to an existing knowledge item.
+ */
+export const knowledgeOccurrenceDraftSchema = z.object({
+  proposedCommunicativeFunction: z.enum(communicativeFunctionValues).nullable(),
+  proposedFixednessLevel: z.enum(fixednessLevelValues).nullable(),
+  proposedPattern: z.string().trim().min(1),
+  proposedPatternType: z.enum(patternTypeValues),
+  proposedSenses: z.array(knowledgeSenseSchema).min(1),
+});
+
 export const knowledgeItemSchema = createSelectSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctionValues).nullable(),
   fixednessLevel: z.enum(fixednessLevelValues).nullable(),
@@ -136,15 +148,12 @@ export const adminKnowledgeDetailSchema = adminKnowledgeListItemSchema.extend({
 export const adminKnowledgeWriteSchema = z.object({
   communicativeFunction: optionalNullableEnumField(communicativeFunctionValues),
   fixednessLevel: optionalNullableEnumField(fixednessLevelValues),
-  isPendingReview: z.boolean().optional(),
   pattern: z.string().trim().min(1),
   senses: z.array(knowledgeSenseSchema).default([]),
   patternType: optionalNullableEnumField(patternTypeValues),
 });
 
-export const adminKnowledgeCreateSchema = adminKnowledgeWriteSchema.extend({
-  isPendingReview: z.boolean().default(false),
-});
+export const adminKnowledgeCreateSchema = adminKnowledgeWriteSchema;
 
 export const adminKnowledgeUpdateSchema = adminKnowledgeWriteSchema
   .partial()
@@ -163,7 +172,11 @@ export const adminKnowledgeOccurrenceStatusSchema = z.enum(knowledgeOccurrenceSt
 export const adminKnowledgeOccurrenceListItemSchema = z.object({
   id: z.string().min(1),
   knowledgeItemId: z.string().min(1).nullable(),
+  proposedCommunicativeFunction: z.enum(communicativeFunctionValues).nullable(),
+  proposedFixednessLevel: z.enum(fixednessLevelValues).nullable(),
   proposedPattern: z.string().trim().min(1),
+  proposedPatternType: z.enum(patternTypeValues).nullable(),
+  proposedSenses: z.array(knowledgeSenseSchema).nullable(),
   reviewedAt: z.string().min(1).nullable(),
   sessionHistoryId: z.string().min(1),
   sessionTitle: z.string().trim().min(1).nullable(),
@@ -181,6 +194,10 @@ export const adminKnowledgeOccurrenceListQueryWithStatusSchema = adminKnowledgeO
 export const adminKnowledgeOccurrenceListResponseWithStatusSchema = createPageListResponseSchema(
   adminKnowledgeOccurrenceListItemSchema,
 );
+export const adminKnowledgeOccurrenceDetailSchema = adminKnowledgeOccurrenceListItemSchema.extend({
+  draftError: z.string().nullable(),
+  draftStatus: z.enum(["not-generated", "generating", "failed", "ready"]),
+});
 
 export const adminLinkKnowledgeOccurrenceSchema = assignKnowledgeOccurrenceSchema;
 export const adminLinkKnowledgeOccurrenceResponseSchema = z.object({
@@ -198,14 +215,29 @@ export const adminRejectKnowledgeOccurrenceResponseSchema = z.object({
   status: z.literal("rejected"),
 });
 
+export const adminApproveKnowledgeOccurrenceSchema = z.object({
+  communicativeFunction: z.enum(communicativeFunctionValues).nullable(),
+  fixednessLevel: z.enum(fixednessLevelValues).nullable(),
+  pattern: z.string().trim().min(1),
+  patternType: z.enum(patternTypeValues),
+  senses: z.array(knowledgeSenseSchema).min(1),
+});
+
+export const adminApproveKnowledgeOccurrenceResponseSchema = z.object({
+  created: z.boolean(),
+  id: z.string().min(1),
+  knowledgeItemId: z.string().min(1),
+  status: z.literal("approved"),
+});
+
 export const knowledgeGenerateSubmissionKind = "knowledge.generate";
 export const knowledgeGenerateQueueName = knowledgeGenerateSubmissionKind;
 export const knowledgeGenerateJobName = knowledgeGenerateSubmissionKind;
 export const knowledgeGenerateUpdatedEvent = "knowledge.generate.updated";
 export const knowledgeGenerateProgressChannel = `${knowledgeGenerateSubmissionKind}.progress`;
-export const knowledgeOccurrenceResolveQueueName = "knowledgeOccurrenceResolve";
-export const knowledgeOccurrenceResolveJobName = "knowledgeOccurrenceResolve";
-export const knowledgeOccurrenceResolveJobSchema = z.object({
+export const knowledgeOccurrenceEnrichQueueName = "knowledgeOccurrenceEnrich";
+export const knowledgeOccurrenceEnrichJobName = "knowledgeOccurrenceEnrich";
+export const knowledgeOccurrenceEnrichJobSchema = z.object({
   occurrenceId: z.string().min(1),
 });
 export const knowledgeGenerateEventsSubscriberPrefix = `${knowledgeGenerateSubmissionKind}.events`;
@@ -317,6 +349,7 @@ export function createKnowledgeGenerateEventsUrl({
 
 export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
+export type KnowledgeOccurrenceDraft = z.infer<typeof knowledgeOccurrenceDraftSchema>;
 export type KnowledgeSense = z.infer<typeof knowledgeSenseSchema>;
 export type KnowledgePointListQuery = z.infer<typeof knowledgePointListQuerySchema>;
 export type KnowledgePointSummary = z.infer<typeof knowledgePointSummarySchema>;
@@ -336,12 +369,15 @@ export type AdminKnowledgeBulkApprove = z.infer<typeof adminKnowledgeBulkApprove
 export type AdminKnowledgeBulkDelete = z.infer<typeof adminKnowledgeBulkDeleteSchema>;
 export type AdminKnowledgeOccurrenceStatus = z.infer<typeof adminKnowledgeOccurrenceStatusSchema>;
 export type AdminKnowledgeOccurrenceListItem = z.infer<typeof adminKnowledgeOccurrenceListItemSchema>;
+export type AdminKnowledgeOccurrenceDetail = z.infer<typeof adminKnowledgeOccurrenceDetailSchema>;
 export type AdminKnowledgeOccurrenceListQuery = z.infer<typeof adminKnowledgeOccurrenceListQueryWithStatusSchema>;
 export type AdminKnowledgeOccurrenceListResponse = z.infer<typeof adminKnowledgeOccurrenceListResponseWithStatusSchema>;
 export type AdminLinkKnowledgeOccurrenceInput = z.infer<typeof adminLinkKnowledgeOccurrenceSchema>;
 export type AdminLinkKnowledgeOccurrenceResponse = z.infer<typeof adminLinkKnowledgeOccurrenceResponseSchema>;
 export type AdminRejectKnowledgeOccurrenceInput = z.infer<typeof adminRejectKnowledgeOccurrenceSchema>;
 export type AdminRejectKnowledgeOccurrenceResponse = z.infer<typeof adminRejectKnowledgeOccurrenceResponseSchema>;
+export type AdminApproveKnowledgeOccurrenceInput = z.infer<typeof adminApproveKnowledgeOccurrenceSchema>;
+export type AdminApproveKnowledgeOccurrenceResponse = z.infer<typeof adminApproveKnowledgeOccurrenceResponseSchema>;
 export type KnowledgeGenerateEventsQuery = z.infer<typeof knowledgeGenerateEventsQuerySchema>;
 export type KnowledgeGenerateHistoryQuery = z.infer<typeof knowledgeGenerateHistoryQuerySchema>;
 export type KnowledgeGenerateSubmissionBody = z.infer<typeof knowledgeGenerateSubmissionBodySchema>;
@@ -353,4 +389,4 @@ export type KnowledgeGenerateSubmissionHistoryResponse = z.infer<
 export type KnowledgeGenerateSubmissionResult = z.infer<typeof knowledgeGenerateSubmissionResultSchema>;
 export type KnowledgeGenerateJobUpdate = z.infer<typeof knowledgeGenerateJobUpdateSchema>;
 export type KnowledgeGenerateSubmissionResponse = z.infer<typeof knowledgeGenerateSubmissionResponseSchema>;
-export type KnowledgeOccurrenceResolveJob = z.infer<typeof knowledgeOccurrenceResolveJobSchema>;
+export type KnowledgeOccurrenceEnrichJob = z.infer<typeof knowledgeOccurrenceEnrichJobSchema>;

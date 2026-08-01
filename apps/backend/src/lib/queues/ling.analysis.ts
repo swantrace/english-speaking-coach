@@ -3,7 +3,6 @@ import {
   lingAnalysisJobName,
   lingAnalysisQueueName,
   lingAnalysisResultSchema,
-  type SessionKnowledgeOccurrence,
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import {
@@ -17,8 +16,10 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getProvider, resolveLingAnalysisModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
+import { persistKnowledgeOccurrencesForSession } from "./helpers/knowledge-occurrences.persistence";
 import { persistRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
+import { enqueueKnowledgeOccurrenceEnrichment } from "./knowledge-occurrence.resolve";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
 const lingAnalysisJobDataSchema = z.object({ sessionHistoryId: z.string().min(1) });
@@ -48,51 +49,6 @@ async function generateLingAnalysis(sessionHistoryId: string, turns: TranscriptT
   );
 
   return lingAnalysisResultSchema.parse(result);
-}
-
-async function persistKnowledgeOccurrencesForSession(
-  sessionHistoryId: string,
-  turns: TranscriptTurns,
-  occurrences: SessionKnowledgeOccurrence[],
-) {
-  if (!occurrences.length) {
-    return;
-  }
-
-  const values = occurrences
-    .filter((occurrence) => {
-      const turn = turns[occurrence.transcriptTurnIndex];
-
-      if (!turn) {
-        return false;
-      }
-
-      return turn.text.trim().length > 0;
-    })
-    .map((occurrence) => ({
-      id: crypto.randomUUID(),
-      knowledgeItemId: null,
-      proposedPattern: occurrence.proposedPattern,
-      sessionHistoryId,
-      transcriptTurnIndex: occurrence.transcriptTurnIndex,
-      utterance: occurrence.utterance,
-    }));
-
-  if (!values.length) {
-    return;
-  }
-
-  await db
-    .insert(sessionKnowledgePointOccurrences)
-    .values(values)
-    .onConflictDoNothing({
-      target: [
-        sessionKnowledgePointOccurrences.sessionHistoryId,
-        sessionKnowledgePointOccurrences.transcriptTurnIndex,
-        sessionKnowledgePointOccurrences.proposedPattern,
-        sessionKnowledgePointOccurrences.utterance,
-      ],
-    });
 }
 
 export async function processLingAnalysisSession(sessionHistoryId: string) {
@@ -133,7 +89,12 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   });
 
   await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
-  await persistKnowledgeOccurrencesForSession(sessionHistoryId, transcriptRecord.turns, analysis.occurrences);
+  const occurrenceIds = await persistKnowledgeOccurrencesForSession(
+    sessionHistoryId,
+    transcriptRecord.turns,
+    analysis.occurrences,
+  );
+  await enqueueKnowledgeOccurrenceEnrichment(occurrenceIds);
 
   return analysis;
 }

@@ -174,6 +174,7 @@ export const queryKeys = {
     },
     occurrences: {
       all: () => ["admin", "occurrences"] as const,
+      detail: (occurrenceId: string) => ["admin", "occurrences", "detail", occurrenceId] as const,
       list: (input: AdminOccurrenceListQueryKeyInput = {}) =>
         ["admin", "occurrences", "list", normalizeAdminOccurrenceListQueryKeyInput(input)] as const,
     },

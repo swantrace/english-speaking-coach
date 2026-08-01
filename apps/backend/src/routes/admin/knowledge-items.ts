@@ -100,7 +100,7 @@ export function registerAdminKnowledgeItemRoutes(app: BackendApp) {
       createdAt: now,
       fixednessLevel: parsedBody.data.fixednessLevel ?? null,
       id: knowledgeItemId,
-      isPendingReview: parsedBody.data.isPendingReview ?? false,
+      isPendingReview: false,
       pattern: parsedBody.data.pattern,
       senses: parsedBody.data.senses,
       patternType: parsedBody.data.patternType ?? null,
@@ -142,10 +142,6 @@ export function registerAdminKnowledgeItemRoutes(app: BackendApp) {
             : parsedBody.data.communicativeFunction,
         fixednessLevel:
           parsedBody.data.fixednessLevel === undefined ? existingRecord.fixednessLevel : parsedBody.data.fixednessLevel,
-        isPendingReview:
-          parsedBody.data.isPendingReview === undefined
-            ? existingRecord.isPendingReview
-            : parsedBody.data.isPendingReview,
         pattern: parsedBody.data.pattern ?? existingRecord.pattern,
         senses: parsedBody.data.senses ?? existingRecord.senses,
         patternType:
@@ -157,6 +153,29 @@ export function registerAdminKnowledgeItemRoutes(app: BackendApp) {
     const [record] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.id, knowledgeItemId)).limit(1);
 
     return context.json(record);
+  });
+
+  // Approve generated knowledge without exposing review state in the general edit form.
+  app.post("/api/admin/knowledge-items/:id/approve", async (context) => {
+    const knowledgeItemId = context.req.param("id");
+    const [existingRecord] = await db
+      .select({ id: knowledgeItems.id })
+      .from(knowledgeItems)
+      .where(eq(knowledgeItems.id, knowledgeItemId))
+      .limit(1);
+
+    if (!existingRecord) {
+      return context.json({ error: "Knowledge item not found" }, 404);
+    }
+
+    await db
+      .update(knowledgeItems)
+      .set({ isPendingReview: false, updatedAt: new Date().toISOString() })
+      .where(eq(knowledgeItems.id, knowledgeItemId));
+
+    const [record] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.id, knowledgeItemId)).limit(1);
+
+    return context.json(adminKnowledgeDetailSchema.parse(record));
   });
 
   // Delete a knowledge item from the admin catalog.

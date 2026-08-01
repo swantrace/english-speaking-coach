@@ -1,3 +1,5 @@
+import { communicativeFunctions, fixednessLevels } from "@english-coach/contract/common";
+
 type PromptModelParams = {
   modelId?: string;
   providerId?: string;
@@ -25,6 +27,23 @@ const patternTypeDescriptions = [
   '- grammatical_noun_that_clause: N + that-clause pattern, e.g. "the fact that..."',
   '- grammatical_conjunction_phrase: multiword conjunction phrase, e.g. "now that", "even though"',
   '- grammatical_modal_semi_modal_phrase: modal or semi-modal phrase, e.g. "would rather <v>", "used to <v>", "be going to <v>"',
+].join("\n");
+
+const fixednessLevelDescriptions = [
+  `- ${fixednessLevels[0]}: a conventional word partnership with some lexical flexibility`,
+  `- ${fixednessLevels[1]}: a largely fixed conventional expression`,
+  `- ${fixednessLevels[2]}: an idiomatic expression whose meaning is not fully compositional`,
+].join("\n");
+
+const communicativeFunctionDescriptions = [
+  `- ${communicativeFunctions[0]}: establish, maintain, or close social relationships`,
+  `- ${communicativeFunctions[1]}: express an attitude, evaluation, preference, or opinion`,
+  `- ${communicativeFunctions[2]}: make or respond to requests, suggestions, invitations, or offers`,
+  `- ${communicativeFunctions[3]}: provide, request, confirm, or clarify information`,
+  `- ${communicativeFunctions[4]}: connect, structure, introduce, or conclude discourse`,
+  `- ${communicativeFunctions[5]}: react naturally to another speaker's contribution`,
+  `- ${communicativeFunctions[6]}: intensify, limit, hedge, or soften meaning`,
+  `- ${communicativeFunctions[7]}: express time, duration, frequency, or sequence`,
 ].join("\n");
 
 export const buildKnowledgeItemGeneratePrompt = ({
@@ -64,22 +83,42 @@ export const buildKnowledgeItemFromOccurrencePrompt = ({
 }) => ({
   system: [
     "You are an English linguistics assistant for an admin review queue.",
-    "Your job is to normalize an observed conversation occurrence into one reusable coaching knowledge item.",
-    "Preserve the evidence and always provide the required linguistic fields using the best-supported classification.",
+    "Your job is to enrich an observed conversation occurrence into a complete candidate draft for human review.",
+    "The candidate is not approved and must not be treated as a formal knowledge item yet.",
+    "Preserve the evidence and provide every required linguistic field using the best-supported classification.",
   ].join("\n"),
   prompt: [
     "[TASK]",
-    "Generate one structured English knowledge item from the occurrence evidence.",
+    "Generate one complete structured English knowledge-item candidate from the occurrence evidence.",
     "",
     "[GUIDELINES]",
     "- Use the proposed pattern as a strong hint.",
     "- Improve normalization if it makes the pattern clearer or more reusable.",
     "- Keep the pattern concise and faithful to the utterance.",
     "- Always include exactly one patternType from the allowed values below.",
+    "- Always include fixednessLevel. Use null when none of the allowed fixedness levels applies.",
+    "- Always include communicativeFunction. Choose the single best-supported function, or null only when the evidence is genuinely insufficient.",
     "- Always include at least one learner-facing sense with meaning_en, meaning_zh, example, example_zh, and order.",
+    "- Use the observed utterance as the first example when it is grammatical and clearly illustrates the sense; otherwise provide a corrected natural example.",
+    "- Include grammatical_note only when it adds a useful constraint, register note, or structural explanation.",
+    "- Do not include approval state, review state, occurrence IDs, or knowledge-item IDs.",
     "",
     "[ALLOWED patternType VALUES]",
     patternTypeDescriptions,
+    "",
+    "[ALLOWED fixednessLevel VALUES]",
+    fixednessLevelDescriptions,
+    "",
+    "[ALLOWED communicativeFunction VALUES]",
+    communicativeFunctionDescriptions,
+    "",
+    "[REQUIRED JSON SHAPE]",
+    '{ "pattern": "I am worried I might <verb>", "patternType": "grammatical_adjective_that_clause", "fixednessLevel": null, "communicativeFunction": "express_attitude_or_opinion", "senses": [{ "order": 1, "meaning_en": "Used to express concern about a possible future event.", "meaning_zh": "用于表达对未来可能发生之事的担忧。", "example": "I am worried I might miss the deadline.", "example_zh": "我担心我可能会错过截止日期。", "grammatical_note": "Follow might with the base form of the verb." }] }',
+    "",
+    "[OUTPUT CONSTRAINTS]",
+    "- Return one valid JSON object matching the required shape.",
+    "- Include every top-level key exactly once, including nullable keys.",
+    "- Return only the structured object with no markdown or surrounding prose.",
     "",
     "[INPUT]",
     `Proposed pattern: ${proposedPattern}`,

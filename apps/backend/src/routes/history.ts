@@ -173,7 +173,13 @@ export function registerHistoryRoutes(app: BackendApp) {
           utterance: sessionKnowledgePointOccurrences.utterance,
         })
         .from(sessionKnowledgePointOccurrences)
-        .where(eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionId))
+        .where(
+          and(
+            eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionId),
+            eq(sessionKnowledgePointOccurrences.status, "approved"),
+            isNotNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+          ),
+        )
         .orderBy(asc(sessionKnowledgePointOccurrences.transcriptTurnIndex), asc(sessionKnowledgePointOccurrences.id)),
     ]);
 

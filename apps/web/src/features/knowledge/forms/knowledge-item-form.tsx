@@ -13,9 +13,17 @@ interface KnowledgeItemFormProps {
   deleteAction?: ReactNode;
   mode: "create" | "edit";
   onSubmit: (values: AdminKnowledgeWritePayload) => Promise<void>;
+  submitLabel?: string;
 }
 
-export function KnowledgeItemForm({ cancelTo, defaultValues, deleteAction, mode, onSubmit }: KnowledgeItemFormProps) {
+export function KnowledgeItemForm({
+  cancelTo,
+  defaultValues,
+  deleteAction,
+  mode,
+  onSubmit,
+  submitLabel,
+}: KnowledgeItemFormProps) {
   const form = useKnowledgeForm(defaultValues);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -43,7 +51,7 @@ export function KnowledgeItemForm({ cancelTo, defaultValues, deleteAction, mode,
           cancelTo={cancelTo}
           isPending={form.formState.isSubmitting}
           secondaryAction={mode === "edit" ? deleteAction : undefined}
-          submitLabel={mode === "create" ? "Create knowledge item" : "Save changes"}
+          submitLabel={submitLabel ?? (mode === "create" ? "Create knowledge item" : "Save changes")}
         />
       </form>
     </Form>

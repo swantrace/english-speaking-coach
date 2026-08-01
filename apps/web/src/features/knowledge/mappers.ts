@@ -115,7 +115,6 @@ export function createEmptyKnowledgeFormValues(partial?: Partial<KnowledgeFormVa
   return {
     communicativeFunction: "",
     fixednessLevel: "",
-    isPendingReview: false,
     pattern: "",
     senses: [
       {
@@ -136,7 +135,6 @@ export function mapAdminKnowledgeDetailToFormValues(detail: AdminKnowledgeDetail
   return createEmptyKnowledgeFormValues({
     communicativeFunction: detail.communicativeFunction ?? "",
     fixednessLevel: detail.fixednessLevel ?? "",
-    isPendingReview: detail.isPendingReview,
     pattern: detail.pattern,
     senses: detail.senses.length
       ? detail.senses.map((sense) => ({
@@ -156,7 +154,6 @@ export function mapKnowledgeFormValuesToAdminPayload(values: KnowledgeFormValues
   return {
     communicativeFunction: values.communicativeFunction || null,
     fixednessLevel: values.fixednessLevel || null,
-    isPendingReview: values.isPendingReview,
     pattern: values.pattern.trim(),
     senses: values.senses.map((sense, index) => ({
       example: sense.example.trim(),

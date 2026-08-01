@@ -1,9 +1,16 @@
 services:
   # LiveKit Server for local development
   livekit:
-    image: livekit/livekit-server:latest
+    image: livekit/livekit-server:v1.13.5
     container_name: coach-livekit
-    command: --dev --bind 0.0.0.0
+    # The Agent and browser run on the host, so advertise the published host
+    # address instead of Docker's private bridge address.
+    command: >-
+      --dev
+      --bind 0.0.0.0
+      --node-ip 127.0.0.1
+      --rtc.port_range_start 50000
+      --rtc.port_range_end 50020
     ports:
       - "7880:7880" # WebRTC signaling
       - "7881:7881" # HTTP API
