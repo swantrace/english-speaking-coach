@@ -22,10 +22,11 @@ export const databaseClient = createClient({
 });
 
 if (databaseUrl.startsWith("file:")) {
-  await databaseClient.batch(
-    ["PRAGMA journal_mode = WAL", "PRAGMA busy_timeout = 5000", "PRAGMA foreign_keys = ON"],
-    "write",
-  );
+  // journal_mode cannot be changed from inside the transaction created by a
+  // write batch. Apply connection-level SQLite pragmas individually instead.
+  await databaseClient.execute("PRAGMA journal_mode = WAL");
+  await databaseClient.execute("PRAGMA busy_timeout = 5000");
+  await databaseClient.execute("PRAGMA foreign_keys = ON");
 }
 
 export const db = drizzle({ client: databaseClient, schema });
