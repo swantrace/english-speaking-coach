@@ -26,7 +26,6 @@ export const knowledgeFormSchema = z
   .object({
     communicativeFunction: optionalEnumSchema(communicativeFunctionValues),
     fixednessLevel: optionalEnumSchema(fixednessLevelValues),
-    isPendingReview: z.boolean().default(false),
     pattern: patternSchema,
     senses: z.array(knowledgeSenseFormSchema).min(1, "Add at least one sense."),
     patternType: optionalEnumSchema(patternTypeValues),

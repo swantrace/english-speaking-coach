@@ -138,9 +138,8 @@ export async function deleteAdminKnowledge(knowledgeId: string) {
 }
 
 export async function approveAdminKnowledge(knowledgeId: string) {
-  return updateAdminKnowledge(knowledgeId, {
-    isPendingReview: false,
-  });
+  const response = await apiClient.post(`${knowledgeEndpoints.adminDetail(knowledgeId)}/approve`, {});
+  return mapAdminKnowledgeDetail(adminKnowledgeDetailSchema.parse(response.data));
 }
 
 async function settleMutationBatch<TInput>(

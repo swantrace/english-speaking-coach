@@ -7,14 +7,10 @@ import { providerOptionsForStructuredOutput } from "../provider-options";
 import { languageModel, type ProviderId } from "../registry";
 import { type AiRequestLogContext, recordAiModelRequest } from "../request-logging";
 
-const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema
-  .omit({
-    isPendingReview: true,
-  })
-  .extend({
-    senses: z.array(knowledgeSenseSchema).min(1),
-    patternType: z.enum(patternTypes),
-  });
+const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema.extend({
+  senses: z.array(knowledgeSenseSchema).min(1),
+  patternType: z.enum(patternTypes),
+});
 
 const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
   pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),

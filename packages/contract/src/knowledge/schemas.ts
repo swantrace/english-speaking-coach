@@ -148,15 +148,12 @@ export const adminKnowledgeDetailSchema = adminKnowledgeListItemSchema.extend({
 export const adminKnowledgeWriteSchema = z.object({
   communicativeFunction: optionalNullableEnumField(communicativeFunctionValues),
   fixednessLevel: optionalNullableEnumField(fixednessLevelValues),
-  isPendingReview: z.boolean().optional(),
   pattern: z.string().trim().min(1),
   senses: z.array(knowledgeSenseSchema).default([]),
   patternType: optionalNullableEnumField(patternTypeValues),
 });
 
-export const adminKnowledgeCreateSchema = adminKnowledgeWriteSchema.extend({
-  isPendingReview: z.boolean().default(false),
-});
+export const adminKnowledgeCreateSchema = adminKnowledgeWriteSchema;
 
 export const adminKnowledgeUpdateSchema = adminKnowledgeWriteSchema
   .partial()
@@ -197,6 +194,10 @@ export const adminKnowledgeOccurrenceListQueryWithStatusSchema = adminKnowledgeO
 export const adminKnowledgeOccurrenceListResponseWithStatusSchema = createPageListResponseSchema(
   adminKnowledgeOccurrenceListItemSchema,
 );
+export const adminKnowledgeOccurrenceDetailSchema = adminKnowledgeOccurrenceListItemSchema.extend({
+  draftError: z.string().nullable(),
+  draftStatus: z.enum(["not-generated", "generating", "failed", "ready"]),
+});
 
 export const adminLinkKnowledgeOccurrenceSchema = assignKnowledgeOccurrenceSchema;
 export const adminLinkKnowledgeOccurrenceResponseSchema = z.object({
@@ -368,6 +369,7 @@ export type AdminKnowledgeBulkApprove = z.infer<typeof adminKnowledgeBulkApprove
 export type AdminKnowledgeBulkDelete = z.infer<typeof adminKnowledgeBulkDeleteSchema>;
 export type AdminKnowledgeOccurrenceStatus = z.infer<typeof adminKnowledgeOccurrenceStatusSchema>;
 export type AdminKnowledgeOccurrenceListItem = z.infer<typeof adminKnowledgeOccurrenceListItemSchema>;
+export type AdminKnowledgeOccurrenceDetail = z.infer<typeof adminKnowledgeOccurrenceDetailSchema>;
 export type AdminKnowledgeOccurrenceListQuery = z.infer<typeof adminKnowledgeOccurrenceListQueryWithStatusSchema>;
 export type AdminKnowledgeOccurrenceListResponse = z.infer<typeof adminKnowledgeOccurrenceListResponseWithStatusSchema>;
 export type AdminLinkKnowledgeOccurrenceInput = z.infer<typeof adminLinkKnowledgeOccurrenceSchema>;

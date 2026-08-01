@@ -13,7 +13,6 @@ import {
 } from "@english-coach/ui";
 import type { Control } from "react-hook-form";
 import { FormSection } from "@/components/form/form-section";
-import { SwitchField } from "@/components/form/switch-field";
 import { TextField } from "@/components/form/text-field";
 import { formatCommunicativeFunction, formatFixednessLevel, formatPatternType } from "@/lib/format";
 import type { KnowledgeFormValues } from "../types";
@@ -65,17 +64,11 @@ export function KnowledgeFormFields({ control }: { control: Control<KnowledgeFor
   return (
     <>
       <FormSection
-        description="Capture the true knowledge-item structure used by admin review, including taxonomy and review visibility."
+        description="Capture the true knowledge-item structure used by admin review, including its linguistic taxonomy."
         title="Knowledge basics"
       >
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div>
           <TextField control={control} label="Pattern" name="pattern" placeholder="be supposed to <v>" />
-          <SwitchField
-            control={control}
-            description="Pending-review items stay out of downstream learner-facing views until approved."
-            label="Keep pending review"
-            name="isPendingReview"
-          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">

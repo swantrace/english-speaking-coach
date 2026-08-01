@@ -1,6 +1,13 @@
+import type { AdminApproveKnowledgeOccurrenceInput } from "@english-coach/contract/knowledge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
-import { linkOccurrenceToKnowledge, mapOccurrenceApiError, rejectOccurrence } from "./api";
+import {
+  approveOccurrence,
+  enrichOccurrence,
+  linkOccurrenceToKnowledge,
+  mapOccurrenceApiError,
+  rejectOccurrence,
+} from "./api";
 
 function useOccurrenceMutationInvalidation() {
   const queryClient = useQueryClient();
@@ -28,6 +35,27 @@ export function useLinkOccurrenceMutation() {
     mutationFn: ({ knowledgeItemId, occurrenceId }: { knowledgeItemId: string; occurrenceId: string }) =>
       linkOccurrenceToKnowledge(occurrenceId, knowledgeItemId),
     onSuccess: async (result) => invalidateOccurrenceData(result.knowledgeItemId),
+    throwOnError: false,
+  });
+}
+
+export function useApproveOccurrenceMutation() {
+  const invalidateOccurrenceData = useOccurrenceMutationInvalidation();
+
+  return useMutation({
+    mutationFn: ({ occurrenceId, values }: { occurrenceId: string; values: AdminApproveKnowledgeOccurrenceInput }) =>
+      approveOccurrence(occurrenceId, values),
+    onSuccess: async (result) => invalidateOccurrenceData(result.knowledgeItemId),
+    throwOnError: false,
+  });
+}
+
+export function useEnrichOccurrenceMutation() {
+  const invalidateOccurrenceData = useOccurrenceMutationInvalidation();
+
+  return useMutation({
+    mutationFn: enrichOccurrence,
+    onSuccess: async () => invalidateOccurrenceData(),
     throwOnError: false,
   });
 }

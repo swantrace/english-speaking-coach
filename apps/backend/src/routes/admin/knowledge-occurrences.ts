@@ -1,6 +1,7 @@
 import {
   adminApproveKnowledgeOccurrenceResponseSchema,
   adminApproveKnowledgeOccurrenceSchema,
+  adminKnowledgeOccurrenceDetailSchema,
   adminKnowledgeOccurrenceListQueryWithStatusSchema,
   adminKnowledgeOccurrenceListResponseWithStatusSchema,
   adminLinkKnowledgeOccurrenceResponseSchema,
@@ -114,6 +115,60 @@ export function registerAdminKnowledgeOccurrenceRoutes(app: BackendApp) {
           pageSize,
         ),
       ),
+    );
+  });
+
+  // Fetch one occurrence with its complete candidate draft for admin review.
+  app.get("/api/admin/knowledge-occurrences/:id", async (context) => {
+    const occurrenceId = context.req.param("id");
+    const [row] = await db
+      .select({
+        id: sessionKnowledgePointOccurrences.id,
+        knowledgeItemId: sessionKnowledgePointOccurrences.knowledgeItemId,
+        proposedCommunicativeFunction: sessionKnowledgePointOccurrences.proposedCommunicativeFunction,
+        proposedFixednessLevel: sessionKnowledgePointOccurrences.proposedFixednessLevel,
+        proposedPattern: sessionKnowledgePointOccurrences.proposedPattern,
+        proposedPatternType: sessionKnowledgePointOccurrences.proposedPatternType,
+        proposedSenses: sessionKnowledgePointOccurrences.proposedSenses,
+        reviewedAt: sessionKnowledgePointOccurrences.reviewedAt,
+        sessionHistoryId: sessionKnowledgePointOccurrences.sessionHistoryId,
+        scenarioTitle: scenarios.title,
+        sessionType: sessionHistory.sessionType,
+        status: sessionKnowledgePointOccurrences.status,
+        transcriptTurnIndex: sessionKnowledgePointOccurrences.transcriptTurnIndex,
+        utterance: sessionKnowledgePointOccurrences.utterance,
+      })
+      .from(sessionKnowledgePointOccurrences)
+      .innerJoin(sessionHistory, eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistory.id))
+      .leftJoin(scenarios, eq(sessionHistory.scenarioId, scenarios.id))
+      .where(eq(sessionKnowledgePointOccurrences.id, occurrenceId))
+      .limit(1);
+
+    if (!row) {
+      return context.json({ error: "Knowledge occurrence not found" }, 404);
+    }
+
+    const draftIsReady = Boolean(row.proposedPatternType && row.proposedSenses?.length);
+    const enrichmentJob = draftIsReady
+      ? null
+      : await knowledgeOccurrenceEnrichQueue.getJob(`${knowledgeOccurrenceEnrichJobName}-${occurrenceId}`);
+    const enrichmentJobState = enrichmentJob ? await enrichmentJob.getState() : null;
+    const draftStatus = draftIsReady
+      ? "ready"
+      : enrichmentJobState === "failed"
+        ? "failed"
+        : enrichmentJobState && enrichmentJobState !== "completed"
+          ? "generating"
+          : "not-generated";
+
+    return context.json(
+      adminKnowledgeOccurrenceDetailSchema.parse({
+        ...row,
+        draftError: draftStatus === "failed" ? enrichmentJob?.failedReason || "Draft generation failed" : null,
+        draftStatus,
+        sessionTitle: row.sessionType === "free-form" ? "Free-form" : row.scenarioTitle,
+        transcriptExcerpt: row.utterance,
+      }),
     );
   });
 

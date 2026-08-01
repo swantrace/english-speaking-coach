@@ -1,9 +1,14 @@
-import { ArrowUpRight, Button, Link2, OctagonX } from "@english-coach/ui";
+import { ArrowUpRight, Button, Link2, OctagonX, Sparkles } from "@english-coach/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import { LinkExistingDialog } from "./link-existing-dialog";
-import { createOccurrenceMutationError, useLinkOccurrenceMutation, useRejectOccurrenceMutation } from "./mutations";
+import {
+  createOccurrenceMutationError,
+  useEnrichOccurrenceMutation,
+  useLinkOccurrenceMutation,
+  useRejectOccurrenceMutation,
+} from "./mutations";
 import type { ProposedOccurrenceListItemView } from "./types";
 
 interface OccurrenceActionsProps {
@@ -15,8 +20,14 @@ export function OccurrenceActions({ occurrence }: OccurrenceActionsProps) {
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const linkMutation = useLinkOccurrenceMutation();
+  const enrichMutation = useEnrichOccurrenceMutation();
   const rejectMutation = useRejectOccurrenceMutation();
-  const isPending = linkMutation.isPending || rejectMutation.isPending;
+  const isPending = enrichMutation.isPending || linkMutation.isPending || rejectMutation.isPending;
+  const draftIsComplete = Boolean(occurrence.proposedPatternType && occurrence.proposedSenses?.length);
+
+  if (occurrence.status !== "proposed") {
+    return <span className="text-sm text-slate-500">Review complete</span>;
+  }
 
   return (
     <>
@@ -32,25 +43,39 @@ export function OccurrenceActions({ occurrence }: OccurrenceActionsProps) {
           <Link2 />
           Link existing
         </Button>
-        <Button
-          className="shadow-none"
-          disabled={isPending}
-          onClick={() =>
-            void navigate({
-              search: {
-                occurrenceId: occurrence.id,
-                pattern: occurrence.proposedPattern,
-              },
-              to: "/admin/knowledge/new",
-            })
-          }
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <ArrowUpRight />
-          Create new
-        </Button>
+        {draftIsComplete ? (
+          <Button
+            className="shadow-none"
+            disabled={isPending}
+            onClick={() =>
+              void navigate({
+                search: {
+                  occurrenceId: occurrence.id,
+                  pattern: occurrence.proposedPattern,
+                },
+                to: "/admin/knowledge/new",
+              })
+            }
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <ArrowUpRight />
+            Review draft
+          </Button>
+        ) : (
+          <Button
+            className="shadow-none"
+            disabled={isPending}
+            onClick={() => enrichMutation.mutate(occurrence.id)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Sparkles />
+            {enrichMutation.isPending ? "Queuing…" : "Generate draft"}
+          </Button>
+        )}
         <Button disabled={isPending} onClick={() => setIsRejectOpen(true)} size="sm" type="button" variant="ghost">
           <OctagonX />
           Reject
