@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import type { AppVariables } from "./http/context";
 import { attachRequestSession, registerAccessPolicies } from "./http/guards";
 import { authTrustedOrigins } from "./lib/auth";
+import { resolveCorsOrigin } from "./lib/origin-config";
 import { registerRoutes } from "./routes";
 
 if (process.env.MIGRATE_ON_STARTUP !== "false") {
@@ -21,7 +22,7 @@ app.use(
     credentials: true,
     exposeHeaders: ["Content-Length"],
     maxAge: 86400,
-    origin: authTrustedOrigins,
+    origin: (origin) => resolveCorsOrigin(origin, authTrustedOrigins),
   }),
 );
 

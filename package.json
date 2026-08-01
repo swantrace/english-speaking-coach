@@ -11,7 +11,6 @@
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs -f",
-    "infra:logs:agent": "docker compose logs -f agent",
     "dev:backend:api": "turbo run dev:api --filter=@english-coach/backend",
     "dev:backend:worker": "turbo run dev:worker --filter=@english-coach/backend",
     "dev:backend": "pnpm dev:backend:api",
