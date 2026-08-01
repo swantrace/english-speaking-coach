@@ -41,6 +41,18 @@ export const knowledgeSenseSchema = z.object({
   order: z.number().int().min(1),
 });
 
+/**
+ * Complete AI-enriched draft stored on an occurrence before an administrator
+ * approves it or links it to an existing knowledge item.
+ */
+export const knowledgeOccurrenceDraftSchema = z.object({
+  proposedCommunicativeFunction: z.enum(communicativeFunctionValues).nullable(),
+  proposedFixednessLevel: z.enum(fixednessLevelValues).nullable(),
+  proposedPattern: z.string().trim().min(1),
+  proposedPatternType: z.enum(patternTypeValues),
+  proposedSenses: z.array(knowledgeSenseSchema).min(1),
+});
+
 export const knowledgeItemSchema = createSelectSchema(knowledgeItems, {
   communicativeFunction: z.enum(communicativeFunctionValues).nullable(),
   fixednessLevel: z.enum(fixednessLevelValues).nullable(),
@@ -317,6 +329,7 @@ export function createKnowledgeGenerateEventsUrl({
 
 export type KnowledgeItem = z.infer<typeof knowledgeItemSchema>;
 export type KnowledgeItemListQuery = z.infer<typeof knowledgeItemListQuerySchema>;
+export type KnowledgeOccurrenceDraft = z.infer<typeof knowledgeOccurrenceDraftSchema>;
 export type KnowledgeSense = z.infer<typeof knowledgeSenseSchema>;
 export type KnowledgePointListQuery = z.infer<typeof knowledgePointListQuerySchema>;
 export type KnowledgePointSummary = z.infer<typeof knowledgePointSummarySchema>;

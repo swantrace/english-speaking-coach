@@ -1,4 +1,4 @@
-import { patternTypes } from "@english-coach/contract/common";
+import { communicativeFunctions, fixednessLevels, patternTypes } from "@english-coach/contract/common";
 import { adminKnowledgeCreateSchema, knowledgeSenseSchema } from "@english-coach/contract/knowledge";
 import { buildKnowledgeItemFromOccurrencePrompt, buildKnowledgeItemGeneratePrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
@@ -18,6 +18,11 @@ const generatedKnowledgeItemSchema = adminKnowledgeCreateSchema
 
 const modelGeneratedKnowledgeItemSchema = generatedKnowledgeItemSchema.extend({
   pattern: generatedKnowledgeItemSchema.shape.pattern.optional(),
+});
+
+const generatedKnowledgeOccurrenceDraftSchema = generatedKnowledgeItemSchema.extend({
+  communicativeFunction: z.enum(communicativeFunctions).nullable(),
+  fixednessLevel: z.enum(fixednessLevels).nullable(),
 });
 
 export type GeneratedKnowledgeItem = z.output<typeof generatedKnowledgeItemSchema>;
@@ -103,14 +108,14 @@ export function createKnowledgeItemHandlers(providerId: ProviderId) {
             providerOptions: providerOptionsForStructuredOutput({ modelId, providerId }),
             model: languageModel(providerId, modelId),
             output: Output.object({
-              schema: generatedKnowledgeItemSchema,
+              schema: generatedKnowledgeOccurrenceDraftSchema,
             }),
             system,
             prompt,
           }),
       });
 
-      return generatedKnowledgeItemSchema.parse({
+      return generatedKnowledgeOccurrenceDraftSchema.parse({
         ...output,
         pattern: output.pattern?.trim() || payload.proposedPattern,
       });
