@@ -175,7 +175,11 @@ export const adminKnowledgeOccurrenceStatusSchema = z.enum(knowledgeOccurrenceSt
 export const adminKnowledgeOccurrenceListItemSchema = z.object({
   id: z.string().min(1),
   knowledgeItemId: z.string().min(1).nullable(),
+  proposedCommunicativeFunction: z.enum(communicativeFunctionValues).nullable(),
+  proposedFixednessLevel: z.enum(fixednessLevelValues).nullable(),
   proposedPattern: z.string().trim().min(1),
+  proposedPatternType: z.enum(patternTypeValues).nullable(),
+  proposedSenses: z.array(knowledgeSenseSchema).nullable(),
   reviewedAt: z.string().min(1).nullable(),
   sessionHistoryId: z.string().min(1),
   sessionTitle: z.string().trim().min(1).nullable(),
@@ -208,6 +212,21 @@ export const adminRejectKnowledgeOccurrenceSchema = z.object({
 export const adminRejectKnowledgeOccurrenceResponseSchema = z.object({
   id: z.string().min(1),
   status: z.literal("rejected"),
+});
+
+export const adminApproveKnowledgeOccurrenceSchema = z.object({
+  communicativeFunction: z.enum(communicativeFunctionValues).nullable(),
+  fixednessLevel: z.enum(fixednessLevelValues).nullable(),
+  pattern: z.string().trim().min(1),
+  patternType: z.enum(patternTypeValues),
+  senses: z.array(knowledgeSenseSchema).min(1),
+});
+
+export const adminApproveKnowledgeOccurrenceResponseSchema = z.object({
+  created: z.boolean(),
+  id: z.string().min(1),
+  knowledgeItemId: z.string().min(1),
+  status: z.literal("approved"),
 });
 
 export const knowledgeGenerateSubmissionKind = "knowledge.generate";
@@ -355,6 +374,8 @@ export type AdminLinkKnowledgeOccurrenceInput = z.infer<typeof adminLinkKnowledg
 export type AdminLinkKnowledgeOccurrenceResponse = z.infer<typeof adminLinkKnowledgeOccurrenceResponseSchema>;
 export type AdminRejectKnowledgeOccurrenceInput = z.infer<typeof adminRejectKnowledgeOccurrenceSchema>;
 export type AdminRejectKnowledgeOccurrenceResponse = z.infer<typeof adminRejectKnowledgeOccurrenceResponseSchema>;
+export type AdminApproveKnowledgeOccurrenceInput = z.infer<typeof adminApproveKnowledgeOccurrenceSchema>;
+export type AdminApproveKnowledgeOccurrenceResponse = z.infer<typeof adminApproveKnowledgeOccurrenceResponseSchema>;
 export type KnowledgeGenerateEventsQuery = z.infer<typeof knowledgeGenerateEventsQuerySchema>;
 export type KnowledgeGenerateHistoryQuery = z.infer<typeof knowledgeGenerateHistoryQuerySchema>;
 export type KnowledgeGenerateSubmissionBody = z.infer<typeof knowledgeGenerateSubmissionBodySchema>;

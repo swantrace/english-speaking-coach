@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { knowledgeOccurrenceDraftSchema } from "@english-coach/contract/knowledge";
+import {
+  adminApproveKnowledgeOccurrenceSchema,
+  knowledgeOccurrenceDraftSchema,
+} from "@english-coach/contract/knowledge";
 import { buildKnowledgeItemFromOccurrencePrompt } from "@english-coach/prompts";
+import { buildApprovedKnowledgeItemValues } from "../knowledge-occurrence-review";
 import {
   buildKnowledgeOccurrenceDraftUpdate,
   createKnowledgeOccurrenceEnrichmentJobs,
@@ -112,5 +116,47 @@ describe("knowledge occurrence enrichment", () => {
         senses: [],
       }),
     ).toThrow();
+  });
+});
+
+describe("knowledge occurrence approval", () => {
+  const approvalInput = {
+    communicativeFunction: "express_attitude_or_opinion" as const,
+    fixednessLevel: null,
+    pattern: "I am worried I might <verb>",
+    patternType: "grammatical_adjective_that_clause" as const,
+    senses: [
+      {
+        example: "I am worried I might miss the deadline.",
+        example_zh: "我担心我可能会错过截止日期。",
+        meaning_en: "Used to express concern about a possible future event.",
+        meaning_zh: "用于表达对未来可能发生之事的担忧。",
+        order: 1,
+      },
+    ],
+  };
+
+  it("requires a complete edited candidate", () => {
+    expect(adminApproveKnowledgeOccurrenceSchema.parse(approvalInput)).toEqual(approvalInput);
+    expect(
+      adminApproveKnowledgeOccurrenceSchema.safeParse({
+        ...approvalInput,
+        senses: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("creates a formal knowledge item without pending-review state", () => {
+    const values = buildApprovedKnowledgeItemValues(approvalInput, {
+      id: "knowledge-1",
+      now: "2026-08-01T00:00:00.000Z",
+    });
+
+    expect(values).toMatchObject({
+      id: "knowledge-1",
+      isPendingReview: false,
+      pattern: approvalInput.pattern,
+      senses: approvalInput.senses,
+    });
   });
 });
