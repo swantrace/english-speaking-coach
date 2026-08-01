@@ -23,7 +23,6 @@ import type { BackendApp } from "../../http/context";
 import { getAuthenticatedUser, parseJsonBody } from "../../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../../http/pagination";
 import { buildApprovedKnowledgeItemValues } from "../../lib/knowledge-occurrence-review";
-import { knowledgeOccurrenceEnrichQueue } from "../../lib/queues/knowledge-occurrence.resolve";
 
 class OccurrenceReviewError extends Error {
   constructor(
@@ -149,6 +148,7 @@ export function registerAdminKnowledgeOccurrenceRoutes(app: BackendApp) {
     }
 
     const draftIsReady = Boolean(row.proposedPatternType && row.proposedSenses?.length);
+    const { knowledgeOccurrenceEnrichQueue } = await import("../../lib/queues/knowledge-occurrence.resolve");
     const enrichmentJob = draftIsReady
       ? null
       : await knowledgeOccurrenceEnrichQueue.getJob(`${knowledgeOccurrenceEnrichJobName}-${occurrenceId}`);
@@ -434,6 +434,7 @@ export function registerAdminKnowledgeOccurrenceRoutes(app: BackendApp) {
       return parsedBody.response;
     }
 
+    const { knowledgeOccurrenceEnrichQueue } = await import("../../lib/queues/knowledge-occurrence.resolve");
     const job = await knowledgeOccurrenceEnrichQueue.add(
       knowledgeOccurrenceEnrichJobName,
       { occurrenceId: parsedBody.data.occurrenceId },

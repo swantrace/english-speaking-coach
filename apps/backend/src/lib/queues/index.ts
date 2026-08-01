@@ -1,3 +1,4 @@
+export { findKnowledgeOccurrenceEnrichmentBackfillIds } from "./helpers/knowledge-occurrence.backfill";
 export type { KnowledgeGenerateJobData, KnowledgeGenerateProgressMessage } from "./knowledge.generate";
 export {
   createKnowledgeGenerateSubmission,
@@ -9,6 +10,7 @@ export {
   publishKnowledgeGenerateProgress,
 } from "./knowledge.generate";
 export {
+  backfillKnowledgeOccurrenceEnrichment,
   enqueueKnowledgeOccurrenceEnrichment,
   knowledgeOccurrenceEnrichQueue,
   knowledgeOccurrenceEnrichWorker,

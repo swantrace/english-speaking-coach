@@ -28,7 +28,12 @@ function createKnowledgePointSearchCondition(search?: string) {
 }
 
 function createKnowledgePointAccessCondition(userId: string) {
-  return and(eq(sessionHistory.userId, userId), isNotNull(sessionHistory.endedAt));
+  return and(
+    eq(sessionHistory.userId, userId),
+    isNotNull(sessionHistory.endedAt),
+    eq(sessionKnowledgePointOccurrences.status, "approved"),
+    isNotNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+  );
 }
 
 function compareKnowledgePointSummaries(

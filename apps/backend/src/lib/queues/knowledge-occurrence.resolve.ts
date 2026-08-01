@@ -10,6 +10,7 @@ import { type Job, Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
 import { type GeneratedKnowledgeItem, getProvider, resolveKnowledgeGenerationModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
+import { findKnowledgeOccurrenceEnrichmentBackfillIds } from "./helpers/knowledge-occurrence.backfill";
 import {
   buildKnowledgeOccurrenceDraftUpdate,
   createKnowledgeOccurrenceEnrichmentJobs,
@@ -62,6 +63,18 @@ export async function enqueueKnowledgeOccurrenceEnrichment(occurrenceIds: string
   if (jobs.length > 0) {
     await knowledgeOccurrenceEnrichQueue.addBulk(jobs);
   }
+}
+
+/**
+ * Enqueue candidate enrichment for occurrences created before draft fields were
+ * introduced. Deterministic BullMQ job IDs make this safe on every worker boot.
+ * This function never approves an occurrence or writes a knowledge item.
+ */
+export async function backfillKnowledgeOccurrenceEnrichment() {
+  const occurrenceIds = await findKnowledgeOccurrenceEnrichmentBackfillIds();
+  await enqueueKnowledgeOccurrenceEnrichment(occurrenceIds);
+
+  return { enqueuedCount: occurrenceIds.length };
 }
 
 export async function processKnowledgeOccurrenceEnrichJob(occurrenceId: string) {

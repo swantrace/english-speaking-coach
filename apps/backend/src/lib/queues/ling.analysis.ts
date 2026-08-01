@@ -3,7 +3,6 @@ import {
   lingAnalysisJobName,
   lingAnalysisQueueName,
   lingAnalysisResultSchema,
-  type SessionKnowledgeOccurrence,
 } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import {
@@ -13,10 +12,11 @@ import {
   sessionTranscripts,
 } from "@english-coach/database/schema";
 import { type Job, Queue, Worker } from "bullmq";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getProvider, resolveLingAnalysisModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
+import { persistKnowledgeOccurrencesForSession } from "./helpers/knowledge-occurrences.persistence";
 import { persistRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
 import { enqueueKnowledgeOccurrenceEnrichment } from "./knowledge-occurrence.resolve";
@@ -49,65 +49,6 @@ async function generateLingAnalysis(sessionHistoryId: string, turns: TranscriptT
   );
 
   return lingAnalysisResultSchema.parse(result);
-}
-
-async function persistKnowledgeOccurrencesForSession(
-  sessionHistoryId: string,
-  turns: TranscriptTurns,
-  occurrences: SessionKnowledgeOccurrence[],
-) {
-  if (!occurrences.length) {
-    return [];
-  }
-
-  const values = occurrences
-    .filter((occurrence) => {
-      const turn = turns[occurrence.transcriptTurnIndex];
-
-      if (!turn) {
-        return false;
-      }
-
-      return turn.text.trim().length > 0;
-    })
-    .map((occurrence) => ({
-      id: crypto.randomUUID(),
-      knowledgeItemId: null,
-      proposedPattern: occurrence.proposedPattern,
-      sessionHistoryId,
-      transcriptTurnIndex: occurrence.transcriptTurnIndex,
-      utterance: occurrence.utterance,
-    }));
-
-  if (!values.length) {
-    return [];
-  }
-
-  await db
-    .insert(sessionKnowledgePointOccurrences)
-    .values(values)
-    .onConflictDoNothing({
-      target: [
-        sessionKnowledgePointOccurrences.sessionHistoryId,
-        sessionKnowledgePointOccurrences.transcriptTurnIndex,
-        sessionKnowledgePointOccurrences.proposedPattern,
-        sessionKnowledgePointOccurrences.utterance,
-      ],
-    });
-
-  const unresolvedOccurrences = await db
-    .select({ id: sessionKnowledgePointOccurrences.id })
-    .from(sessionKnowledgePointOccurrences)
-    .where(
-      and(
-        eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId),
-        eq(sessionKnowledgePointOccurrences.status, "proposed"),
-        isNull(sessionKnowledgePointOccurrences.knowledgeItemId),
-        isNull(sessionKnowledgePointOccurrences.proposedSenses),
-      ),
-    );
-
-  return unresolvedOccurrences.map(({ id }) => id);
 }
 
 export async function processLingAnalysisSession(sessionHistoryId: string) {
