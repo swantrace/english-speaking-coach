@@ -9,9 +9,10 @@ export {
   publishKnowledgeGenerateProgress,
 } from "./knowledge.generate";
 export {
-  knowledgeOccurrenceResolveQueue,
-  knowledgeOccurrenceResolveWorker,
-  setKnowledgeOccurrenceResolveGeneratorForTests,
+  enqueueKnowledgeOccurrenceEnrichment,
+  knowledgeOccurrenceEnrichQueue,
+  knowledgeOccurrenceEnrichWorker,
+  setKnowledgeOccurrenceEnrichGeneratorForTests,
 } from "./knowledge-occurrence.resolve";
 export type { ScenarioGenerateJobData, ScenarioGenerateProgressMessage } from "./scenario.generate";
 export {

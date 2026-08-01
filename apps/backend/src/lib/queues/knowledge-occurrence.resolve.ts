@@ -1,8 +1,8 @@
 import {
-  type KnowledgeOccurrenceResolveJob,
-  knowledgeOccurrenceResolveJobName,
-  knowledgeOccurrenceResolveJobSchema,
-  knowledgeOccurrenceResolveQueueName,
+  type KnowledgeOccurrenceEnrichJob,
+  knowledgeOccurrenceEnrichJobName,
+  knowledgeOccurrenceEnrichJobSchema,
+  knowledgeOccurrenceEnrichQueueName,
 } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
 import { sessionKnowledgePointOccurrences } from "@english-coach/database/schema";
@@ -10,18 +10,23 @@ import { type Job, Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
 import { type GeneratedKnowledgeItem, getProvider, resolveKnowledgeGenerationModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
-import { persistGeneratedKnowledgeItem } from "./helpers/knowledge-items.persistence";
+import {
+  buildKnowledgeOccurrenceDraftUpdate,
+  createKnowledgeOccurrenceEnrichmentJobs,
+} from "./helpers/knowledge-occurrence.enrichment";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
 
-export const knowledgeOccurrenceResolveQueue = new Queue<KnowledgeOccurrenceResolveJob>(
-  knowledgeOccurrenceResolveQueueName,
+export { buildKnowledgeOccurrenceDraftUpdate, createKnowledgeOccurrenceEnrichmentJobs };
+
+export const knowledgeOccurrenceEnrichQueue = new Queue<KnowledgeOccurrenceEnrichJob>(
+  knowledgeOccurrenceEnrichQueueName,
   { connection: producerRedis },
 );
 
 const knowledgeModelRoute = resolveKnowledgeGenerationModelRoute();
 const knowledgeItemAi = getProvider(knowledgeModelRoute.providerId).knowledgeItem;
 
-let knowledgeOccurrenceResolveGeneratorOverride:
+let knowledgeOccurrenceEnrichGeneratorOverride:
   | (({
       proposedPattern,
       utterance,
@@ -40,23 +45,26 @@ async function generateKnowledgeItemFromOccurrence({
   sessionHistoryId?: string | null;
   utterance: string;
 }) {
-  if (knowledgeOccurrenceResolveGeneratorOverride) {
-    return knowledgeOccurrenceResolveGeneratorOverride({ proposedPattern, utterance });
+  if (knowledgeOccurrenceEnrichGeneratorOverride) {
+    return knowledgeOccurrenceEnrichGeneratorOverride({ proposedPattern, utterance });
   }
 
   return knowledgeItemAi.generateKnowledgeItemFromOccurrence(
     knowledgeModelRoute.modelId,
-    {
-      proposedPattern,
-      utterance,
-    },
-    {
-      sessionHistoryId,
-    },
+    { proposedPattern, utterance },
+    { sessionHistoryId },
   );
 }
 
-export async function processKnowledgeOccurrenceResolveJob(occurrenceId: string) {
+export async function enqueueKnowledgeOccurrenceEnrichment(occurrenceIds: string[]) {
+  const jobs = createKnowledgeOccurrenceEnrichmentJobs(occurrenceIds);
+
+  if (jobs.length > 0) {
+    await knowledgeOccurrenceEnrichQueue.addBulk(jobs);
+  }
+}
+
+export async function processKnowledgeOccurrenceEnrichJob(occurrenceId: string) {
   const [occurrence] = await db
     .select()
     .from(sessionKnowledgePointOccurrences)
@@ -64,11 +72,12 @@ export async function processKnowledgeOccurrenceResolveJob(occurrenceId: string)
       and(
         eq(sessionKnowledgePointOccurrences.id, occurrenceId),
         isNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+        eq(sessionKnowledgePointOccurrences.status, "proposed"),
       ),
     )
     .limit(1);
 
-  if (!occurrence) {
+  if (!occurrence || (occurrence.proposedPatternType && occurrence.proposedSenses?.length)) {
     return { occurrenceId, status: "skipped" as const };
   }
 
@@ -77,35 +86,45 @@ export async function processKnowledgeOccurrenceResolveJob(occurrenceId: string)
     sessionHistoryId: occurrence.sessionHistoryId,
     utterance: occurrence.utterance,
   });
-  const { knowledgeItemId } = await persistGeneratedKnowledgeItem(generatedKnowledgeItem);
-
-  await db
+  const draft = buildKnowledgeOccurrenceDraftUpdate(generatedKnowledgeItem);
+  const updatedOccurrences = await db
     .update(sessionKnowledgePointOccurrences)
-    .set({ knowledgeItemId })
-    .where(eq(sessionKnowledgePointOccurrences.id, occurrence.id));
-  return { knowledgeItemId, occurrenceId: occurrence.id, status: "resolved" as const };
+    .set(draft)
+    .where(
+      and(
+        eq(sessionKnowledgePointOccurrences.id, occurrence.id),
+        isNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+        eq(sessionKnowledgePointOccurrences.status, "proposed"),
+      ),
+    )
+    .returning({ id: sessionKnowledgePointOccurrences.id });
+
+  return {
+    occurrenceId: occurrence.id,
+    status: updatedOccurrences.length > 0 ? ("enriched" as const) : ("skipped" as const),
+  };
 }
 
-async function handleKnowledgeOccurrenceResolveJob(job: Job<KnowledgeOccurrenceResolveJob>) {
-  const { occurrenceId } = knowledgeOccurrenceResolveJobSchema.parse(job.data);
-  return processKnowledgeOccurrenceResolveJob(occurrenceId);
+async function handleKnowledgeOccurrenceEnrichJob(job: Job<KnowledgeOccurrenceEnrichJob>) {
+  const { occurrenceId } = knowledgeOccurrenceEnrichJobSchema.parse(job.data);
+  return processKnowledgeOccurrenceEnrichJob(occurrenceId);
 }
 
-export const knowledgeOccurrenceResolveWorker = new Worker<KnowledgeOccurrenceResolveJob>(
-  knowledgeOccurrenceResolveQueueName,
-  handleKnowledgeOccurrenceResolveJob,
+export const knowledgeOccurrenceEnrichWorker = new Worker<KnowledgeOccurrenceEnrichJob>(
+  knowledgeOccurrenceEnrichQueueName,
+  handleKnowledgeOccurrenceEnrichJob,
   { connection: workerRedis },
 );
 
-knowledgeOccurrenceResolveWorker.on("completed", (job) => {
-  logWorkerCompleted(knowledgeOccurrenceResolveJobName, job);
+knowledgeOccurrenceEnrichWorker.on("completed", (job) => {
+  logWorkerCompleted(knowledgeOccurrenceEnrichJobName, job);
 });
 
-knowledgeOccurrenceResolveWorker.on("failed", (job, error) => {
-  logWorkerFailed(knowledgeOccurrenceResolveJobName, job, error);
+knowledgeOccurrenceEnrichWorker.on("failed", (job, error) => {
+  logWorkerFailed(knowledgeOccurrenceEnrichJobName, job, error);
 });
 
-export function setKnowledgeOccurrenceResolveGeneratorForTests(
+export function setKnowledgeOccurrenceEnrichGeneratorForTests(
   generator:
     | (({
         proposedPattern,
@@ -116,5 +135,5 @@ export function setKnowledgeOccurrenceResolveGeneratorForTests(
       }) => Promise<GeneratedKnowledgeItem>)
     | null,
 ) {
-  knowledgeOccurrenceResolveGeneratorOverride = generator;
+  knowledgeOccurrenceEnrichGeneratorOverride = generator;
 }

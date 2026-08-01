@@ -5,7 +5,7 @@ import {
   adminRejectKnowledgeOccurrenceResponseSchema,
   adminRejectKnowledgeOccurrenceSchema,
   assignKnowledgeOccurrenceSchema,
-  knowledgeOccurrenceResolveJobName,
+  knowledgeOccurrenceEnrichJobName,
   resolveKnowledgeOccurrenceSchema,
 } from "@english-coach/contract/knowledge";
 import { db } from "@english-coach/database";
@@ -19,7 +19,7 @@ import { and, count, desc, eq, like, or } from "drizzle-orm";
 import type { BackendApp } from "../../http/context";
 import { getAuthenticatedUser, parseJsonBody } from "../../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../../http/pagination";
-import { knowledgeOccurrenceResolveQueue } from "../../lib/queues/knowledge-occurrence.resolve";
+import { knowledgeOccurrenceEnrichQueue } from "../../lib/queues/knowledge-occurrence.resolve";
 
 export function registerAdminKnowledgeOccurrenceRoutes(app: BackendApp) {
   // List knowledge occurrences that need admin review or have already been reviewed.
@@ -184,7 +184,7 @@ export function registerAdminKnowledgeOccurrenceRoutes(app: BackendApp) {
     );
   });
 
-  // Queue AI-assisted resolution for a knowledge occurrence.
+  // Queue AI-assisted draft enrichment for a knowledge occurrence.
   app.post("/api/admin/knowledge-occurrences/resolve", async (context) => {
     const parsedBody = await parseJsonBody(context, resolveKnowledgeOccurrenceSchema);
 
@@ -192,11 +192,11 @@ export function registerAdminKnowledgeOccurrenceRoutes(app: BackendApp) {
       return parsedBody.response;
     }
 
-    const job = await knowledgeOccurrenceResolveQueue.add(
-      knowledgeOccurrenceResolveJobName,
+    const job = await knowledgeOccurrenceEnrichQueue.add(
+      knowledgeOccurrenceEnrichJobName,
       { occurrenceId: parsedBody.data.occurrenceId },
       {
-        jobId: `${knowledgeOccurrenceResolveJobName}-${parsedBody.data.occurrenceId}`,
+        jobId: `${knowledgeOccurrenceEnrichJobName}-${parsedBody.data.occurrenceId}`,
         removeOnComplete: true,
         removeOnFail: false,
       },

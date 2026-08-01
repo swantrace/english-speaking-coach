@@ -215,9 +215,9 @@ export const knowledgeGenerateQueueName = knowledgeGenerateSubmissionKind;
 export const knowledgeGenerateJobName = knowledgeGenerateSubmissionKind;
 export const knowledgeGenerateUpdatedEvent = "knowledge.generate.updated";
 export const knowledgeGenerateProgressChannel = `${knowledgeGenerateSubmissionKind}.progress`;
-export const knowledgeOccurrenceResolveQueueName = "knowledgeOccurrenceResolve";
-export const knowledgeOccurrenceResolveJobName = "knowledgeOccurrenceResolve";
-export const knowledgeOccurrenceResolveJobSchema = z.object({
+export const knowledgeOccurrenceEnrichQueueName = "knowledgeOccurrenceEnrich";
+export const knowledgeOccurrenceEnrichJobName = "knowledgeOccurrenceEnrich";
+export const knowledgeOccurrenceEnrichJobSchema = z.object({
   occurrenceId: z.string().min(1),
 });
 export const knowledgeGenerateEventsSubscriberPrefix = `${knowledgeGenerateSubmissionKind}.events`;
@@ -366,4 +366,4 @@ export type KnowledgeGenerateSubmissionHistoryResponse = z.infer<
 export type KnowledgeGenerateSubmissionResult = z.infer<typeof knowledgeGenerateSubmissionResultSchema>;
 export type KnowledgeGenerateJobUpdate = z.infer<typeof knowledgeGenerateJobUpdateSchema>;
 export type KnowledgeGenerateSubmissionResponse = z.infer<typeof knowledgeGenerateSubmissionResponseSchema>;
-export type KnowledgeOccurrenceResolveJob = z.infer<typeof knowledgeOccurrenceResolveJobSchema>;
+export type KnowledgeOccurrenceEnrichJob = z.infer<typeof knowledgeOccurrenceEnrichJobSchema>;

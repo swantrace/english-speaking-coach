@@ -13,12 +13,13 @@ import {
   sessionTranscripts,
 } from "@english-coach/database/schema";
 import { type Job, Queue, Worker } from "bullmq";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getProvider, resolveLingAnalysisModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
 import { persistRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
+import { enqueueKnowledgeOccurrenceEnrichment } from "./knowledge-occurrence.resolve";
 
 type TranscriptTurns = typeof sessionTranscripts.$inferSelect.turns;
 const lingAnalysisJobDataSchema = z.object({ sessionHistoryId: z.string().min(1) });
@@ -56,7 +57,7 @@ async function persistKnowledgeOccurrencesForSession(
   occurrences: SessionKnowledgeOccurrence[],
 ) {
   if (!occurrences.length) {
-    return;
+    return [];
   }
 
   const values = occurrences
@@ -79,7 +80,7 @@ async function persistKnowledgeOccurrencesForSession(
     }));
 
   if (!values.length) {
-    return;
+    return [];
   }
 
   await db
@@ -93,6 +94,20 @@ async function persistKnowledgeOccurrencesForSession(
         sessionKnowledgePointOccurrences.utterance,
       ],
     });
+
+  const unresolvedOccurrences = await db
+    .select({ id: sessionKnowledgePointOccurrences.id })
+    .from(sessionKnowledgePointOccurrences)
+    .where(
+      and(
+        eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId),
+        eq(sessionKnowledgePointOccurrences.status, "proposed"),
+        isNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+        isNull(sessionKnowledgePointOccurrences.proposedSenses),
+      ),
+    );
+
+  return unresolvedOccurrences.map(({ id }) => id);
 }
 
 export async function processLingAnalysisSession(sessionHistoryId: string) {
@@ -133,7 +148,12 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   });
 
   await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
-  await persistKnowledgeOccurrencesForSession(sessionHistoryId, transcriptRecord.turns, analysis.occurrences);
+  const occurrenceIds = await persistKnowledgeOccurrencesForSession(
+    sessionHistoryId,
+    transcriptRecord.turns,
+    analysis.occurrences,
+  );
+  await enqueueKnowledgeOccurrenceEnrichment(occurrenceIds);
 
   return analysis;
 }
