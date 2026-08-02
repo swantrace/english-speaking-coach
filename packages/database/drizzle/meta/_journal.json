@@ -22,6 +22,13 @@
       "when": 1785637491215,
       "tag": "0002_wet_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785644288068,
+      "tag": "0003_burly_killraven",
+      "breakpoints": true
     }
   ]
 }

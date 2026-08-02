@@ -16,6 +16,27 @@ export interface StorageConfig {
   forcePathStyle: boolean;
 }
 
+export interface StorageUploadOptions {
+  /** MIME type stored with the object. */
+  contentType?: string;
+  /** Private object metadata. Keys and values must be safe S3 metadata strings. */
+  metadata?: Record<string, string>;
+}
+
+export interface PrivateMediaUpload {
+  key: string;
+  buffer: Buffer;
+  contentType: string;
+  metadata?: Record<string, string>;
+}
+
+export interface StoredPrivateMedia {
+  objectKey: string;
+  contentType: string;
+  byteSize: number;
+  checksumSha256: string;
+}
+
 /**
  * Storage provider abstraction for S3-compatible storage
  * Supports MinIO (local development) and Cloudflare R2 (shared practice data)
@@ -25,9 +46,9 @@ export interface StorageProvider {
    * Upload a file to storage
    * @param key - Unique key/path for the file (e.g., "sessions/123/audio.wav")
    * @param buffer - File content as Buffer
-   * @param contentType - MIME type (e.g., "audio/wav", "audio/mpeg")
+   * @param options - Content type and private object metadata
    */
-  upload(key: string, buffer: Buffer, contentType?: string): Promise<void>;
+  upload(key: string, buffer: Buffer, options?: StorageUploadOptions): Promise<void>;
 
   /**
    * Download a file from storage

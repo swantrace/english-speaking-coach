@@ -108,6 +108,9 @@ importers:
       '@english-coach/prompts':
         specifier: workspace:*
         version: link:../../packages/prompts
+      '@english-coach/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       ai:
         specifier: ^7.0.41
         version: 7.0.41(zod@4.4.3)

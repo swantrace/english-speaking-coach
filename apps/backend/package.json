@@ -24,6 +24,7 @@
     "@english-coach/contract": "workspace:*",
     "@english-coach/database": "workspace:*",
     "@english-coach/prompts": "workspace:*",
+    "@english-coach/storage": "workspace:*",
     "ai": "^7.0.41",
     "better-auth": "^1.6.25",
     "bullmq": "^5.81.2",

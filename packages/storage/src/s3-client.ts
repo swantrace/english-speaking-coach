@@ -7,7 +7,7 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { StorageConfig, StorageProvider } from "./types";
+import type { StorageConfig, StorageProvider, StorageUploadOptions } from "./types";
 
 /**
  * S3-compatible storage implementation
@@ -30,12 +30,14 @@ export class S3StorageProvider implements StorageProvider {
     });
   }
 
-  async upload(key: string, buffer: Buffer, contentType = "application/octet-stream"): Promise<void> {
+  async upload(key: string, buffer: Buffer, options: StorageUploadOptions = {}): Promise<void> {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
       Body: buffer,
-      ContentType: contentType,
+      ContentLength: buffer.byteLength,
+      ContentType: options.contentType ?? "application/octet-stream",
+      Metadata: options.metadata,
     });
 
     await this.client.send(command);
@@ -62,7 +64,13 @@ export class S3StorageProvider implements StorageProvider {
     return Buffer.concat(chunks);
   }
 
-  async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
+  async getSignedUrl(key: string, expiresIn = 300): Promise<string> {
+    if (!key.startsWith("private/")) {
+      throw new Error("Signed media URLs are restricted to private object keys");
+    }
+    if (!Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > 3600) {
+      throw new Error("Signed URL expiry must be between 1 and 3600 seconds");
+    }
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
