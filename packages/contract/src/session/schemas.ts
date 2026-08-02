@@ -1,4 +1,4 @@
-import { scenarios, sessionErrors, sessionHistory } from "@english-coach/database/schema";
+import { scenarios, sessionErrors, sessionHistory, sessionProcessing } from "@english-coach/database/schema";
 import { selectedCharacterIndexValues, sessionTypeValues, speakerValues } from "@english-coach/domain";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -53,6 +53,32 @@ function normalizeErrorDimension(value: unknown) {
 }
 
 export const sessionTypeSchema = z.enum(sessionTypeValues);
+
+export const sessionProcessingEventName = "session-processing";
+export const sessionProcessingUpdatedEventType = "session-processing.updated";
+
+export const sessionProcessingSnapshotSchema = createSelectSchema(sessionProcessing);
+
+export const sessionProcessingEventSchema = z.object({
+  processing: sessionProcessingSnapshotSchema,
+  type: z.literal(sessionProcessingUpdatedEventType),
+});
+
+export function createSessionProcessingEvent(snapshot: z.infer<typeof sessionProcessingSnapshotSchema>) {
+  return sessionProcessingEventSchema.parse({
+    processing: snapshot,
+    type: sessionProcessingUpdatedEventType,
+  });
+}
+
+export function isSessionProcessingTerminal(snapshot: z.infer<typeof sessionProcessingSnapshotSchema>) {
+  return [
+    snapshot.analysisStatus,
+    snapshot.rewrittenTranscriptStatus,
+    snapshot.dialogueAudioStatus,
+    snapshot.knowledgeStatus,
+  ].every((status) => status === "not_applicable" || status === "ready" || status === "failed");
+}
 
 export const sessionTurnSchema = z.object({
   speaker: z.enum(speakerValues),
@@ -363,6 +389,8 @@ export const lingAnalysisQueueName = "lingAnalysis";
 export const lingAnalysisJobName = "lingAnalysis";
 
 export type SessionType = z.infer<typeof sessionTypeSchema>;
+export type SessionProcessingSnapshot = z.infer<typeof sessionProcessingSnapshotSchema>;
+export type SessionProcessingEvent = z.infer<typeof sessionProcessingEventSchema>;
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
 export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;

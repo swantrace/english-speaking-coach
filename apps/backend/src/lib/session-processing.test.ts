@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { createSessionProcessingEvent, isSessionProcessingTerminal } from "@english-coach/contract/session";
 import { db, migrateDatabase } from "@english-coach/database";
 import { freeFormContexts, sessionHistory, user } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
@@ -99,6 +100,29 @@ describe("session processing service", () => {
       knowledge: "queued",
       rewrittenTranscript: "not_applicable",
     });
+  });
+
+  it("creates self-contained processing events and detects terminal snapshots", async () => {
+    const processing = await getSessionProcessing(sessionId);
+
+    expect(processing).not.toBeNull();
+
+    if (!processing) {
+      throw new Error("Expected session processing test record");
+    }
+
+    expect(createSessionProcessingEvent(processing)).toEqual({
+      processing,
+      type: "session-processing.updated",
+    });
+    expect(isSessionProcessingTerminal(processing)).toBeFalse();
+    expect(
+      isSessionProcessingTerminal({
+        ...processing,
+        analysisStatus: "ready",
+        knowledgeStatus: "failed",
+      }),
+    ).toBeTrue();
   });
 
   it("creates the processing snapshot when a session completes", async () => {

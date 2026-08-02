@@ -17,11 +17,8 @@ import { z } from "zod";
 import { getProvider, resolveLingAnalysisModelRoute } from "../ai";
 import { normalizeLingAnalysisForSessionType } from "../ai/handlers/session";
 import { producerRedis, workerRedis } from "../redis";
-import {
-  getInitialSessionProcessingStatuses,
-  initializeSessionProcessing,
-  transitionSessionProcessingStage,
-} from "../session-processing";
+import { getInitialSessionProcessingStatuses, initializeSessionProcessing } from "../session-processing";
+import { transitionAndPublishSessionProcessingStage } from "../session-processing-events";
 import { persistKnowledgeOccurrencesForSession } from "./helpers/knowledge-occurrences.persistence";
 import { replaceRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
@@ -89,16 +86,16 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   });
 
   await Promise.all([
-    transitionSessionProcessingStage({ sessionHistoryId, stage: "analysis", status: "processing" }),
-    transitionSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "processing" }),
+    transitionAndPublishSessionProcessingStage({ sessionHistoryId, stage: "analysis", status: "processing" }),
+    transitionAndPublishSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "processing" }),
     ...(sessionRecord.sessionType === "role-play"
       ? [
-          transitionSessionProcessingStage({
+          transitionAndPublishSessionProcessingStage({
             sessionHistoryId,
             stage: "dialogueAudio",
             status: "queued",
           }),
-          transitionSessionProcessingStage({
+          transitionAndPublishSessionProcessingStage({
             sessionHistoryId,
             stage: "rewrittenTranscript",
             status: "processing",
@@ -139,17 +136,17 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
     await replaceRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
   } catch (error) {
     await Promise.allSettled([
-      transitionSessionProcessingStage({ error, sessionHistoryId, stage: "analysis", status: "failed" }),
-      transitionSessionProcessingStage({ error, sessionHistoryId, stage: "knowledge", status: "failed" }),
+      transitionAndPublishSessionProcessingStage({ error, sessionHistoryId, stage: "analysis", status: "failed" }),
+      transitionAndPublishSessionProcessingStage({ error, sessionHistoryId, stage: "knowledge", status: "failed" }),
       ...(sessionRecord.sessionType === "role-play"
         ? [
-            transitionSessionProcessingStage({
+            transitionAndPublishSessionProcessingStage({
               error,
               sessionHistoryId,
               stage: "dialogueAudio",
               status: "failed",
             }),
-            transitionSessionProcessingStage({
+            transitionAndPublishSessionProcessingStage({
               error,
               sessionHistoryId,
               stage: "rewrittenTranscript",
@@ -162,9 +159,15 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
   }
 
   await Promise.all([
-    transitionSessionProcessingStage({ sessionHistoryId, stage: "analysis", status: "ready" }),
+    transitionAndPublishSessionProcessingStage({ sessionHistoryId, stage: "analysis", status: "ready" }),
     ...(sessionRecord.sessionType === "role-play"
-      ? [transitionSessionProcessingStage({ sessionHistoryId, stage: "rewrittenTranscript", status: "ready" })]
+      ? [
+          transitionAndPublishSessionProcessingStage({
+            sessionHistoryId,
+            stage: "rewrittenTranscript",
+            status: "ready",
+          }),
+        ]
       : []),
   ]);
 
@@ -177,10 +180,15 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
     await enqueueKnowledgeOccurrenceEnrichment(occurrenceIds);
 
     if (occurrenceIds.length === 0) {
-      await transitionSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "ready" });
+      await transitionAndPublishSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "ready" });
     }
   } catch (error) {
-    await transitionSessionProcessingStage({ error, sessionHistoryId, stage: "knowledge", status: "failed" });
+    await transitionAndPublishSessionProcessingStage({
+      error,
+      sessionHistoryId,
+      stage: "knowledge",
+      status: "failed",
+    });
     throw error;
   }
 

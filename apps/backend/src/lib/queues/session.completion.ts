@@ -7,6 +7,7 @@ import {
 } from "@english-coach/contract/session";
 import { type Job, Queue, Worker } from "bullmq";
 import { producerRedis, workerRedis } from "../redis";
+import { publishCurrentSessionProcessing } from "../session-processing-events";
 import { persistSessionCompletion } from "./helpers/session-completion.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
 import { lingAnalysisQueue } from "./ling.analysis";
@@ -37,6 +38,7 @@ async function handleSessionCompletionJob(job: Job<SessionCompletionJob>) {
     sessionHistoryId: parsedJob.sessionHistoryId,
     transcript: parsedJob.transcript,
   });
+  await publishCurrentSessionProcessing(parsedJob.sessionHistoryId);
 
   // Step 3: enqueue post-session linguistic analysis
   await enqueueLingAnalysis(parsedJob.sessionHistoryId);

@@ -10,7 +10,8 @@ import { type Job, Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
 import { type GeneratedKnowledgeItem, getProvider, resolveKnowledgeGenerationModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
-import { getSessionProcessing, transitionSessionProcessingStage } from "../session-processing";
+import { getSessionProcessing } from "../session-processing";
+import { transitionAndPublishSessionProcessingStage } from "../session-processing-events";
 import { findKnowledgeOccurrenceEnrichmentBackfillIds } from "./helpers/knowledge-occurrence.backfill";
 import {
   buildKnowledgeOccurrenceDraftUpdate,
@@ -145,7 +146,7 @@ async function markKnowledgeProcessingReadyIfComplete(sessionHistoryId: string |
     .limit(1);
 
   if (!pendingOccurrence) {
-    await transitionSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "ready" });
+    await transitionAndPublishSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "ready" });
   }
 }
 
@@ -166,7 +167,7 @@ async function markKnowledgeProcessingFailed(occurrenceId: string, error: unknow
     return;
   }
 
-  await transitionSessionProcessingStage({
+  await transitionAndPublishSessionProcessingStage({
     error,
     sessionHistoryId: occurrence.sessionHistoryId,
     stage: "knowledge",
