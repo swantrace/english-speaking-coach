@@ -10,6 +10,7 @@
     "./job-events": "./src/job-events.ts",
     "./knowledge": "./src/knowledge/index.ts",
     "./knowledge-generate": "./src/knowledge-generate.ts",
+    "./media": "./src/media.ts",
     "./scenario": "./src/scenario/index.ts",
     "./scenario-generate": "./src/scenario-generate.ts",
     "./session": "./src/session/index.ts"

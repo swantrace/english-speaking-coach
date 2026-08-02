@@ -5,6 +5,7 @@ import { registerHistoryRoutes } from "./history";
 import { registerInternalAgentRoutes } from "./internal-agent";
 import { registerKnowledgeGenerateRoutes } from "./knowledge-generate";
 import { registerKnowledgePointRoutes } from "./knowledge-points";
+import { registerMediaRoutes } from "./media";
 import { registerScenarioGenerateRoutes } from "./scenario-generate";
 import { registerScenarioRoutes } from "./scenarios";
 import { registerSessionRoutes } from "./session";
@@ -19,6 +20,7 @@ export function registerRoutes(app: BackendApp) {
   registerStudentDashboardRoutes(app);
   registerKnowledgePointRoutes(app);
   registerKnowledgeGenerateRoutes(app);
+  registerMediaRoutes(app);
   registerScenarioGenerateRoutes(app);
   registerScenarioRoutes(app);
   registerAdminRoutes(app);

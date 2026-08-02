@@ -76,6 +76,7 @@ export function registerAccessPolicies(app: BackendApp) {
     "/api/scenarios/*",
     "/api/history",
     "/api/history/*",
+    "/api/media/*",
     "/api/sessions/*",
     "/api/student/dashboard",
   ]) {
