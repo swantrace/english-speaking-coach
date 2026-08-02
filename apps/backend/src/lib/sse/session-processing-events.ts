@@ -5,9 +5,9 @@ import {
   sessionProcessingEventSchema,
 } from "@english-coach/contract/session";
 import type { Context } from "hono";
-import { streamSSE } from "hono/streaming";
 import { getSessionProcessing } from "../session-processing";
 import { getSessionProcessingChannel } from "../session-processing-channel";
+import { streamRedisChannelSSE } from "./redis-channel";
 
 const heartbeatIntervalMs = 15_000;
 const defaultMaxDurationMs = 10 * 60 * 1_000;
@@ -18,84 +18,31 @@ function getMaxDurationMs() {
 }
 
 export function streamSessionProcessingEventsSSE(context: Context, sessionHistoryId: string) {
-  const startedAt = Date.now();
-
-  return streamSSE(context, async (stream) => {
-    const { createSubscriberRedisConnection } = await import("../redis");
-    const subscriber = createSubscriberRedisConnection(`session-processing.${sessionHistoryId}`);
-    let closed = false;
-
-    const closeStream = () => {
-      if (closed) {
-        return;
-      }
-
-      closed = true;
-      subscriber.disconnect();
-      stream.close();
-    };
-
-    const writeProcessingEvent = async (rawEvent: unknown) => {
-      const parsedEvent = sessionProcessingEventSchema.safeParse(rawEvent);
-
-      if (!parsedEvent.success || parsedEvent.data.processing.sessionHistoryId !== sessionHistoryId) {
-        return;
-      }
-
-      await stream.writeSSE({
-        data: JSON.stringify(parsedEvent.data),
-        event: sessionProcessingEventName,
-        id: parsedEvent.data.processing.updatedAt,
-        retry: 3_000,
-      });
-
-      if (isSessionProcessingTerminal(parsedEvent.data.processing)) {
-        closeStream();
-      }
-    };
-
-    subscriber.on("message", async (_channel: string, rawMessage: string) => {
-      if (closed) {
-        return;
-      }
-
+  return streamRedisChannelSSE(context, {
+    channel: getSessionProcessingChannel(sessionHistoryId),
+    eventName: sessionProcessingEventName,
+    getInitialMessages: async () => {
+      const processing = await getSessionProcessing(sessionHistoryId);
+      return processing ? [createSessionProcessingEvent(processing)] : [];
+    },
+    getMessageId: (event) => event.processing.updatedAt,
+    heartbeatEvent: {
+      createData: () => ({ sessionHistoryId, timestamp: new Date().toISOString() }),
+      eventName: "heartbeat",
+    },
+    heartbeatIntervalMs,
+    maxDurationMs: getMaxDurationMs(),
+    parseMessage: (rawMessage) => {
       try {
-        await writeProcessingEvent(JSON.parse(rawMessage));
+        const parsed = sessionProcessingEventSchema.safeParse(JSON.parse(rawMessage));
+        return parsed.success ? parsed.data : null;
       } catch {
-        // Ignore malformed or stale Pub/Sub messages; the database snapshot is authoritative.
+        return null;
       }
-    });
-
-    stream.onAbort(() => {
-      closeStream();
-    });
-
-    await subscriber.subscribe(getSessionProcessingChannel(sessionHistoryId));
-
-    const initialProcessing = await getSessionProcessing(sessionHistoryId);
-
-    if (initialProcessing) {
-      await writeProcessingEvent(createSessionProcessingEvent(initialProcessing));
-    }
-
-    while (!closed) {
-      const remainingMs = getMaxDurationMs() - (Date.now() - startedAt);
-
-      if (remainingMs <= 0) {
-        closeStream();
-        break;
-      }
-
-      await stream.sleep(Math.min(heartbeatIntervalMs, remainingMs));
-
-      if (closed) {
-        break;
-      }
-
-      await stream.writeSSE({
-        data: JSON.stringify({ sessionHistoryId, timestamp: new Date().toISOString() }),
-        event: "heartbeat",
-      });
-    }
+    },
+    retryMs: 3_000,
+    shouldClose: (event) => isSessionProcessingTerminal(event.processing),
+    shouldIncludeMessage: (event) => event.processing.sessionHistoryId === sessionHistoryId,
+    subscriberName: `session-processing.${sessionHistoryId}`,
   });
 }

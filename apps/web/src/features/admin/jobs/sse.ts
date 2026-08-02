@@ -3,6 +3,7 @@ import {
   jobEventsHeartbeatEvent,
   jobEventsSystemMessageSchema,
 } from "@english-coach/contract/common";
+import { connectEventSource } from "@/lib/sse";
 import { getAdminJobStreamPath } from "./api";
 import { type AdminJobStreamEvent, adminJobStreamEventSchema } from "./types";
 
@@ -60,7 +61,6 @@ export function connectAdminJobStream({
   onOpen,
   onSystemEvent,
 }: ConnectAdminJobStreamOptions) {
-  const eventSource = new EventSource(createStreamUrl(submissionId), { withCredentials: true });
   const handleJobUpdate = (event: MessageEvent<string>) => {
     const parsed = parseStreamEvent(event.data);
 
@@ -76,20 +76,14 @@ export function connectAdminJobStream({
     }
   };
 
-  eventSource.onopen = () => {
-    onOpen?.();
-  };
-
-  eventSource.onerror = () => {
-    onError?.();
-  };
-
-  eventSource.onmessage = handleJobUpdate;
-  eventSource.addEventListener("job.updated", handleJobUpdate as EventListener);
-  eventSource.addEventListener(jobEventsConnectedEvent, handleSystemEvent as EventListener);
-  eventSource.addEventListener(jobEventsHeartbeatEvent, handleSystemEvent as EventListener);
-
-  return () => {
-    eventSource.close();
-  };
+  return connectEventSource({
+    listeners: [
+      { eventName: "job.updated", handleEvent: handleJobUpdate },
+      { eventName: jobEventsConnectedEvent, handleEvent: handleSystemEvent },
+      { eventName: jobEventsHeartbeatEvent, handleEvent: handleSystemEvent },
+    ],
+    onError,
+    onOpen,
+    url: createStreamUrl(submissionId),
+  });
 }
