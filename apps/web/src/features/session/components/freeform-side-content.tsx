@@ -1,3 +1,5 @@
+import { RichContentViewer } from "@/components/app/rich-content-viewer";
+import { isLegacyHtmlContext, stripRichTextToPlainText } from "../mappers";
 import type { FreeFormContextSideContent } from "../types";
 
 interface FreeformSideContentProps {
@@ -5,6 +7,9 @@ interface FreeformSideContentProps {
 }
 
 export function FreeformSideContent({ context }: FreeformSideContentProps) {
+  const legacyHtml = isLegacyHtmlContext(context.content);
+  const displayContent = legacyHtml ? stripRichTextToPlainText(context.content) : context.content;
+
   return (
     <div className="space-y-5">
       <section className="rounded-[1.5rem] border border-stone-200 bg-white p-4 shadow-xs">
@@ -17,9 +22,11 @@ export function FreeformSideContent({ context }: FreeformSideContentProps) {
 
       <section className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Source context</p>
-        <div className="mt-3 max-h-[22rem] overflow-y-auto whitespace-pre-wrap text-sm leading-7 text-slate-700">
-          {context.content}
-        </div>
+        <RichContentViewer
+          className="mt-3 max-h-[22rem] overflow-y-auto"
+          content={displayContent}
+          contentType={legacyHtml ? "plain" : "markdown"}
+        />
       </section>
     </div>
   );

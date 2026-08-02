@@ -9,9 +9,10 @@ import {
   FormMessage,
 } from "@english-coach/ui";
 import { Placeholder } from "@tiptap/extensions";
+import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
 interface RichTextFieldProps<TFieldValues extends FieldValues> {
@@ -23,15 +24,37 @@ interface RichTextFieldProps<TFieldValues extends FieldValues> {
   placeholder?: string;
 }
 
+type EditorMode = "visual" | "markdown";
+type ToolbarAction =
+  | "blockquote"
+  | "bold"
+  | "bulletList"
+  | "clear"
+  | "heading2"
+  | "heading3"
+  | "italic"
+  | "link"
+  | "orderedList"
+  | "redo"
+  | "undo";
+
 interface ToolbarButtonConfig {
-  action: "bold" | "bulletList" | "italic";
+  action: ToolbarAction;
   label: string;
 }
 
 const toolbarButtons: ToolbarButtonConfig[] = [
+  { action: "heading2", label: "Heading" },
+  { action: "heading3", label: "Subheading" },
   { action: "bold", label: "Bold" },
   { action: "italic", label: "Italic" },
   { action: "bulletList", label: "Bullets" },
+  { action: "orderedList", label: "Numbered" },
+  { action: "blockquote", label: "Quote" },
+  { action: "link", label: "Link" },
+  { action: "clear", label: "Clear format" },
+  { action: "undo", label: "Undo" },
+  { action: "redo", label: "Redo" },
 ];
 
 interface RichTextEditorControlProps {
@@ -43,60 +66,50 @@ interface RichTextEditorControlProps {
 }
 
 function RichTextEditorControl({ disabled, onBlur, onChange, placeholder, value }: RichTextEditorControlProps) {
+  const [mode, setMode] = useState<EditorMode>("visual");
   const editor = useEditor({
     content: value,
+    contentType: "markdown",
     editorProps: {
       attributes: {
         class:
-          "coach-rich-text-editor min-h-64 px-4 py-3 text-sm leading-7 text-slate-700 outline-none [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-3",
+          "coach-rich-text-editor min-h-64 px-4 py-3 text-sm leading-7 text-slate-700 outline-none [&_blockquote]:border-l-2 [&_blockquote]:border-stone-300 [&_blockquote]:pl-4 [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_ol_li]:list-decimal [&_p]:mb-3 [&_ul_li]:list-disc",
       },
     },
     extensions: [
-      Placeholder.configure({
-        placeholder: placeholder ?? "",
-      }),
-      StarterKit.configure({
-        heading: false,
-        horizontalRule: false,
-      }),
+      Placeholder.configure({ placeholder: placeholder ?? "" }),
+      StarterKit.configure({ heading: { levels: [2, 3] }, horizontalRule: false }),
+      Markdown,
     ],
     immediatelyRender: false,
     onBlur: () => onBlur(),
-    onUpdate: ({ editor: currentEditor }) => {
-      onChange(currentEditor.getHTML());
-    },
+    onUpdate: ({ editor: currentEditor }) => onChange(currentEditor.getMarkdown()),
   });
 
   useEffect(() => {
-    if (!editor) {
-      return;
-    }
-
-    editor.setEditable(!disabled);
+    editor?.setEditable(!disabled);
   }, [disabled, editor]);
 
   useEffect(() => {
-    if (!editor) {
+    if (!editor || editor.getMarkdown() === value) {
       return;
     }
 
-    const currentHtml = editor.getHTML();
-
-    if (currentHtml === value) {
-      return;
-    }
-
-    editor.commands.setContent(value, {
-      emitUpdate: false,
-    });
+    editor.commands.setContent(value, { contentType: "markdown", emitUpdate: false });
   }, [editor, value]);
 
-  function runToolbarAction(action: ToolbarButtonConfig["action"]) {
+  function runToolbarAction(action: ToolbarAction) {
     if (!editor || disabled) {
       return;
     }
 
     switch (action) {
+      case "heading2":
+        editor.chain().focus().toggleHeading({ level: 2 }).run();
+        return;
+      case "heading3":
+        editor.chain().focus().toggleHeading({ level: 3 }).run();
+        return;
       case "bold":
         editor.chain().focus().toggleBold().run();
         return;
@@ -106,42 +119,99 @@ function RichTextEditorControl({ disabled, onBlur, onChange, placeholder, value 
       case "bulletList":
         editor.chain().focus().toggleBulletList().run();
         return;
+      case "orderedList":
+        editor.chain().focus().toggleOrderedList().run();
+        return;
+      case "blockquote":
+        editor.chain().focus().toggleBlockquote().run();
+        return;
+      case "link": {
+        const previousUrl = editor.getAttributes("link").href as string | undefined;
+        const url = window.prompt("Link URL", previousUrl ?? "https://");
+
+        if (url === null) return;
+        if (!url.trim()) {
+          editor.chain().focus().extendMarkRange("link").unsetLink().run();
+          return;
+        }
+
+        editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
+        return;
+      }
+      case "clear":
+        editor.chain().focus().unsetAllMarks().clearNodes().run();
+        return;
+      case "undo":
+        editor.chain().focus().undo().run();
+        return;
+      case "redo":
+        editor.chain().focus().redo().run();
+        return;
     }
   }
 
-  function isToolbarActionActive(action: ToolbarButtonConfig["action"]) {
-    if (!editor) {
-      return false;
-    }
+  function isToolbarActionActive(action: ToolbarAction) {
+    if (!editor) return false;
 
     switch (action) {
+      case "heading2":
+        return editor.isActive("heading", { level: 2 });
+      case "heading3":
+        return editor.isActive("heading", { level: 3 });
       case "bold":
-        return editor.isActive("bold");
       case "italic":
-        return editor.isActive("italic");
       case "bulletList":
-        return editor.isActive("bulletList");
+      case "orderedList":
+      case "blockquote":
+      case "link":
+        return editor.isActive(action);
+      case "clear":
+      case "undo":
+      case "redo":
+        return false;
     }
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {toolbarButtons.map((button) => (
-          <Button
-            className={cn(isToolbarActionActive(button.action) && "border-stone-300 bg-stone-100 text-slate-950")}
-            disabled={disabled || !editor}
-            key={button.action}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => runToolbarAction(button.action)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {button.label}
-          </Button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <fieldset className="flex rounded-lg border border-stone-200 p-1">
+          <legend className="sr-only">Editor mode</legend>
+          {(["visual", "markdown"] as const).map((editorMode) => (
+            <Button
+              className={cn(mode === editorMode && "bg-stone-100 text-slate-950")}
+              disabled={disabled}
+              key={editorMode}
+              onClick={() => setMode(editorMode)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {editorMode === "visual" ? "Visual" : "Markdown"}
+            </Button>
+          ))}
+        </fieldset>
+        <p className="text-xs text-slate-500">Saved as Markdown</p>
       </div>
+
+      {mode === "visual" ? (
+        <div className="flex flex-wrap gap-2">
+          {toolbarButtons.map((button) => (
+            <Button
+              className={cn(isToolbarActionActive(button.action) && "border-stone-300 bg-stone-100 text-slate-950")}
+              disabled={disabled || !editor}
+              key={button.action}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => runToolbarAction(button.action)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {button.label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
       <div
         className={cn(
@@ -150,7 +220,20 @@ function RichTextEditorControl({ disabled, onBlur, onChange, placeholder, value 
         )}
       >
         <FormControl>
-          <EditorContent aria-label={placeholder ?? "Rich text editor"} editor={editor} role="textbox" />
+          {mode === "visual" ? (
+            <EditorContent aria-label={placeholder ?? "Rich text editor"} editor={editor} role="textbox" />
+          ) : (
+            <textarea
+              aria-label="Markdown source"
+              className="min-h-72 w-full resize-y bg-transparent px-4 py-3 font-mono text-sm leading-7 text-slate-700 outline-none disabled:cursor-not-allowed disabled:text-stone-400"
+              disabled={disabled}
+              onBlur={onBlur}
+              onChange={(event) => onChange(event.target.value)}
+              placeholder={placeholder}
+              spellCheck
+              value={value}
+            />
+          )}
         </FormControl>
       </div>
     </div>

@@ -32,7 +32,7 @@ export function FreeFormSessionForm({ onSuccess }: FreeFormSessionFormProps) {
 
             <RichTextField
               control={form.control}
-              description="Paste an article, write a vocabulary bank, add role-play notes, or sketch the topic you want to practice."
+              description="Paste an article, write a vocabulary bank, or sketch a topic. Use the visual editor or paste Markdown directly—the saved context stays in Markdown format."
               disabled={createSessionMutation.isPending}
               label="Practice context"
               name="content"

@@ -32,13 +32,13 @@ export function SessionSummaryCard({ session }: SessionSummaryCardProps) {
       {plainContext ? (
         <PageSection
           className="rounded-[0.25rem] border border-stone-200 bg-white p-6 shadow-sm"
-          description="Free-form context is shown conservatively as plain text so the review page remains resilient to partial rich-text payloads."
+          description="The Markdown context supplied when this free-form session started."
           title="Practice context"
         >
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">Free-form context</Badge>
           </div>
-          <RichContentViewer className="mt-4" content={plainContext} contentType="plain" />
+          <RichContentViewer className="mt-4" content={session.contextDocument ?? ""} />
         </PageSection>
       ) : null}
     </div>
