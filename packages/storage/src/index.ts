@@ -6,8 +6,20 @@
  */
 
 export { getStorageConfig, isStorageConfigured } from "./config";
+export type { PrivateMediaKind, PrivateMediaObjectKeyInput } from "./private-media";
+export {
+  calculateSha256,
+  createPrivateMediaObjectKey,
+  uploadPrivateMedia,
+} from "./private-media";
 export { S3StorageProvider } from "./s3-client";
-export type { StorageConfig, StorageProvider } from "./types";
+export type {
+  PrivateMediaUpload,
+  StorageConfig,
+  StorageProvider,
+  StorageUploadOptions,
+  StoredPrivateMedia,
+} from "./types";
 
 import { getStorageConfig } from "./config";
 import { S3StorageProvider } from "./s3-client";
