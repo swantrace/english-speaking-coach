@@ -1,13 +1,29 @@
+import type { SessionProcessingSnapshot } from "@english-coach/contract/session";
 import { Badge } from "@english-coach/ui";
 import { EmptyState } from "@/components/app/empty-state";
 import type { SessionReviewErrorView } from "../types";
 
 interface SessionErrorsListProps {
+  error?: string | null;
   errors: SessionReviewErrorView[];
+  status?: SessionProcessingSnapshot["analysisStatus"];
 }
 
-export function SessionErrorsList({ errors }: SessionErrorsListProps) {
+export function SessionErrorsList({ error, errors, status }: SessionErrorsListProps) {
   if (errors.length === 0) {
+    if (status === "queued" || status === "processing") {
+      return (
+        <EmptyState
+          description="The language review is still running. Any detected learner errors will appear automatically."
+          title="Review in progress"
+        />
+      );
+    }
+
+    if (status === "failed") {
+      return <EmptyState description={error ?? "The language review could not be completed."} title="Review failed" />;
+    }
+
     return (
       <EmptyState
         description="No reviewed learner errors were attached to this session, so there is nothing to inspect here."

@@ -3,6 +3,7 @@ import type {
   LiveSessionBootstrap as ContractLiveSessionBootstrap,
   EndSessionResult,
   GoalProgressPacket,
+  SessionProcessingSnapshot,
 } from "@english-coach/contract/session";
 import type { SelectedCharacterIndex, SessionType, Speaker } from "@english-coach/domain";
 
@@ -264,6 +265,7 @@ export interface SessionHistoryDetailView {
   id: string;
   knowledgeItems: SessionKnowledgeItemView[];
   originalTranscript: SessionTranscriptReviewTurn[];
+  processing: SessionProcessingSnapshot | null;
   refinedTranscript: SessionTranscriptReviewTurn[] | null;
   scenarioSetting: string | null;
   sessionType: SessionType;

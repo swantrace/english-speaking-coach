@@ -304,6 +304,7 @@ export function mapSessionHistoryDetail(detail: HistoryDetailResponse): SessionH
       speaker: item.speaker,
     })),
     originalTranscript,
+    processing: detail.processing,
     refinedTranscript: detail.session.sessionType === "role-play" ? refinedTranscript : null,
     scenarioSetting: detail.session.scenario?.setting ?? null,
     sessionType: detail.session.sessionType,

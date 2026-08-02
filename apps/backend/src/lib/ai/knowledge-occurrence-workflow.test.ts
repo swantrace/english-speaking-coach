@@ -35,14 +35,14 @@ const senses = [
   },
 ];
 
-function createTestApp(role: "admin" | "student") {
+function createTestApp(role: "admin" | "student", authenticatedUserId = userId) {
   const app = new Hono<{ Variables: AppVariables }>();
 
   app.use("*", async (context, next) => {
     context.set("session", null);
     context.set("user", {
       email: `${role}-${testRunId}@example.com`,
-      id: userId,
+      id: authenticatedUserId,
       name: "Workflow test user",
       role,
     } as never);
@@ -254,9 +254,16 @@ describe("knowledge occurrence regression workflow", () => {
     expect(historyResponse.status).toBe(200);
     const history = (await historyResponse.json()) as {
       knowledgeItems: Array<{ knowledgeItemId: string; pattern: string }>;
+      processing: { analysisStatus: string } | null;
     };
+    expect(history.processing?.analysisStatus).toBe("queued");
     expect(history.knowledgeItems.map((item) => item.pattern).sort()).toEqual(
       [`${patternPrefix}-approved-edited`, `${patternPrefix}-existing`].sort(),
     );
+
+    const otherLearnerApp = createTestApp("student", `other-user-${testRunId}`);
+    registerHistoryRoutes(otherLearnerApp);
+    const forbiddenEventsResponse = await otherLearnerApp.request(`/api/history/${sessionId}/events`);
+    expect(forbiddenEventsResponse.status).toBe(404);
   });
 });

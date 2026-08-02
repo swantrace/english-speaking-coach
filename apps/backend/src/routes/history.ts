@@ -11,12 +11,14 @@ import {
   sessionErrors,
   sessionHistory,
   sessionKnowledgePointOccurrences,
+  sessionProcessing,
   sessionTranscripts,
 } from "@english-coach/database/schema";
 import { and, asc, count, desc, eq, inArray, isNotNull, like, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
+import { streamSessionProcessingEventsSSE } from "../lib/sse/session-processing-events";
 
 const historySortColumnMap = {
   endedAt: sessionHistory.endedAt,
@@ -161,7 +163,7 @@ export function registerHistoryRoutes(app: BackendApp) {
       return context.json({ error: "Session not found" }, 404);
     }
 
-    const [errorRows, transcriptRow, occurrenceRows] = await Promise.all([
+    const [errorRows, transcriptRow, occurrenceRows, processingRows] = await Promise.all([
       db.select().from(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionId)),
       db.select().from(sessionTranscripts).where(eq(sessionTranscripts.sessionHistoryId, sessionId)).limit(1),
       db
@@ -181,6 +183,7 @@ export function registerHistoryRoutes(app: BackendApp) {
           ),
         )
         .orderBy(asc(sessionKnowledgePointOccurrences.transcriptTurnIndex), asc(sessionKnowledgePointOccurrences.id)),
+      db.select().from(sessionProcessing).where(eq(sessionProcessing.sessionHistoryId, sessionId)).limit(1),
     ]);
 
     const transcriptTurns = transcriptRow[0]?.turns ?? [];
@@ -298,6 +301,7 @@ export function registerHistoryRoutes(app: BackendApp) {
           ...item,
           occurrences: item.occurrences,
         })),
+        processing: processingRows[0] ?? null,
         rewrittenTranscript: transcriptRow[0]?.rewrittenTurns ?? [],
         session: {
           canReopen: record.sessionType === "free-form" && record.endedAt !== null,
@@ -340,5 +344,27 @@ export function registerHistoryRoutes(app: BackendApp) {
         ...(record.contextDocument ? { contextDocument: record.contextDocument } : {}),
       }),
     );
+  });
+
+  // Stream durable post-session processing snapshots to the session owner or an administrator.
+  app.get("/api/history/:sessionId/events", async (context) => {
+    const currentUser = getAuthenticatedUser(context);
+
+    if (!currentUser) {
+      return context.json({ error: "Authentication required" }, 401);
+    }
+
+    const sessionId = context.req.param("sessionId");
+    const accessCondition =
+      currentUser.role === "admin"
+        ? eq(sessionHistory.id, sessionId)
+        : and(eq(sessionHistory.id, sessionId), eq(sessionHistory.userId, currentUser.id));
+    const [record] = await db.select({ id: sessionHistory.id }).from(sessionHistory).where(accessCondition).limit(1);
+
+    if (!record) {
+      return context.json({ error: "Session not found" }, 404);
+    }
+
+    return streamSessionProcessingEventsSSE(context, sessionId);
   });
 }
