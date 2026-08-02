@@ -1,7 +1,5 @@
-import { mediaAccessResponseSchema } from "@english-coach/contract/media";
-import { useQuery } from "@tanstack/react-query";
 import type { ImgHTMLAttributes } from "react";
-import { apiClient } from "@/lib/axios";
+import { usePrivateMediaAccess } from "./use-private-media-access";
 
 interface PrivateMediaImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "alt" | "src"> {
   alt: string;
@@ -10,15 +8,7 @@ interface PrivateMediaImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement
 }
 
 export function PrivateMediaImage({ alt, assetId, fallbackUrl, ...imageProps }: PrivateMediaImageProps) {
-  const accessQuery = useQuery({
-    enabled: Boolean(assetId),
-    queryFn: async () => {
-      const response = await apiClient.get(`/api/media/${assetId}/access`);
-      return mediaAccessResponseSchema.parse(response.data);
-    },
-    queryKey: ["media-access", assetId],
-    staleTime: 4 * 60 * 1_000,
-  });
+  const accessQuery = usePrivateMediaAccess(assetId);
   const source = accessQuery.data?.url ?? fallbackUrl;
 
   if (!source) {

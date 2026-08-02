@@ -56,6 +56,9 @@ export const sessionTypeSchema = z.enum(sessionTypeValues);
 
 export const sessionProcessingEventName = "session-processing";
 export const sessionProcessingUpdatedEventType = "session-processing.updated";
+export const dialogueAudioQueueName = "dialogue-audio.generate";
+export const dialogueAudioJobName = dialogueAudioQueueName;
+export const dialogueAudioJobSchema = z.object({ sessionHistoryId: z.string().min(1) });
 
 export const sessionProcessingSnapshotSchema = createSelectSchema(sessionProcessing);
 
@@ -309,8 +312,15 @@ export const historyDetailSessionSchema = historySummarySchema.extend({
   scenario: historyDetailScenarioSchema.nullable(),
 });
 
+export const dialogueAudioSchema = z.object({
+  assetId: z.string().min(1),
+  contentType: z.literal("audio/wav"),
+  durationMs: z.number().int().nonnegative(),
+});
+
 export const historyDetailResponseSchema = z.object({
   contextDocument: z.string().optional(),
+  dialogueAudio: dialogueAudioSchema.nullable(),
   errors: z.array(historySessionErrorSchema),
   knowledgeItems: z.array(historyKnowledgeItemSchema),
   processing: sessionProcessingSnapshotSchema.nullable(),
@@ -395,6 +405,7 @@ export type SessionProcessingSnapshot = z.infer<typeof sessionProcessingSnapshot
 export type SessionProcessingEvent = z.infer<typeof sessionProcessingEventSchema>;
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
+export type DialogueAudioJob = z.infer<typeof dialogueAudioJobSchema>;
 export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;
 export type SessionKnowledgeOccurrence = z.infer<typeof sessionKnowledgeOccurrenceSchema>;
 export type CreateRolePlaySessionInput = z.infer<typeof createRolePlaySessionInputSchema>;
@@ -418,6 +429,7 @@ export type HistorySessionError = z.infer<typeof historySessionErrorSchema>;
 export type HistoryTranscriptTurnAnchor = z.infer<typeof historyTranscriptTurnAnchorSchema>;
 export type HistoryDetailSession = z.infer<typeof historyDetailSessionSchema>;
 export type HistoryDetailResponse = z.infer<typeof historyDetailResponseSchema>;
+export type DialogueAudio = z.infer<typeof dialogueAudioSchema>;
 export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 export type InConversationAnalysisJob = z.infer<typeof inConversationAnalysisJobSchema>;
 export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSchema>;

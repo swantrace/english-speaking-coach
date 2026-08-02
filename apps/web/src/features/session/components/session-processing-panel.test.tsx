@@ -9,6 +9,7 @@ const baseProcessing = {
   analysisStatus: "processing" as const,
   createdAt: "2026-08-01T00:00:00.000Z",
   dialogueAudioError: null,
+  dialogueAudioAssetId: null,
   dialogueAudioStatus: "queued" as const,
   knowledgeError: null,
   knowledgeStatus: "queued" as const,

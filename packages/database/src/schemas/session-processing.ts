@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, index, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { mediaAssets } from "./media-assets";
 import { sessionHistory } from "./session-history";
 
 export const sessionProcessingStatusValues = ["not_applicable", "queued", "processing", "ready", "failed"] as const;
@@ -28,6 +29,9 @@ export const sessionProcessing = sqliteTable(
     rewrittenTranscriptError: text("rewritten_transcript_error"),
     dialogueAudioStatus: text("dialogue_audio_status", { enum: sessionProcessingStatusValues }).notNull(),
     dialogueAudioError: text("dialogue_audio_error"),
+    dialogueAudioAssetId: text("dialogue_audio_asset_id").references(() => mediaAssets.id, {
+      onDelete: "set null",
+    }),
     knowledgeStatus: text("knowledge_status", { enum: sessionProcessingStatusValues }).notNull(),
     knowledgeError: text("knowledge_error"),
     createdAt: text("created_at").notNull(),
@@ -53,6 +57,7 @@ export const sessionProcessing = sqliteTable(
     index("session_processing_analysis_status_idx").on(table.analysisStatus),
     index("session_processing_rewritten_transcript_status_idx").on(table.rewrittenTranscriptStatus),
     index("session_processing_dialogue_audio_status_idx").on(table.dialogueAudioStatus),
+    index("session_processing_dialogue_audio_asset_id_idx").on(table.dialogueAudioAssetId),
     index("session_processing_knowledge_status_idx").on(table.knowledgeStatus),
   ],
 );

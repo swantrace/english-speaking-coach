@@ -39,6 +39,8 @@ primary_region = 'sjc'
   SCENARIO_DIALOGUE_PROVIDER_ID = 'qwen'
   SCENARIO_DIALOGUE_MODEL = 'qwen3.7-plus'
 
+  CARTESIA_DIALOGUE_MODEL='sonic-3.5'
+
 [http_service]
   internal_port = 3001
   force_https = true

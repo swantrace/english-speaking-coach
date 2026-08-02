@@ -1,6 +1,7 @@
 import type {
   CoachingPromptKind,
   LiveSessionBootstrap as ContractLiveSessionBootstrap,
+  DialogueAudio,
   EndSessionResult,
   GoalProgressPacket,
   SessionProcessingSnapshot,
@@ -260,6 +261,7 @@ export interface SessionDetailSummaryView {
 export interface SessionHistoryDetailView {
   contextDocument: string | null;
   date: string;
+  dialogueAudio: DialogueAudio | null;
   durationSeconds: number | null;
   endedAt: string | null;
   errors: SessionReviewErrorView[];

@@ -1,10 +1,12 @@
 import { knowledgeGenerateQueueName, knowledgeOccurrenceEnrichQueueName } from "@english-coach/contract/knowledge";
 import { scenarioGenerateQueueName } from "@english-coach/contract/scenario";
 import {
+  dialogueAudioQueueName,
   inConversationAnalysisQueueName,
   lingAnalysisQueueName,
   sessionCompletionQueueName,
 } from "@english-coach/contract/session";
+import { dialogueAudioWorker } from "./lib/queues/dialogue-audio.generate";
 import { inConversationAnalysisWorker } from "./lib/queues/in-conversation.analysis";
 import { knowledgeGenerateWorker } from "./lib/queues/knowledge.generate";
 import {
@@ -19,6 +21,7 @@ void knowledgeGenerateWorker;
 void knowledgeOccurrenceEnrichWorker;
 void scenarioGenerateWorker;
 void inConversationAnalysisWorker;
+void dialogueAudioWorker;
 void lingAnalysisWorker;
 void sessionCompletionWorker;
 
@@ -32,5 +35,6 @@ console.log(`backend worker listening for jobs on queue '${knowledgeGenerateQueu
 console.log(`backend worker listening for jobs on queue '${knowledgeOccurrenceEnrichQueueName}'`);
 console.log(`backend worker listening for jobs on queue '${scenarioGenerateQueueName}'`);
 console.log(`backend worker listening for jobs on queue '${inConversationAnalysisQueueName}'`);
+console.log(`backend worker listening for jobs on queue '${dialogueAudioQueueName}'`);
 console.log(`backend worker listening for jobs on queue '${sessionCompletionQueueName}'`);
 console.log(`backend worker listening for jobs on queue '${lingAnalysisQueueName}'`);

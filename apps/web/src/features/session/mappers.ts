@@ -275,6 +275,7 @@ export function mapSessionHistoryDetail(detail: HistoryDetailResponse): SessionH
   return {
     contextDocument: detail.contextDocument ?? null,
     date: detail.session.endedAt ?? detail.session.startedAt,
+    dialogueAudio: detail.dialogueAudio,
     durationSeconds: getDurationSeconds(detail.session.startedAt, detail.session.endedAt),
     endedAt: detail.session.endedAt,
     errors: detail.errors.map((error) => ({

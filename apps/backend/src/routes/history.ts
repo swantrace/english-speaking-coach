@@ -7,6 +7,7 @@ import { db } from "@english-coach/database";
 import {
   freeFormContexts,
   knowledgeItems,
+  mediaAssets,
   scenarios,
   sessionErrors,
   sessionHistory,
@@ -14,7 +15,7 @@ import {
   sessionProcessing,
   sessionTranscripts,
 } from "@english-coach/database/schema";
-import { and, asc, count, desc, eq, inArray, isNotNull, like, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser } from "../http/context";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
@@ -187,6 +188,18 @@ export function registerHistoryRoutes(app: BackendApp) {
     ]);
 
     const transcriptTurns = transcriptRow[0]?.turns ?? [];
+    const processing = processingRows[0] ?? null;
+    const dialogueAudio = processing?.dialogueAudioAssetId
+      ? await db.query.mediaAssets.findFirst({
+          columns: { contentType: true, durationMs: true, id: true },
+          where: and(
+            eq(mediaAssets.id, processing.dialogueAudioAssetId),
+            eq(mediaAssets.kind, "corrected_dialogue"),
+            eq(mediaAssets.status, "ready"),
+            isNull(mediaAssets.deletedAt),
+          ),
+        })
+      : null;
     const resolvedOccurrenceRows = occurrenceRows.filter(
       (occurrence): occurrence is (typeof occurrenceRows)[number] & { knowledgeItemId: string } =>
         Boolean(occurrence.knowledgeItemId),
@@ -289,6 +302,14 @@ export function registerHistoryRoutes(app: BackendApp) {
 
     return context.json(
       historyDetailResponseSchema.parse({
+        dialogueAudio:
+          dialogueAudio?.durationMs !== null && dialogueAudio?.contentType === "audio/wav"
+            ? {
+                assetId: dialogueAudio.id,
+                contentType: dialogueAudio.contentType,
+                durationMs: dialogueAudio.durationMs,
+              }
+            : null,
         errors: errorRows.map((error) => {
           const matchedIndex = findMatchedTranscriptTurnIndex(transcriptTurns, error.utterance);
 
@@ -301,7 +322,7 @@ export function registerHistoryRoutes(app: BackendApp) {
           ...item,
           occurrences: item.occurrences,
         })),
-        processing: processingRows[0] ?? null,
+        processing,
         rewrittenTranscript: transcriptRow[0]?.rewrittenTurns ?? [],
         session: {
           canReopen: record.sessionType === "free-form" && record.endedAt !== null,
