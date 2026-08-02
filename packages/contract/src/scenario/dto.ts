@@ -18,6 +18,7 @@ export type {
   ScenarioGenerateSubmissionTransportRequest,
   ScenarioGoal,
   ScenarioGoals,
+  ScenarioImageUploadResponse,
   ScenarioListQuery,
   ScenarioPageResponse,
   ScenarioPendingReview,

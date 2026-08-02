@@ -7,6 +7,7 @@ import { registerKnowledgeGenerateRoutes } from "./knowledge-generate";
 import { registerKnowledgePointRoutes } from "./knowledge-points";
 import { registerMediaRoutes } from "./media";
 import { registerScenarioGenerateRoutes } from "./scenario-generate";
+import { registerScenarioImageRoutes } from "./scenario-images";
 import { registerScenarioRoutes } from "./scenarios";
 import { registerSessionRoutes } from "./session";
 import { registerStudentDashboardRoutes } from "./student-dashboard";
@@ -22,6 +23,7 @@ export function registerRoutes(app: BackendApp) {
   registerKnowledgeGenerateRoutes(app);
   registerMediaRoutes(app);
   registerScenarioGenerateRoutes(app);
+  registerScenarioImageRoutes(app);
   registerScenarioRoutes(app);
   registerAdminRoutes(app);
   registerHistoryRoutes(app);
