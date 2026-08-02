@@ -1,7 +1,9 @@
 import {
+  type ConversationPlaylistResponse,
   type CreateFreeFormSessionInput,
   type CreateRolePlaySessionInput,
   type CreateSessionResult,
+  conversationPlaylistResponseSchema,
   createFreeFormSessionInputSchema,
   createRolePlaySessionInputSchema,
   createSessionResultSchema,
@@ -24,6 +26,7 @@ const sessionEndpoints = {
   create: "/api/sessions/token",
   end: (sessionId: string) => `/api/sessions/${sessionId}/end`,
   historyDetail: (sessionId: string) => `/api/history/${sessionId}`,
+  conversationPlaylist: "/api/history/audio-playlist",
   historyEvents: (sessionId: string) => `/api/history/${sessionId}/events`,
   historyList: "/api/history",
   liveBootstrap: (sessionId: string) => `/api/sessions/${sessionId}/live`,
@@ -71,6 +74,11 @@ export async function fetchSessionHistoryList(filters: SessionHistoryFilters = {
 export async function fetchSessionHistoryDetail(sessionId: string): Promise<HistoryDetailResponse> {
   const response = await apiClient.get(sessionEndpoints.historyDetail(sessionId));
   return historyDetailResponseSchema.parse(response.data);
+}
+
+export async function fetchConversationPlaylist(): Promise<ConversationPlaylistResponse> {
+  const response = await apiClient.get(sessionEndpoints.conversationPlaylist);
+  return conversationPlaylistResponseSchema.parse(response.data);
 }
 
 export async function endSession(sessionId: string): Promise<EndSessionResult> {

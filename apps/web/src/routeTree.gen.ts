@@ -17,6 +17,7 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as publicIndexRouteImport } from './routes/(public)/index'
 import { Route as AppProfileRouteImport } from './routes/app/profile'
+import { Route as AppConversationsRouteImport } from './routes/app/conversations'
 import { Route as authSignupRouteImport } from './routes/(auth)/signup'
 import { Route as authRejectedRouteImport } from './routes/(auth)/rejected'
 import { Route as authPendingRouteImport } from './routes/(auth)/pending'
@@ -81,6 +82,11 @@ const publicIndexRoute = publicIndexRouteImport.update({
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppConversationsRoute = AppConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const authSignupRoute = authSignupRouteImport.update({
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/pending': typeof authPendingRoute
   '/rejected': typeof authRejectedRoute
   '/signup': typeof authSignupRoute
+  '/app/conversations': typeof AppConversationsRoute
   '/app/profile': typeof AppProfileRoute
   '/': typeof publicIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/pending': typeof authPendingRoute
   '/rejected': typeof authRejectedRoute
   '/signup': typeof authSignupRoute
+  '/app/conversations': typeof AppConversationsRoute
   '/app/profile': typeof AppProfileRoute
   '/': typeof publicIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -304,6 +312,7 @@ export interface FileRoutesById {
   '/(auth)/pending': typeof authPendingRoute
   '/(auth)/rejected': typeof authRejectedRoute
   '/(auth)/signup': typeof authSignupRoute
+  '/app/conversations': typeof AppConversationsRoute
   '/app/profile': typeof AppProfileRoute
   '/(public)/': typeof publicIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -341,6 +350,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/rejected'
     | '/signup'
+    | '/app/conversations'
     | '/app/profile'
     | '/'
     | '/admin/'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/rejected'
     | '/signup'
+    | '/app/conversations'
     | '/app/profile'
     | '/'
     | '/admin'
@@ -411,6 +422,7 @@ export interface FileRouteTypes {
     | '/(auth)/pending'
     | '/(auth)/rejected'
     | '/(auth)/signup'
+    | '/app/conversations'
     | '/app/profile'
     | '/(public)/'
     | '/admin/'
@@ -503,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/app/profile'
       preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/conversations': {
+      id: '/app/conversations'
+      path: '/conversations'
+      fullPath: '/app/conversations'
+      preLoaderRoute: typeof AppConversationsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/(auth)/signup': {
@@ -772,6 +791,7 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface AppRouteRouteChildren {
+  AppConversationsRoute: typeof AppConversationsRoute
   AppProfileRoute: typeof AppProfileRoute
   AppIndexRoute: typeof AppIndexRoute
   AppFreeFormNewRoute: typeof AppFreeFormNewRoute
@@ -785,6 +805,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppConversationsRoute: AppConversationsRoute,
   AppProfileRoute: AppProfileRoute,
   AppIndexRoute: AppIndexRoute,
   AppFreeFormNewRoute: AppFreeFormNewRoute,

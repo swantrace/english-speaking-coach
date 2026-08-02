@@ -1,5 +1,7 @@
 export type {
   CoachingPromptKind,
+  ConversationPlaylistItem,
+  ConversationPlaylistResponse,
   CreateFreeFormSessionInput,
   CreateRolePlaySessionInput,
   CreateSessionRequest,

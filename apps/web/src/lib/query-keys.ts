@@ -208,6 +208,7 @@ export const queryKeys = {
   },
   history: {
     all: () => ["history"] as const,
+    audioPlaylist: () => ["history", "audio-playlist"] as const,
     detail: (sessionId: string) => ["history", "detail", sessionId] as const,
     list: (input?: HistoryListQueryKeyInput) =>
       input ? (["history", "list", normalizeHistoryListQueryKeyInput(input)] as const) : (["history", "list"] as const),

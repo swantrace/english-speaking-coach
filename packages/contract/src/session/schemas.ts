@@ -318,6 +318,16 @@ export const dialogueAudioSchema = z.object({
   durationMs: z.number().int().nonnegative(),
 });
 
+export const conversationPlaylistItemSchema = dialogueAudioSchema.extend({
+  endedAt: z.string().min(1),
+  sessionId: z.string().min(1),
+  title: z.string().min(1),
+});
+
+export const conversationPlaylistResponseSchema = z.object({
+  items: z.array(conversationPlaylistItemSchema),
+});
+
 export const historyDetailResponseSchema = z.object({
   contextDocument: z.string().optional(),
   dialogueAudio: dialogueAudioSchema.nullable(),
@@ -430,6 +440,8 @@ export type HistoryTranscriptTurnAnchor = z.infer<typeof historyTranscriptTurnAn
 export type HistoryDetailSession = z.infer<typeof historyDetailSessionSchema>;
 export type HistoryDetailResponse = z.infer<typeof historyDetailResponseSchema>;
 export type DialogueAudio = z.infer<typeof dialogueAudioSchema>;
+export type ConversationPlaylistItem = z.infer<typeof conversationPlaylistItemSchema>;
+export type ConversationPlaylistResponse = z.infer<typeof conversationPlaylistResponseSchema>;
 export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 export type InConversationAnalysisJob = z.infer<typeof inConversationAnalysisJobSchema>;
 export type SessionDispatchMetadata = z.infer<typeof sessionDispatchMetadataSchema>;

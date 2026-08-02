@@ -1,34 +1,46 @@
 # English Speaking Coach
 
-English Speaking Coach is a full-stack, AI-assisted language-learning platform
-for realistic spoken-English practice. It combines low-latency voice
-conversation with reusable scenarios, structured learning material, persistent
-practice history, and asynchronous feedback.
+English Speaking Coach is a full-stack language-learning platform for realistic
+spoken-English practice. It combines low-latency voice conversation with
+reusable scenarios, structured learning material, persistent practice history,
+and asynchronous feedback.
 
 The repository is both a working personal learning tool and a reference
-implementation for developers interested in production-oriented voice AI,
-multi-model orchestration, and TypeScript monorepo architecture.
+implementation for developers interested in production-oriented voice
+applications, asynchronous workflows, private media delivery, and TypeScript
+monorepo architecture.
 
 ## Product experience
 
-- Practise spoken English in real time with an interruptible LiveKit voice Agent
-- Create reusable scenarios with separate story, learning-goal, and dialogue
-  generation stages
-- Organise knowledge items and track their use across practice sessions
-- Review linguistic and conversational analysis after a session
-- Keep practice history available across local and deployed environments
-- Manage users, generation jobs, model requests, and failures through
-  administrative views
+- Practise through interruptible free-form conversations and structured
+  role-play sessions
+- Create, review, repeat, and reuse scenarios with goals, characters, example
+  dialogue, and private cover images
+- Write free-form conversation context with rich text or Markdown source
+- Receive progressive post-session review, error analysis, rewritten role-play
+  turns, and knowledge occurrences without waiting for every background job
+- Listen to a corrected version of an individual role-play or play completed
+  conversations continuously from a private student playlist
+- Keep practice history and learning data available across local and deployed
+  environments
+- Review extracted knowledge occurrences before promoting them into the learner
+  knowledge catalog
+- Manage users, content, background jobs, inference requests, and failures
+  through administrative views
 
 ## Engineering highlights
 
-- **Realtime voice pipeline:** Deepgram Flux STT, a non-thinking DeepSeek
-  conversation model, and Cartesia Sonic TTS, connected through LiveKit Agents
-- **Fine-grained model routing:** OpenAI, Qwen, and DeepSeek can be selected
-  independently for knowledge generation, linguistic analysis, conversation
-  analysis, and each scenario-generation stage
+- **Realtime voice pipeline:** an interruptible LiveKit Agent exchanges audio,
+  transcripts, goal progress, and coaching events with the browser
 - **Asynchronous processing:** BullMQ workers keep generation and analysis work
-  outside latency-sensitive API and voice paths
+  outside latency-sensitive API and voice paths; Redis-backed SSE publishes
+  durable progress to open history pages
+- **Private media lifecycle:** authenticated uploads, ownership checks,
+  short-lived signed URLs, checksums, replacement cleanup, and retryable deletion
+  support S3-compatible object storage
+- **Corrected role-play listening:** rewritten learner turns and original coach
+  replies are synthesized into one private conversation without retaining the
+  learner's original voice recording
 - **Shared contracts:** Zod schemas and workspace packages keep the React client,
   Hono backend, and Agent aligned
 - **Portable infrastructure:** local Docker services for development and managed
@@ -52,7 +64,9 @@ graph LR
   API --> Queue[(Upstash and Redis)]
   Worker[BullMQ worker] --> Queue
   Worker --> Database
-  Worker --> Models[OpenAI, Qwen, and DeepSeek]
+  Worker --> Inference[External inference services]
+  Worker --> Storage
+  Browser -->|Short-lived signed media URLs| Storage
 ```
 
 ## Technology
@@ -61,10 +75,10 @@ graph LR
 | --- | --- |
 | Web | React 19, Vite, TanStack Router and Query, Tailwind CSS |
 | API | Hono, Bun, Better Auth |
-| Voice Agent | LiveKit Agents for Node.js |
+| Voice Agent | LiveKit Agents for Node.js and WebRTC |
 | Data | Drizzle ORM, libSQL/Turso |
 | Jobs | BullMQ, Redis/Upstash |
-| Storage | S3-compatible MinIO/Cloudflare R2 |
+| Storage | Private S3-compatible MinIO/Cloudflare R2 objects and signed URLs |
 | Monorepo | pnpm workspaces, Turborepo, TypeScript |
 | Testing and quality | Vitest, Bun Test, Biome, GitHub Actions |
 
@@ -80,7 +94,7 @@ packages/
   database/  Drizzle schema, migrations, and libSQL client
   domain/    Shared domain constants and types
   prompts/   Generation and analysis prompts
-  storage/   S3-compatible object storage
+  storage/   Private S3-compatible object storage and media helpers
   ui/        Shared React components
 ```
 
@@ -104,8 +118,8 @@ cp apps/web/.env.example apps/web/.env.local
 ```
 
 The committed examples provide safe local infrastructure defaults and document
-the credentials that still need to be supplied. Add provider credentials for
-the AI routes you intend to exercise; never commit `.env.local` files.
+the credentials that still need to be supplied. Add credentials only to ignored
+local files or deployment secret stores; never commit `.env.local` files.
 
 Start LiveKit, Redis, MinIO, the web app, API, and worker:
 
@@ -117,6 +131,12 @@ Run the voice Agent in another terminal:
 
 ```sh
 pnpm run dev:agent
+```
+
+Alternatively, start the full local stack including the Agent:
+
+```sh
+pnpm run dev:full:agent
 ```
 
 Local endpoints:
@@ -189,16 +209,19 @@ The hosted instance is intentionally a personal environment and discourages
 search-engine indexing. Developers should deploy their own infrastructure and
 credentials rather than rely on that instance.
 
+Practice media remains private. The backend authorizes access before returning
+a short-lived object URL, and the browser fetches playlist URLs lazily instead
+of exposing permanent public objects.
+
 ## Extending the project
 
 Good starting points include:
 
-- adding a model provider in
-  [`apps/backend/src/lib/ai/registry.ts`](apps/backend/src/lib/ai/registry.ts)
-- changing asynchronous model routes in
-  [`apps/backend/src/lib/ai/model-config.ts`](apps/backend/src/lib/ai/model-config.ts)
-- adapting voice models and turn handling in
-  [`apps/agent/src/voice-models.ts`](apps/agent/src/voice-models.ts)
+- extending asynchronous workflows in
+  [`apps/backend/src/lib/queues`](apps/backend/src/lib/queues)
+- adapting voice and turn handling in [`apps/agent/src`](apps/agent/src)
+- extending private media workflows in
+  [`packages/storage`](packages/storage)
 - creating new learning workflows under
   [`apps/web/src/features`](apps/web/src/features)
 - evolving shared schemas in [`packages/contract`](packages/contract)

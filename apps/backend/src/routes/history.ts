@@ -1,4 +1,5 @@
 import {
+  conversationPlaylistResponseSchema,
   historyDetailResponseSchema,
   historyListQuerySchema,
   sessionTypeSchema,
@@ -118,6 +119,57 @@ export function registerHistoryRoutes(app: BackendApp) {
         page,
         pageSize,
       ),
+    );
+  });
+
+  // List completed role-play audio for continuous learner playback.
+  app.get("/api/history/audio-playlist", async (context) => {
+    const currentUser = getAuthenticatedUser(context);
+
+    if (!currentUser) {
+      return context.json({ error: "Authentication required" }, 401);
+    }
+
+    const records = await db
+      .select({
+        assetId: mediaAssets.id,
+        contentType: mediaAssets.contentType,
+        durationMs: mediaAssets.durationMs,
+        endedAt: sessionHistory.endedAt,
+        sessionId: sessionHistory.id,
+        title: scenarios.title,
+      })
+      .from(sessionHistory)
+      .innerJoin(sessionProcessing, eq(sessionProcessing.sessionHistoryId, sessionHistory.id))
+      .innerJoin(mediaAssets, eq(mediaAssets.id, sessionProcessing.dialogueAudioAssetId))
+      .innerJoin(scenarios, eq(scenarios.id, sessionHistory.scenarioId))
+      .where(
+        and(
+          eq(sessionHistory.userId, currentUser.id),
+          eq(sessionHistory.sessionType, "role-play"),
+          isNotNull(sessionHistory.endedAt),
+          eq(sessionProcessing.dialogueAudioStatus, "ready"),
+          eq(mediaAssets.kind, "corrected_dialogue"),
+          eq(mediaAssets.status, "ready"),
+          eq(mediaAssets.contentType, "audio/wav"),
+          isNull(mediaAssets.deletedAt),
+          isNotNull(mediaAssets.durationMs),
+        ),
+      )
+      .orderBy(desc(sessionHistory.endedAt), desc(sessionHistory.id))
+      .limit(200);
+
+    return context.json(
+      conversationPlaylistResponseSchema.parse({
+        items: records.map((record) => ({
+          assetId: record.assetId,
+          contentType: "audio/wav" as const,
+          durationMs: record.durationMs,
+          endedAt: record.endedAt,
+          sessionId: record.sessionId,
+          title: record.title,
+        })),
+      }),
     );
   });
 
