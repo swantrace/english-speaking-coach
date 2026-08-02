@@ -113,7 +113,7 @@ export function registerScenarioImageRoutes(
         });
 
         if (scenario.imageAssetId) {
-          cleanupPrivateMediaAsset(scenario.imageAssetId, storage.provider).catch((error) => {
+          await cleanupPrivateMediaAsset(scenario.imageAssetId, storage.provider).catch((error) => {
             console.error("Failed to clean up replaced scenario image", {
               assetId: scenario.imageAssetId,
               error,
