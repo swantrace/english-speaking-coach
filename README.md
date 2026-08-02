@@ -212,20 +212,3 @@ credentials rather than rely on that instance.
 Practice media remains private. The backend authorizes access before returning
 a short-lived object URL, and the browser fetches playlist URLs lazily instead
 of exposing permanent public objects.
-
-## Extending the project
-
-Good starting points include:
-
-- extending asynchronous workflows in
-  [`apps/backend/src/lib/queues`](apps/backend/src/lib/queues)
-- adapting voice and turn handling in [`apps/agent/src`](apps/agent/src)
-- extending private media workflows in
-  [`packages/storage`](packages/storage)
-- creating new learning workflows under
-  [`apps/web/src/features`](apps/web/src/features)
-- evolving shared schemas in [`packages/contract`](packages/contract)
-
-Contributions and experiments are welcome. Please keep provider credentials out
-of Git and include tests for behavior changes, especially changes to the voice
-Agent.
