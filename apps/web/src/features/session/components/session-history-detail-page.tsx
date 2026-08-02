@@ -3,6 +3,7 @@ import { ErrorState } from "@/components/app/error-state";
 import { LoadingState } from "@/components/app/loading-state";
 import { PageSection } from "@/components/app/page-section";
 import { useSessionHistoryDetailQuery } from "../queries";
+import { useSessionProcessingStream } from "../use-session-processing-stream";
 import { SessionDetailHeader } from "./session-detail-header";
 import { SessionErrorsList } from "./session-errors-list";
 import { SessionKnowledgeList } from "./session-knowledge-list";
@@ -17,6 +18,11 @@ interface SessionHistoryDetailPageProps {
 export function SessionHistoryDetailPage({ sessionId }: SessionHistoryDetailPageProps) {
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("original");
   const sessionDetailQuery = useSessionHistoryDetailQuery(sessionId);
+  useSessionProcessingStream({
+    enabled: sessionDetailQuery.isSuccess,
+    processing: sessionDetailQuery.data?.processing ?? null,
+    sessionId,
+  });
 
   if (sessionDetailQuery.isPending) {
     return (

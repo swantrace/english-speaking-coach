@@ -24,9 +24,14 @@ const sessionEndpoints = {
   create: "/api/sessions/token",
   end: (sessionId: string) => `/api/sessions/${sessionId}/end`,
   historyDetail: (sessionId: string) => `/api/history/${sessionId}`,
+  historyEvents: (sessionId: string) => `/api/history/${sessionId}/events`,
   historyList: "/api/history",
   liveBootstrap: (sessionId: string) => `/api/sessions/${sessionId}/live`,
 } as const;
+
+export function getSessionHistoryEventsPath(sessionId: string) {
+  return sessionEndpoints.historyEvents(sessionId);
+}
 
 async function postCreateSession(payload: CreateFreeFormSessionInput | CreateRolePlaySessionInput) {
   const response = await apiClient.post(sessionEndpoints.create, payload);
