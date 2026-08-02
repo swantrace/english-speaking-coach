@@ -1,0 +1,2 @@
+ALTER TABLE `session_processing` ADD `dialogue_audio_asset_id` text REFERENCES media_assets(id);--> statement-breakpoint
+CREATE INDEX `session_processing_dialogue_audio_asset_id_idx` ON `session_processing` (`dialogue_audio_asset_id`);
