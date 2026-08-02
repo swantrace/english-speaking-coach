@@ -27,6 +27,7 @@
     "@tanstack/react-virtual": "3.13.23",
     "@tanstack/router-plugin": "1.167.14",
     "@tiptap/extensions": "^3.29.2",
+    "@tiptap/markdown": "^3.29.2",
     "@tiptap/pm": "^3.29.2",
     "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.29.2",
