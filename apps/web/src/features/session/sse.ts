@@ -4,6 +4,7 @@ import {
   sessionProcessingEventName,
   sessionProcessingEventSchema,
 } from "@english-coach/contract/session";
+import { connectEventSource } from "@/lib/sse";
 import { getSessionHistoryEventsPath } from "./api";
 
 interface ConnectSessionProcessingStreamOptions {
@@ -36,7 +37,7 @@ export function connectSessionProcessingStream({
   onTerminal,
   sessionId,
 }: ConnectSessionProcessingStreamOptions) {
-  const eventSource = new EventSource(createSessionProcessingStreamUrl(sessionId), { withCredentials: true });
+  let disconnect: () => void = () => undefined;
   const handleProcessingEvent = (event: MessageEvent<string>) => {
     const parsed = parseSessionProcessingEventData(event.data);
 
@@ -48,19 +49,16 @@ export function connectSessionProcessingStream({
 
     if (isSessionProcessingTerminal(parsed.processing)) {
       onTerminal?.(parsed);
-      eventSource.close();
+      disconnect();
     }
   };
 
-  eventSource.onopen = () => {
-    onOpen?.();
-  };
-  eventSource.onerror = () => {
-    onError?.();
-  };
-  eventSource.addEventListener(sessionProcessingEventName, handleProcessingEvent as EventListener);
+  disconnect = connectEventSource({
+    listeners: [{ eventName: sessionProcessingEventName, handleEvent: handleProcessingEvent }],
+    onError,
+    onOpen,
+    url: createSessionProcessingStreamUrl(sessionId),
+  });
 
-  return () => {
-    eventSource.close();
-  };
+  return disconnect;
 }
