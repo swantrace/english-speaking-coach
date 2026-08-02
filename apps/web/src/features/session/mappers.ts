@@ -21,12 +21,17 @@ import type {
 } from "./types";
 
 const maximumSummaryLength = 140;
+const htmlElementPattern = /<\/?(?:a|blockquote|br|div|em|h[1-6]|li|ol|p|span|strong|ul)(?:\s[^>]*)?>/i;
+
+export function isLegacyHtmlContext(value: string) {
+  return htmlElementPattern.test(value);
+}
 
 export function stripRichTextToPlainText(value: string) {
   return value
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|ul|ol|h[1-6])>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
