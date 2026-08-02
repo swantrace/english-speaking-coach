@@ -92,6 +92,34 @@ export function mapFreeFormSessionFormInputToRequest(
   };
 }
 
+export function mapSessionHistoryDetailToRepeatInput(
+  detail: HistoryDetailResponse,
+):
+  | { input: CreateFreeFormSessionFormInput; sessionType: "free-form" }
+  | { input: CreateRolePlaySessionFormInput; sessionType: "role-play" } {
+  if (detail.session.sessionType === "role-play") {
+    const { scenarioId, selectedCharacterIndex } = detail.session;
+
+    if (!scenarioId || (selectedCharacterIndex !== 0 && selectedCharacterIndex !== 1)) {
+      throw new Error("The original role-play setup is no longer available.");
+    }
+
+    return {
+      input: { scenarioId, selectedCharacterIndex },
+      sessionType: "role-play",
+    };
+  }
+
+  if (!detail.contextDocument?.trim()) {
+    throw new Error("The original free-form context is no longer available.");
+  }
+
+  return {
+    input: { content: detail.contextDocument },
+    sessionType: "free-form",
+  };
+}
+
 export function mapRolePlaySessionResult(
   response: CreateSessionResult,
   input: CreateRolePlaySessionFormInput,

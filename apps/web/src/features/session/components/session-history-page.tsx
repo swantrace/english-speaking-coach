@@ -1,4 +1,4 @@
-import { ArrowLeft, Button } from "@english-coach/ui";
+import { Alert, AlertDescription, ArrowLeft, Button } from "@english-coach/ui";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/app/empty-state";
@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/app/loading-state";
 import { PageHeader } from "@/components/app/page-header";
 import { PageSection } from "@/components/app/page-section";
 import { normalizeSessionHistorySearch, type SessionHistorySearchParams } from "../history-search";
+import { useRepeatSessionMutation } from "../mutations";
 import { useSessionHistoryListQuery } from "../queries";
 import { SessionHistoryTable } from "./session-history-table";
 
@@ -22,6 +23,13 @@ export function SessionHistoryPage({ search }: SessionHistoryPageProps) {
   const sessionListQuery = useSessionHistoryListQuery({
     search: normalizedSearch.search,
     sessionType: normalizedSearch.sessionType,
+  });
+  const repeatSessionMutation = useRepeatSessionMutation({
+    onSuccess: (result) =>
+      navigate({
+        params: result.liveRoute.params,
+        to: result.liveRoute.to,
+      }),
   });
 
   useEffect(() => {
@@ -109,6 +117,7 @@ export function SessionHistoryPage({ search }: SessionHistoryPageProps) {
                 to: "/app/sessions/$sessionId",
               })
             }
+            onRepeatSession={(item) => repeatSessionMutation.mutate(item.id)}
             onSearchChange={setSearchValue}
             onSessionTypeChange={(sessionType) =>
               updateSearch({
@@ -118,8 +127,15 @@ export function SessionHistoryPage({ search }: SessionHistoryPageProps) {
             }
             searchValue={searchValue}
             selectedSessionType={normalizedSearch.sessionType}
+            pendingSessionId={repeatSessionMutation.isPending ? repeatSessionMutation.variables : undefined}
           />
         </PageSection>
+      ) : null}
+
+      {repeatSessionMutation.error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{repeatSessionMutation.error.message}</AlertDescription>
+        </Alert>
       ) : null}
     </div>
   );

@@ -1,12 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { queryKeys } from "@/lib/query-keys";
-import { createFreeFormSession, createRolePlaySession, endSession } from "./api";
+import { createFreeFormSession, createRolePlaySession, endSession, fetchSessionHistoryDetail } from "./api";
 import {
   mapFreeFormSessionFormInputToRequest,
   mapFreeFormSessionResult,
   mapRolePlaySessionFormInputToRequest,
   mapRolePlaySessionResult,
+  mapSessionHistoryDetailToRepeatInput,
 } from "./mappers";
 import type {
   CreateFreeFormSessionFormInput,
@@ -95,6 +96,27 @@ export function useCreateFreeFormSessionMutation(options: SessionMutationOptions
       try {
         const response = await createFreeFormSession(mapFreeFormSessionFormInputToRequest(input));
         return mapFreeFormSessionResult(response, input);
+      } catch (error) {
+        throw mapSessionMutationError(error);
+      }
+    },
+    onSuccess: options.onSuccess,
+  });
+}
+
+export function useRepeatSessionMutation(options: SessionMutationOptions = {}) {
+  return useMutation<SessionStartResult, SessionMutationError, string>({
+    mutationFn: async (sessionId) => {
+      try {
+        const repeatInput = mapSessionHistoryDetailToRepeatInput(await fetchSessionHistoryDetail(sessionId));
+
+        if (repeatInput.sessionType === "role-play") {
+          const response = await createRolePlaySession(mapRolePlaySessionFormInputToRequest(repeatInput.input));
+          return mapRolePlaySessionResult(response, repeatInput.input);
+        }
+
+        const response = await createFreeFormSession(mapFreeFormSessionFormInputToRequest(repeatInput.input));
+        return mapFreeFormSessionResult(response, repeatInput.input);
       } catch (error) {
         throw mapSessionMutationError(error);
       }

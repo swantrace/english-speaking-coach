@@ -12,8 +12,10 @@ interface SessionHistoryTableProps {
   searchValue: string;
   selectedSessionType?: SessionType;
   onRowClick: (item: SessionHistoryListItemView) => void;
+  onRepeatSession: (item: SessionHistoryListItemView) => void;
   onSearchChange: (value: string) => void;
   onSessionTypeChange: (value?: SessionType) => void;
+  pendingSessionId?: string;
 }
 
 export function SessionHistoryTable({
@@ -21,8 +23,10 @@ export function SessionHistoryTable({
   searchValue,
   selectedSessionType,
   onRowClick,
+  onRepeatSession,
   onSearchChange,
   onSessionTypeChange,
+  pendingSessionId,
 }: SessionHistoryTableProps) {
   const columnFilters = useMemo(
     () => buildColumnFilters([{ id: "sessionType", value: selectedSessionType }]),
@@ -36,7 +40,7 @@ export function SessionHistoryTable({
   return (
     <DataTable
       columnFilters={columnFilters}
-      columns={createHistorySessionColumns()}
+      columns={createHistorySessionColumns({ pendingSessionId, repeatSession: onRepeatSession })}
       data={items}
       emptyState={
         <DataTableEmpty
