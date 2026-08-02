@@ -312,6 +312,7 @@ export const historyDetailResponseSchema = z.object({
   contextDocument: z.string().optional(),
   errors: z.array(historySessionErrorSchema),
   knowledgeItems: z.array(historyKnowledgeItemSchema),
+  processing: sessionProcessingSnapshotSchema.nullable(),
   rewrittenTranscript: z.array(rewrittenTranscriptTurnSchema),
   session: historyDetailSessionSchema,
   transcript: z.array(sessionTurnSchema),

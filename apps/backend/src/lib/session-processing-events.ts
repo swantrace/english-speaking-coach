@@ -2,12 +2,9 @@ import { createSessionProcessingEvent } from "@english-coach/contract/session";
 import type { sessionProcessing } from "@english-coach/database/schema";
 import { pubsubPublisherRedis } from "./redis";
 import { getSessionProcessing, transitionSessionProcessingStage } from "./session-processing";
+import { getSessionProcessingChannel } from "./session-processing-channel";
 
 type SessionProcessingRecord = typeof sessionProcessing.$inferSelect;
-
-export function getSessionProcessingChannel(sessionHistoryId: string) {
-  return `session-processing:${sessionHistoryId}`;
-}
 
 export async function publishSessionProcessingRecord(processing: SessionProcessingRecord) {
   const event = createSessionProcessingEvent(processing);
