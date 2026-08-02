@@ -1,14 +1,32 @@
+import type { SessionProcessingSnapshot } from "@english-coach/contract/session";
 import { Badge, Button } from "@english-coach/ui";
 import { Link } from "@tanstack/react-router";
 import { EmptyState } from "@/components/app/empty-state";
 import type { SessionKnowledgeItemView } from "../types";
 
 interface SessionKnowledgeListProps {
+  error?: string | null;
   items: SessionKnowledgeItemView[];
+  status?: SessionProcessingSnapshot["knowledgeStatus"];
 }
 
-export function SessionKnowledgeList({ items }: SessionKnowledgeListProps) {
+export function SessionKnowledgeList({ error, items, status }: SessionKnowledgeListProps) {
   if (items.length === 0) {
+    if (status === "queued" || status === "processing") {
+      return (
+        <EmptyState
+          description="Reusable language patterns are still being extracted and enriched. Results will appear automatically."
+          title="Knowledge extraction in progress"
+        />
+      );
+    }
+
+    if (status === "failed") {
+      return (
+        <EmptyState description={error ?? "Knowledge extraction could not be completed."} title="Extraction failed" />
+      );
+    }
+
     return (
       <EmptyState
         description="No linked knowledge items were resolved for this session yet, so this section stays empty for now."

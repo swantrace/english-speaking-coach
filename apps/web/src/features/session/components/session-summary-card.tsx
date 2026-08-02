@@ -11,6 +11,9 @@ interface SessionSummaryCardProps {
 
 export function SessionSummaryCard({ session }: SessionSummaryCardProps) {
   const plainContext = session.contextDocument ? stripRichTextToPlainText(session.contextDocument) : null;
+  const analysisStatus = session.processing?.analysisStatus;
+  const analysisPending = analysisStatus === "queued" || analysisStatus === "processing";
+  const analysisFailed = analysisStatus === "failed";
 
   return (
     <div className="space-y-6">
@@ -26,7 +29,17 @@ export function SessionSummaryCard({ session }: SessionSummaryCardProps) {
         description="This learner-facing summary comes from the completed session review payload and stays separate from raw persistence details."
         title="Performance summary"
       >
-        <RichContentViewer content={session.summary.reviewMarkdown} />
+        {analysisPending ? (
+          <p className="rounded-2xl bg-stone-50 px-4 py-5 text-sm leading-7 text-slate-600">
+            Your language review is still being prepared. It will appear here automatically when ready.
+          </p>
+        ) : analysisFailed ? (
+          <p className="rounded-2xl bg-red-50 px-4 py-5 text-sm leading-7 text-red-700">
+            {session.processing?.analysisError ?? "The language review could not be completed."}
+          </p>
+        ) : (
+          <RichContentViewer content={session.summary.reviewMarkdown} />
+        )}
       </PageSection>
 
       {plainContext ? (
