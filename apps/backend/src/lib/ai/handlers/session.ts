@@ -5,6 +5,7 @@ import {
   type LingAnalysisResult,
   lingAnalysisResultSchema,
   type SessionTurn,
+  type SessionType,
 } from "@english-coach/contract/session";
 import { buildInConversationAnalysisPrompt, buildLingAnalysisPrompt } from "@english-coach/prompts";
 import { generateText, Output } from "ai";
@@ -18,12 +19,17 @@ export type IndexedTranscriptTurn = SessionTurn & {
 };
 
 export type GenerateLingAnalysisInput = {
+  sessionType: SessionType;
   turns: SessionTurn[];
 };
 
 export type GenerateInConversationAnalysisInput = {
   indexedTurns: IndexedTranscriptTurn[];
 };
+
+export function normalizeLingAnalysisForSessionType(analysis: LingAnalysisResult, sessionType: SessionType) {
+  return sessionType === "role-play" ? analysis : { ...analysis, rewrittenUserTurns: [] };
+}
 
 const inConversationAnalysisModelOutputSchema = z.object({
   uiPrompts: z
@@ -64,6 +70,7 @@ export function createSessionHandlers(providerId: ProviderId) {
         modelId,
         providerId,
         errorDimensions,
+        sessionType: payload.sessionType,
         turns: payload.turns,
       });
 

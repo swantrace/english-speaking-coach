@@ -100,3 +100,21 @@ export async function persistRewrittenTranscriptTurnsForSession(
 
   await upsertTranscriptRecord({ rewrittenTurns, sessionHistoryId });
 }
+
+export async function replaceRewrittenTranscriptTurnsForSession(
+  sessionHistoryId: string,
+  rewrittenTurns: RewrittenTranscriptTurn[],
+) {
+  const existingTranscript = await readExistingTranscriptRecord(sessionHistoryId);
+
+  if (!existingTranscript) {
+    throw new Error(`Transcript not found for session ${sessionHistoryId}`);
+  }
+
+  await db
+    .update(sessionTranscripts)
+    .set({
+      rewrittenTurns: rewrittenTurns.map((turn) => rewrittenTranscriptTurnSchema.parse(turn)),
+    })
+    .where(eq(sessionTranscripts.sessionHistoryId, sessionHistoryId));
+}

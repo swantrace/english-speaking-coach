@@ -1,3 +1,5 @@
+import type { SessionType } from "@english-coach/contract/session";
+
 export const buildSessionReviewPrompt = () => ({
   system: "You are a helpful assistant for reviewing coaching sessions.",
   prompt: "Review the following coaching session and provide feedback: {input}",
@@ -10,11 +12,13 @@ type PromptModelParams = {
 
 export const buildLingAnalysisPrompt = ({
   errorDimensions,
+  sessionType,
   turns,
 }: {
   errorDimensions: readonly string[];
   modelId?: string;
   providerId?: string;
+  sessionType: SessionType;
   turns: unknown;
 }) => {
   const transcriptTurns = Array.isArray(turns) ? turns : [];
@@ -39,7 +43,9 @@ export const buildLingAnalysisPrompt = ({
     prompt: [
       "[TASK]",
       "Analyze the completed English coaching session transcript.",
-      "Return one combined structured object with learner errors, knowledge occurrences, rewritten user turns, and a markdown review.",
+      sessionType === "role-play"
+        ? "Return one combined structured object with learner errors, knowledge occurrences, rewritten user turns, and a markdown review."
+        : "Return one combined structured object with learner errors, knowledge occurrences, an empty rewrittenUserTurns array, and a markdown review.",
       "",
       "[CONTROLLED VALUES]",
       `Valid error dimensions: ${errorDimensions.join(", ")}`,
@@ -61,8 +67,10 @@ export const buildLingAnalysisPrompt = ({
       "- utterance must be the exact or lightly trimmed phrase from that same transcript turn.",
       "- Prefer meaningful language patterns, not every phrase in the transcript.",
       "- Always include occurrences. If there are no useful occurrences, return occurrences as [].",
-      "- Always include rewrittenUserTurns. If there are no rewrites to suggest, return rewrittenUserTurns as [].",
-      "- Keep rewrites faithful to the learner's intended meaning.",
+      sessionType === "role-play"
+        ? "- Always include rewrittenUserTurns. Rewrite only user turns that would improve the completed role-play. If there are no rewrites to suggest, return rewrittenUserTurns as []."
+        : "- This is a free-form session where the coach may already have corrected the learner in later turns. Always return rewrittenUserTurns as []; do not rewrite or replace any transcript turn.",
+      ...(sessionType === "role-play" ? ["- Keep rewrites faithful to the learner's intended meaning."] : []),
       "- Make the review concise, encouraging, and actionable.",
     ].join("\n\n"),
   };

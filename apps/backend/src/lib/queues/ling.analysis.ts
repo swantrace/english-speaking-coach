@@ -15,9 +15,10 @@ import { type Job, Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getProvider, resolveLingAnalysisModelRoute } from "../ai";
+import { normalizeLingAnalysisForSessionType } from "../ai/handlers/session";
 import { producerRedis, workerRedis } from "../redis";
 import { persistKnowledgeOccurrencesForSession } from "./helpers/knowledge-occurrences.persistence";
-import { persistRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
+import { replaceRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
 import { enqueueKnowledgeOccurrenceEnrichment } from "./knowledge-occurrence.resolve";
 
@@ -31,16 +32,21 @@ export const lingAnalysisQueue = new Queue<{ sessionHistoryId: string }>(lingAna
 const lingAnalysisModelRoute = resolveLingAnalysisModelRoute();
 const sessionAi = getProvider(lingAnalysisModelRoute.providerId).session;
 
-let lingAnalysisGeneratorOverride: ((turns: TranscriptTurns) => Promise<LingAnalysisResult>) | null = null;
+type SessionType = typeof sessionHistory.$inferSelect.sessionType;
+type LingAnalysisGenerator = (turns: TranscriptTurns, sessionType: SessionType) => Promise<LingAnalysisResult>;
 
-async function generateLingAnalysis(sessionHistoryId: string, turns: TranscriptTurns) {
+let lingAnalysisGeneratorOverride: LingAnalysisGenerator | null = null;
+
+async function generateLingAnalysis(sessionHistoryId: string, sessionType: SessionType, turns: TranscriptTurns) {
   if (lingAnalysisGeneratorOverride) {
-    return lingAnalysisResultSchema.parse(await lingAnalysisGeneratorOverride(turns));
+    const analysis = lingAnalysisResultSchema.parse(await lingAnalysisGeneratorOverride(turns, sessionType));
+    return normalizeLingAnalysisForSessionType(analysis, sessionType);
   }
 
   const result = await sessionAi.generateLingAnalysis(
     lingAnalysisModelRoute.modelId,
     {
+      sessionType,
       turns,
     },
     {
@@ -48,10 +54,20 @@ async function generateLingAnalysis(sessionHistoryId: string, turns: TranscriptT
     },
   );
 
-  return lingAnalysisResultSchema.parse(result);
+  return normalizeLingAnalysisForSessionType(lingAnalysisResultSchema.parse(result), sessionType);
 }
 
 export async function processLingAnalysisSession(sessionHistoryId: string) {
+  const [sessionRecord] = await db
+    .select({ sessionType: sessionHistory.sessionType })
+    .from(sessionHistory)
+    .where(eq(sessionHistory.id, sessionHistoryId))
+    .limit(1);
+
+  if (!sessionRecord) {
+    throw new Error(`Session not found for linguistic analysis ${sessionHistoryId}`);
+  }
+
   const [transcriptRecord] = await db
     .select()
     .from(sessionTranscripts)
@@ -62,7 +78,7 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
     throw new Error(`Transcript not found for session ${sessionHistoryId}`);
   }
 
-  const analysis = await generateLingAnalysis(sessionHistoryId, transcriptRecord.turns);
+  const analysis = await generateLingAnalysis(sessionHistoryId, sessionRecord.sessionType, transcriptRecord.turns);
 
   await db.transaction(async (transaction) => {
     await transaction.delete(sessionErrors).where(eq(sessionErrors.sessionHistoryId, sessionHistoryId));
@@ -88,7 +104,7 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
       .where(eq(sessionHistory.id, sessionHistoryId));
   });
 
-  await persistRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
+  await replaceRewrittenTranscriptTurnsForSession(sessionHistoryId, analysis.rewrittenUserTurns);
   const occurrenceIds = await persistKnowledgeOccurrencesForSession(
     sessionHistoryId,
     transcriptRecord.turns,
@@ -126,8 +142,6 @@ lingAnalysisWorker.on("failed", (job, error) => {
   logWorkerFailed(lingAnalysisJobName, job, error);
 });
 
-export function setLingAnalysisGeneratorForTests(
-  generator: ((turns: TranscriptTurns) => Promise<LingAnalysisResult>) | null,
-) {
+export function setLingAnalysisGeneratorForTests(generator: LingAnalysisGenerator | null) {
   lingAnalysisGeneratorOverride = generator;
 }
