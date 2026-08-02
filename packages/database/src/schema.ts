@@ -7,6 +7,7 @@ export * from "./schemas/scenarios";
 export * from "./schemas/session-errors";
 export * from "./schemas/session-history";
 export * from "./schemas/session-knowledge-point-occurrences";
+export * from "./schemas/session-processing";
 export * from "./schemas/session-transcripts";
 export * from "./schemas/submission-jobs";
 export * from "./schemas/submissions";

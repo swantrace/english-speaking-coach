@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { buildInConversationAnalysisPrompt } from "@english-coach/prompts";
-import { normalizeInConversationAnalysisOutput } from "./session";
+import { buildInConversationAnalysisPrompt, buildLingAnalysisPrompt } from "@english-coach/prompts";
+import { normalizeInConversationAnalysisOutput, normalizeLingAnalysisForSessionType } from "./session";
 
 describe("in-conversation structured-output prompt", () => {
   test("explicitly requests JSON for OpenAI-compatible json_object mode", () => {
@@ -75,5 +75,38 @@ describe("normalizeInConversationAnalysisOutput", () => {
         workerFeedbackMessage: "Help the learner self-correct.",
       }),
     ).toThrow();
+  });
+});
+
+describe("post-session linguistic analysis", () => {
+  test("requests rewritten turns only for role-play sessions", () => {
+    const rolePlayPrompt = buildLingAnalysisPrompt({
+      errorDimensions: ["lexical"],
+      sessionType: "role-play",
+      turns: [],
+    }).prompt;
+    const freeFormPrompt = buildLingAnalysisPrompt({
+      errorDimensions: ["lexical"],
+      sessionType: "free-form",
+      turns: [],
+    }).prompt;
+
+    expect(rolePlayPrompt).toContain("Rewrite only user turns");
+    expect(freeFormPrompt).toContain("Always return rewrittenUserTurns as []");
+    expect(freeFormPrompt).toContain("do not rewrite or replace any transcript turn");
+  });
+
+  test("defensively removes rewritten turns from free-form model output", () => {
+    const analysis = {
+      errors: [],
+      occurrences: [],
+      review: "A useful review.",
+      rewrittenUserTurns: [{ text: "A rewritten sentence.", transcriptTurnIndex: 0 }],
+    };
+
+    expect(normalizeLingAnalysisForSessionType(analysis, "free-form").rewrittenUserTurns).toEqual([]);
+    expect(normalizeLingAnalysisForSessionType(analysis, "role-play").rewrittenUserTurns).toEqual(
+      analysis.rewrittenUserTurns,
+    );
   });
 });
