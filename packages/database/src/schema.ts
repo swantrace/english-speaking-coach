@@ -3,6 +3,7 @@ export * from "./schemas/ai-tool-calls";
 export * from "./schemas/auth";
 export * from "./schemas/free-form-contexts";
 export * from "./schemas/knowledge-items";
+export * from "./schemas/media-assets";
 export * from "./schemas/scenarios";
 export * from "./schemas/session-errors";
 export * from "./schemas/session-history";
