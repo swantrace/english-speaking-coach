@@ -8,6 +8,7 @@ describe("session processing event stream", () => {
       analysisStatus: "ready",
       createdAt: "2026-08-01T00:00:00.000Z",
       dialogueAudioError: null,
+      dialogueAudioAssetId: null,
       dialogueAudioStatus: "queued",
       knowledgeError: null,
       knowledgeStatus: "processing",

@@ -16,6 +16,7 @@ import {
 import { type Job, Queue, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import {
+  buildCorrectedDialogueTurns,
   createCartesiaDialogueSynthesizer,
   createPcmSilence,
   DIALOGUE_AUDIO_PAUSE_MS,
@@ -94,16 +95,15 @@ export async function processDialogueAudioSession(
     status: "processing",
   });
 
-  const rewrites = new Map((transcript.rewrittenTurns ?? []).map((turn) => [turn.transcriptTurnIndex, turn.text]));
   const pause = createPcmSilence(DIALOGUE_AUDIO_PAUSE_MS);
   const pcmParts: Buffer[] = [];
+  const correctedTurns = buildCorrectedDialogueTurns(transcript.turns, transcript.rewrittenTurns ?? []);
 
-  for (const [index, turn] of transcript.turns.entries()) {
-    const text = turn.speaker === "user" ? (rewrites.get(index) ?? turn.text) : turn.text;
+  for (const turn of correctedTurns) {
     const voiceId = turn.speaker === "user" ? dependencies.voices.user : dependencies.voices.assistant;
-    const audio = await dependencies.synthesizer.synthesize(text, voiceId);
+    const audio = await dependencies.synthesizer.synthesize(turn.text, voiceId);
     if (audio.byteLength === 0 || audio.byteLength % 2 !== 0) {
-      throw new Error(`Cartesia returned invalid PCM for transcript turn ${index}`);
+      throw new Error(`Cartesia returned invalid PCM for transcript turn ${turn.transcriptTurnIndex}`);
     }
     if (pcmParts.length > 0) {
       pcmParts.push(pause);

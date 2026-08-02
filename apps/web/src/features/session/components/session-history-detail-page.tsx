@@ -4,6 +4,7 @@ import { LoadingState } from "@/components/app/loading-state";
 import { PageSection } from "@/components/app/page-section";
 import { useSessionHistoryDetailQuery } from "../queries";
 import { useSessionProcessingStream } from "../use-session-processing-stream";
+import { DialogueAudioPlayer } from "./dialogue-audio-player";
 import { SessionDetailHeader } from "./session-detail-header";
 import { SessionErrorsList } from "./session-errors-list";
 import { SessionKnowledgeList } from "./session-knowledge-list";
@@ -62,6 +63,15 @@ export function SessionHistoryDetailPage({ sessionId }: SessionHistoryDetailPage
       <SessionProcessingPanel connectionState={processingConnectionState} processing={session.processing} />
 
       <SessionSummaryCard session={session} />
+
+      {session.sessionType === "role-play" ? (
+        <PageSection
+          description="Listen to the complete corrected role-play without storing your original voice recording."
+          title="Corrected conversation"
+        >
+          <DialogueAudioPlayer audio={session.dialogueAudio} processing={session.processing} />
+        </PageSection>
+      ) : null}
 
       <PageSection
         description="The transcript stays learner-readable and switches into a refined comparison view only when a role-play rewrite is available."

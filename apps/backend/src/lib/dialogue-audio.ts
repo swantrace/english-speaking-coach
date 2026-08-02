@@ -9,6 +9,25 @@ export interface DialogueSpeechSynthesizer {
   synthesize(text: string, voiceId: string): Promise<Buffer>;
 }
 
+export interface DialogueTranscriptTurn {
+  speaker: "assistant" | "user";
+  text: string;
+}
+
+export interface DialogueRewrittenTurn {
+  text: string;
+  transcriptTurnIndex: number;
+}
+
+export function buildCorrectedDialogueTurns(turns: DialogueTranscriptTurn[], rewrittenTurns: DialogueRewrittenTurn[]) {
+  const rewrites = new Map(rewrittenTurns.map((turn) => [turn.transcriptTurnIndex, turn.text]));
+  return turns.map((turn, transcriptTurnIndex) => ({
+    speaker: turn.speaker,
+    text: turn.speaker === "user" ? (rewrites.get(transcriptTurnIndex) ?? turn.text) : turn.text,
+    transcriptTurnIndex,
+  }));
+}
+
 function requireEnvironment(name: string) {
   const value = process.env[name]?.trim();
   if (!value) {
