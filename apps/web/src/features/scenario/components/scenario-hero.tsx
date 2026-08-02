@@ -1,4 +1,5 @@
 import { Badge } from "@english-coach/ui";
+import { PrivateMediaImage } from "@/components/media/private-media-image";
 import type { ScenarioDetail } from "../types";
 
 interface ScenarioHeroProps {
@@ -20,9 +21,14 @@ export function ScenarioHero({ scenario }: ScenarioHeroProps) {
         <p className="mt-4 text-sm leading-7 text-slate-600">{scenario.setting}</p>
       </div>
 
-      {scenario.imageUrl ? (
+      {scenario.imageAssetId || scenario.imageUrl ? (
         <div className="overflow-hidden rounded-sm border border-stone-200 bg-white">
-          <img alt={scenario.title} className="h-full w-full object-cover" src={scenario.imageUrl} />
+          <PrivateMediaImage
+            alt={scenario.title}
+            assetId={scenario.imageAssetId}
+            className="h-full w-full object-cover"
+            fallbackUrl={scenario.imageUrl}
+          />
         </div>
       ) : (
         <div className="border-l border-dashed border-stone-300 pl-6">

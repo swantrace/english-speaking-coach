@@ -80,6 +80,7 @@ export interface RolePlayScenarioSideContent {
     optional: boolean;
   }>;
   id: string;
+  imageAssetId: string | null;
   imageUrl: string | null;
   selectedCharacterIndex: SelectedCharacterIndex;
   setting: string;

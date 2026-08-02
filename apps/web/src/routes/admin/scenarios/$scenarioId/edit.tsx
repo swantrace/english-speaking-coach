@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/app/error-state";
 import { LoadingState } from "@/components/app/loading-state";
 import { PageHeader } from "@/components/app/page-header";
 import { normalizeAdminScenarioSearch } from "@/features/scenario/admin-scenario-search";
+import { deleteAdminScenarioImage, uploadAdminScenarioImage } from "@/features/scenario/api";
 import { ScenarioForm } from "@/features/scenario/forms/scenario-form";
 import { mapScenarioDetailToFormValues } from "@/features/scenario/mappers";
 import {
@@ -67,12 +68,17 @@ function RouteComponent() {
               </Button>
             }
             mode="edit"
-            onSubmit={async (values) => {
+            onSubmit={async (values, image) => {
               try {
                 await updateMutation.mutateAsync({
                   scenarioId,
                   values,
                 });
+                if (image.file) {
+                  await uploadAdminScenarioImage(scenarioId, image.file);
+                } else if (image.remove) {
+                  await deleteAdminScenarioImage(scenarioId);
+                }
                 await navigate({ search: normalizeAdminScenarioSearch({}), to: "/admin/scenarios" });
               } catch (error) {
                 throw new Error(createScenarioMutationError(error, "We couldn't save this scenario.").message);

@@ -70,7 +70,7 @@ export function ScenarioFormFields({ control }: ScenarioFormFieldsProps) {
       </FormSection>
 
       <FormSection
-        description="Image support remains intentionally isolated at the form edge so storage wiring can change later."
+        description="Images are stored privately and shown only through short-lived authenticated links."
         title="Cover image"
       >
         <ImageUploadSection control={control} />

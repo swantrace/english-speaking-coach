@@ -11,7 +11,7 @@ interface ScenarioFormProps {
   defaultValues?: ScenarioFormValues;
   deleteAction?: ReactNode;
   mode: "create" | "edit";
-  onSubmit: (values: AdminScenarioWritePayload) => Promise<void>;
+  onSubmit: (values: AdminScenarioWritePayload, image: { file: File | null; remove: boolean }) => Promise<void>;
 }
 
 export function ScenarioForm({ cancelTo, defaultValues, deleteAction, mode, onSubmit }: ScenarioFormProps) {
@@ -21,7 +21,10 @@ export function ScenarioForm({ cancelTo, defaultValues, deleteAction, mode, onSu
     setErrorMessage(null);
 
     try {
-      await onSubmit(mapScenarioFormValuesToAdminPayload(values));
+      await onSubmit(mapScenarioFormValuesToAdminPayload(values), {
+        file: values.imageFile,
+        remove: values.removeImage,
+      });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "We couldn't save this scenario.");
     }

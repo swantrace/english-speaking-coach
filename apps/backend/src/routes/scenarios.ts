@@ -10,11 +10,21 @@ import {
 } from "@english-coach/contract/scenario";
 import { db } from "@english-coach/database";
 import { scenarios } from "@english-coach/database/schema";
+import { getStorageProvider } from "@english-coach/storage";
 import { and, asc, count, desc, eq, like, lt, or } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
 import { getAuthenticatedUser, parseJsonBody } from "../http/context";
 import { requireAdmin } from "../http/guards";
 import { createPageResponse, getPageOffset, normalizePageQuery } from "../http/pagination";
+import { cleanupPrivateMediaAsset } from "../lib/private-media-cleanup";
+
+export interface ScenarioRouteDependencies {
+  cleanupScenarioImage(assetId: string): Promise<unknown>;
+}
+
+const defaultDependencies: ScenarioRouteDependencies = {
+  cleanupScenarioImage: (assetId) => cleanupPrivateMediaAsset(assetId, getStorageProvider()),
+};
 
 const scenarioSortColumnMap = {
   createdAt: scenarios.createdAt,
@@ -83,7 +93,7 @@ async function deleteScenarioRecord(scenarioId: string) {
   return existingScenario;
 }
 
-export function registerScenarioRoutes(app: BackendApp) {
+export function registerScenarioRoutes(app: BackendApp, dependencies: ScenarioRouteDependencies = defaultDependencies) {
   // List approved scenarios available to learners.
   app.get("/api/learner/scenarios", async (context) => {
     const parsedQuery = learnerScenarioListQuerySchema.safeParse(normalizePageQuery(context.req.query()));
@@ -275,6 +285,16 @@ export function registerScenarioRoutes(app: BackendApp) {
       return context.json({ error: "Scenario not found" }, 404);
     }
 
+    if (deletedScenario.imageAssetId) {
+      await dependencies.cleanupScenarioImage(deletedScenario.imageAssetId).catch((error) => {
+        console.error("Failed to clean up deleted scenario image", {
+          assetId: deletedScenario.imageAssetId,
+          error,
+          scenarioId: deletedScenario.id,
+        });
+      });
+    }
+
     return new Response(null, { status: 204 });
   });
 
@@ -306,6 +326,16 @@ export function registerScenarioRoutes(app: BackendApp) {
 
     if (!existingScenario) {
       return context.json({ error: "Scenario not found" }, 404);
+    }
+
+    if (existingScenario.imageAssetId) {
+      await dependencies.cleanupScenarioImage(existingScenario.imageAssetId).catch((error) => {
+        console.error("Failed to clean up deleted scenario image", {
+          assetId: existingScenario.imageAssetId,
+          error,
+          scenarioId: existingScenario.id,
+        });
+      });
     }
 
     return new Response(null, { status: 204 });

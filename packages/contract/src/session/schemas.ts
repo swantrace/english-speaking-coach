@@ -156,6 +156,7 @@ const liveRolePlaySessionBootstrapSchema = z.object({
     characters: z.tuple([liveSessionCharacterSchema, liveSessionCharacterSchema]),
     goals: z.array(liveSessionGoalSchema),
     id: z.string().trim().min(1),
+    imageAssetId: z.string().trim().min(1).nullable(),
     imageUrl: z.string().trim().min(1).nullable(),
     selectedCharacterIndex: z.union([
       z.literal(selectedCharacterIndexValues[0]),

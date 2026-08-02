@@ -148,7 +148,13 @@ const adminScenarioWriteBaseSchema = createInsertSchema(scenarios, {
 }).omit({
   createdAt: true,
   id: true,
+  imageAssetId: true,
   updatedAt: true,
+});
+
+export const scenarioImageUploadResponseSchema = z.object({
+  assetId: z.string().min(1),
+  contentType: z.enum(["image/avif", "image/jpeg", "image/png", "image/webp"]),
 });
 
 export const adminScenarioCreateSchema = adminScenarioWriteBaseSchema;
@@ -233,6 +239,7 @@ export type ScenarioGenerateSubmissionTransportRequest = z.infer<
 >;
 export type AdminScenarioCreate = z.infer<typeof adminScenarioCreateSchema>;
 export type AdminScenarioUpdate = z.infer<typeof adminScenarioUpdateSchema>;
+export type ScenarioImageUploadResponse = z.infer<typeof scenarioImageUploadResponseSchema>;
 export type ScenarioGenerateEventsQuery = z.infer<typeof scenarioGenerateEventsQuerySchema>;
 export type ScenarioGenerateSubmissionResult = z.infer<typeof scenarioGenerateSubmissionResultSchema>;
 export type ScenarioGenerateJobUpdate = z.infer<typeof scenarioGenerateJobUpdateSchema>;

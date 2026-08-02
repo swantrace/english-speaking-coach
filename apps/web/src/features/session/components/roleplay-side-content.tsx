@@ -1,4 +1,5 @@
 import { Badge } from "@english-coach/ui";
+import { PrivateMediaImage } from "@/components/media/private-media-image";
 import type { RolePlayScenarioSideContent, SessionGoalProgress } from "../types";
 
 interface RoleplaySideContentProps {
@@ -15,9 +16,14 @@ export function RoleplaySideContent({ goalProgress, scenario }: RoleplaySideCont
 
   return (
     <div className="space-y-5">
-      {scenario.imageUrl ? (
+      {scenario.imageAssetId || scenario.imageUrl ? (
         <div className="overflow-hidden rounded-[1.5rem] border border-stone-200">
-          <img alt={scenario.title} className="h-52 w-full object-cover" src={scenario.imageUrl} />
+          <PrivateMediaImage
+            alt={scenario.title}
+            assetId={scenario.imageAssetId}
+            className="h-52 w-full object-cover"
+            fallbackUrl={scenario.imageUrl}
+          />
         </div>
       ) : null}
 
