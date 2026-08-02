@@ -1,6 +1,6 @@
 import { mediaAccessResponseSchema } from "@english-coach/contract/media";
 import { db } from "@english-coach/database";
-import { mediaAssets } from "@english-coach/database/schema";
+import { mediaAssets, scenarios } from "@english-coach/database/schema";
 import { getStorageConfig, getStorageProvider } from "@english-coach/storage";
 import { and, eq, isNull } from "drizzle-orm";
 import type { BackendApp } from "../http/context";
@@ -43,7 +43,24 @@ export function registerMediaRoutes(app: BackendApp, dependencies: MediaRouteDep
       ),
     });
 
-    if (!asset || (currentUser.role !== "admin" && asset.userId !== currentUser.id)) {
+    if (!asset) {
+      return context.json({ error: "Media asset not found" }, 404);
+    }
+
+    const isOwnerOrAdmin = currentUser.role === "admin" || asset.userId === currentUser.id;
+    const visibleScenario =
+      asset.kind === "scenario_image"
+        ? await db.query.scenarios.findFirst({
+            columns: { id: true },
+            where: and(
+              eq(scenarios.imageAssetId, asset.id),
+              eq(scenarios.isPendingReview, false),
+              isNull(scenarios.deletedAt),
+            ),
+          })
+        : null;
+
+    if (!isOwnerOrAdmin && !visibleScenario) {
       return context.json({ error: "Media asset not found" }, 404);
     }
 

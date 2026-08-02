@@ -189,6 +189,7 @@ export function registerSessionRoutes(app: BackendApp) {
                 optional: goal.optional ?? false,
               })),
               id: scenarioRecord.id,
+              imageAssetId: scenarioRecord.imageAssetId,
               imageUrl: scenarioRecord.imageUrl,
               selectedCharacterIndex: sessionRecord.selectedCharacterIndex,
               setting: scenarioRecord.setting,

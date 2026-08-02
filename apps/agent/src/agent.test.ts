@@ -65,6 +65,7 @@ const scenario: Scenario = {
   updatedAt: new Date().toISOString(),
   tags: [],
   imageUrl: null,
+  imageAssetId: null,
   deletedAt: null,
 };
 
