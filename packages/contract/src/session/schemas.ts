@@ -56,6 +56,9 @@ export const sessionTypeSchema = z.enum(sessionTypeValues);
 
 export const sessionProcessingEventName = "session-processing";
 export const sessionProcessingUpdatedEventType = "session-processing.updated";
+export const dialogueAudioQueueName = "dialogue-audio.generate";
+export const dialogueAudioJobName = dialogueAudioQueueName;
+export const dialogueAudioJobSchema = z.object({ sessionHistoryId: z.string().min(1) });
 
 export const sessionProcessingSnapshotSchema = createSelectSchema(sessionProcessing);
 
@@ -395,6 +398,7 @@ export type SessionProcessingSnapshot = z.infer<typeof sessionProcessingSnapshot
 export type SessionProcessingEvent = z.infer<typeof sessionProcessingEventSchema>;
 export type SessionTurn = z.infer<typeof sessionTurnSchema>;
 export type RewrittenTranscriptTurn = z.infer<typeof rewrittenTranscriptTurnSchema>;
+export type DialogueAudioJob = z.infer<typeof dialogueAudioJobSchema>;
 export type InConversationUiPrompt = z.infer<typeof inConversationUiPromptSchema>;
 export type SessionKnowledgeOccurrence = z.infer<typeof sessionKnowledgeOccurrenceSchema>;
 export type CreateRolePlaySessionInput = z.infer<typeof createRolePlaySessionInputSchema>;

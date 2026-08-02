@@ -4,6 +4,7 @@ export type {
   CreateRolePlaySessionInput,
   CreateSessionRequest,
   CreateSessionResult,
+  DialogueAudioJob,
   EndSessionResult,
   GoalProgressPacket,
   HistoryDetailResponse,

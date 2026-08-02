@@ -19,6 +19,7 @@ import { normalizeLingAnalysisForSessionType } from "../ai/handlers/session";
 import { producerRedis, workerRedis } from "../redis";
 import { getInitialSessionProcessingStatuses, initializeSessionProcessing } from "../session-processing";
 import { transitionAndPublishSessionProcessingStage } from "../session-processing-events";
+import { enqueueDialogueAudio } from "./dialogue-audio.generate";
 import { persistKnowledgeOccurrencesForSession } from "./helpers/knowledge-occurrences.persistence";
 import { replaceRewrittenTranscriptTurnsForSession } from "./helpers/session-transcripts.persistence";
 import { logWorkerCompleted, logWorkerFailed } from "./helpers/worker-logging";
@@ -170,6 +171,19 @@ export async function processLingAnalysisSession(sessionHistoryId: string) {
         ]
       : []),
   ]);
+
+  if (sessionRecord.sessionType === "role-play") {
+    try {
+      await enqueueDialogueAudio(sessionHistoryId);
+    } catch (error) {
+      await transitionAndPublishSessionProcessingStage({
+        error,
+        sessionHistoryId,
+        stage: "dialogueAudio",
+        status: "failed",
+      });
+    }
+  }
 
   try {
     const occurrenceIds = await persistKnowledgeOccurrencesForSession(
