@@ -4,6 +4,7 @@ import {
   adminScenarioListResponseSchema,
   adminScenarioUpdateSchema,
   scenarioGenerateSubmissionResponseSchema,
+  scenarioImageUploadResponseSchema,
   scenarioPageResponseSchema,
   scenarioSchema,
 } from "@english-coach/contract/scenario";
@@ -40,8 +41,20 @@ const adminScenarioEndpoints = {
   delete: (scenarioId: string) => `/api/admin/scenarios/${scenarioId}`,
   detail: (scenarioId: string) => `/api/scenarios/${scenarioId}`,
   list: "/api/admin/scenarios",
+  image: (scenarioId: string) => `/api/admin/scenarios/${scenarioId}/image`,
   update: (scenarioId: string) => `/api/admin/scenarios/${scenarioId}`,
 } as const;
+
+export async function uploadAdminScenarioImage(scenarioId: string, file: File) {
+  const body = new FormData();
+  body.set("file", file);
+  const response = await apiClient.post(adminScenarioEndpoints.image(scenarioId), body);
+  return scenarioImageUploadResponseSchema.parse(response.data);
+}
+
+export async function deleteAdminScenarioImage(scenarioId: string) {
+  await apiClient.delete(adminScenarioEndpoints.image(scenarioId));
+}
 
 function scenarioMatchesTags(tags: string[], selectedTags: string[]) {
   if (selectedTags.length === 0) {

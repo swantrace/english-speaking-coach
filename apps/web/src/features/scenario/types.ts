@@ -29,6 +29,7 @@ export interface ExampleDialogueTurn {
 export interface ScenarioListItem {
   characterNames: [string, string];
   id: string;
+  imageAssetId: string | null;
   imageUrl: string | null;
   setting: string;
   tags: string[];
@@ -44,6 +45,7 @@ export interface ScenarioDetail {
   };
   goals: ScenarioGoalView[];
   id: string;
+  imageAssetId: string | null;
   imageUrl: string | null;
   setting: string;
   tags: string[];
@@ -117,8 +119,11 @@ export interface ScenarioFormValues {
     intents: string[];
     slots: string[];
   };
+  imageAssetId: string | null;
+  imageFile: File | null;
   imageUrl: string;
   isPendingReview: boolean;
+  removeImage: boolean;
   setting: string;
   tags: string[];
   title: string;
