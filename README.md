@@ -40,17 +40,19 @@ multi-model orchestration, and TypeScript monorepo architecture.
 ## Architecture
 
 ```mermaid
-flowchart LR
-  Browser["React web app"] -->|HTTP / SSE| API["Hono API"]
-  Browser <-->|WebRTC| LK["LiveKit"]
-  Agent["LiveKit voice Agent"] <-->|audio and data| LK
-  Agent -->|internal API| API
-  API --> DB[("Turso / libSQL")]
-  API --> R2[("R2 / MinIO")]
-  API --> Queue[("Upstash / Redis")]
-  Worker["BullMQ worker"] --> Queue
-  Worker --> DB
-  Worker --> Models["OpenAI / Qwen / DeepSeek"]
+graph LR
+  Browser[React web app] -->|HTTP and SSE| API[Hono API]
+  Browser -->|WebRTC| LiveKit[LiveKit]
+  LiveKit -->|WebRTC| Browser
+  Agent[LiveKit voice Agent] -->|Audio and data| LiveKit
+  LiveKit -->|Audio and data| Agent
+  Agent -->|Internal API| API
+  API --> Database[(Turso and libSQL)]
+  API --> Storage[(R2 and MinIO)]
+  API --> Queue[(Upstash and Redis)]
+  Worker[BullMQ worker] --> Queue
+  Worker --> Database
+  Worker --> Models[OpenAI, Qwen, and DeepSeek]
 ```
 
 ## Technology
