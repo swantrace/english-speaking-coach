@@ -10,6 +10,7 @@ import { type Job, Queue, Worker } from "bullmq";
 import { and, eq, isNull } from "drizzle-orm";
 import { type GeneratedKnowledgeItem, getProvider, resolveKnowledgeGenerationModelRoute } from "../ai";
 import { producerRedis, workerRedis } from "../redis";
+import { getSessionProcessing, transitionSessionProcessingStage } from "../session-processing";
 import { findKnowledgeOccurrenceEnrichmentBackfillIds } from "./helpers/knowledge-occurrence.backfill";
 import {
   buildKnowledgeOccurrenceDraftUpdate,
@@ -91,7 +92,7 @@ export async function processKnowledgeOccurrenceEnrichJob(occurrenceId: string) 
     .limit(1);
 
   if (!occurrence || (occurrence.proposedPatternType && occurrence.proposedSenses?.length)) {
-    return { occurrenceId, status: "skipped" as const };
+    return { occurrenceId, sessionHistoryId: occurrence?.sessionHistoryId ?? null, status: "skipped" as const };
   }
 
   const generatedKnowledgeItem = await generateKnowledgeItemFromOccurrence({
@@ -114,13 +115,81 @@ export async function processKnowledgeOccurrenceEnrichJob(occurrenceId: string) 
 
   return {
     occurrenceId: occurrence.id,
+    sessionHistoryId: occurrence.sessionHistoryId,
     status: updatedOccurrences.length > 0 ? ("enriched" as const) : ("skipped" as const),
   };
 }
 
+async function markKnowledgeProcessingReadyIfComplete(sessionHistoryId: string | null) {
+  if (!sessionHistoryId) {
+    return;
+  }
+
+  const processing = await getSessionProcessing(sessionHistoryId);
+
+  if (!processing || processing.knowledgeStatus !== "processing") {
+    return;
+  }
+
+  const [pendingOccurrence] = await db
+    .select({ id: sessionKnowledgePointOccurrences.id })
+    .from(sessionKnowledgePointOccurrences)
+    .where(
+      and(
+        eq(sessionKnowledgePointOccurrences.sessionHistoryId, sessionHistoryId),
+        eq(sessionKnowledgePointOccurrences.status, "proposed"),
+        isNull(sessionKnowledgePointOccurrences.knowledgeItemId),
+        isNull(sessionKnowledgePointOccurrences.proposedSenses),
+      ),
+    )
+    .limit(1);
+
+  if (!pendingOccurrence) {
+    await transitionSessionProcessingStage({ sessionHistoryId, stage: "knowledge", status: "ready" });
+  }
+}
+
+async function markKnowledgeProcessingFailed(occurrenceId: string, error: unknown) {
+  const [occurrence] = await db
+    .select({ sessionHistoryId: sessionKnowledgePointOccurrences.sessionHistoryId })
+    .from(sessionKnowledgePointOccurrences)
+    .where(eq(sessionKnowledgePointOccurrences.id, occurrenceId))
+    .limit(1);
+
+  if (!occurrence) {
+    return;
+  }
+
+  const processing = await getSessionProcessing(occurrence.sessionHistoryId);
+
+  if (!processing || !["queued", "processing"].includes(processing.knowledgeStatus)) {
+    return;
+  }
+
+  await transitionSessionProcessingStage({
+    error,
+    sessionHistoryId: occurrence.sessionHistoryId,
+    stage: "knowledge",
+    status: "failed",
+  });
+}
+
 async function handleKnowledgeOccurrenceEnrichJob(job: Job<KnowledgeOccurrenceEnrichJob>) {
   const { occurrenceId } = knowledgeOccurrenceEnrichJobSchema.parse(job.data);
-  return processKnowledgeOccurrenceEnrichJob(occurrenceId);
+
+  try {
+    const result = await processKnowledgeOccurrenceEnrichJob(occurrenceId);
+    await markKnowledgeProcessingReadyIfComplete(result.sessionHistoryId);
+    return result;
+  } catch (error) {
+    const maxAttempts = job.opts.attempts ?? 1;
+
+    if (job.attemptsMade + 1 >= maxAttempts) {
+      await markKnowledgeProcessingFailed(occurrenceId, error);
+    }
+
+    throw error;
+  }
 }
 
 export const knowledgeOccurrenceEnrichWorker = new Worker<KnowledgeOccurrenceEnrichJob>(

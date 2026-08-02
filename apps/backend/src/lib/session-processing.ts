@@ -1,3 +1,4 @@
+import type { SessionType } from "@english-coach/contract/session";
 import { db } from "@english-coach/database";
 import { type SessionProcessingStatus, sessionProcessing } from "@english-coach/database/schema";
 import { and, eq } from "drizzle-orm";
@@ -6,6 +7,17 @@ export const sessionProcessingStages = ["analysis", "rewrittenTranscript", "dial
 
 export type SessionProcessingStage = (typeof sessionProcessingStages)[number];
 export type SessionProcessingInitialStatuses = Record<SessionProcessingStage, SessionProcessingStatus>;
+
+export function getInitialSessionProcessingStatuses(sessionType: SessionType): SessionProcessingInitialStatuses {
+  const supportsRewrittenDialogue = sessionType === "role-play";
+
+  return {
+    analysis: "queued",
+    dialogueAudio: supportsRewrittenDialogue ? "queued" : "not_applicable",
+    knowledge: "queued",
+    rewrittenTranscript: supportsRewrittenDialogue ? "queued" : "not_applicable",
+  };
+}
 
 const allowedTransitions: Record<SessionProcessingStatus, readonly SessionProcessingStatus[]> = {
   failed: ["failed", "queued", "processing"],

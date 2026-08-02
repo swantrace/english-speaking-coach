@@ -2,7 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { db, migrateDatabase } from "@english-coach/database";
 import { freeFormContexts, sessionHistory, user } from "@english-coach/database/schema";
 import { eq } from "drizzle-orm";
+import { persistSessionCompletion } from "./queues/helpers/session-completion.persistence";
 import {
+  getInitialSessionProcessingStatuses,
   getSessionProcessing,
   initializeSessionProcessing,
   transitionSessionProcessingStage,
@@ -82,6 +84,50 @@ describe("session processing service", () => {
 
     expect(repeated.analysisStatus).toBe("queued");
     expect(await getSessionProcessing(sessionId)).toEqual(repeated);
+  });
+
+  it("assigns rewritten dialogue work only to role-play sessions", () => {
+    expect(getInitialSessionProcessingStatuses("role-play")).toEqual({
+      analysis: "queued",
+      dialogueAudio: "queued",
+      knowledge: "queued",
+      rewrittenTranscript: "queued",
+    });
+    expect(getInitialSessionProcessingStatuses("free-form")).toEqual({
+      analysis: "queued",
+      dialogueAudio: "not_applicable",
+      knowledge: "queued",
+      rewrittenTranscript: "not_applicable",
+    });
+  });
+
+  it("creates the processing snapshot when a session completes", async () => {
+    const completedSessionId = `session-processing-completed-${testRunId}`;
+    const now = new Date().toISOString();
+
+    await db.insert(sessionHistory).values({
+      freeFormContextId: contextId,
+      id: completedSessionId,
+      sessionType: "free-form",
+      startedAt: now,
+      userId,
+    });
+
+    try {
+      await persistSessionCompletion({
+        sessionHistoryId: completedSessionId,
+        transcript: [{ speaker: "user", text: "I would like to practise English.", timestampMs: 0 }],
+      });
+
+      expect(await getSessionProcessing(completedSessionId)).toMatchObject({
+        analysisStatus: "queued",
+        dialogueAudioStatus: "not_applicable",
+        knowledgeStatus: "queued",
+        rewrittenTranscriptStatus: "not_applicable",
+      });
+    } finally {
+      await db.delete(sessionHistory).where(eq(sessionHistory.id, completedSessionId));
+    }
   });
 
   it("tracks failure and clears the error when a stage is retried", async () => {
