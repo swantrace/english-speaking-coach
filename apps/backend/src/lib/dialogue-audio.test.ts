@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { buildCorrectedDialogueTurns, createPcmSilence, getPcmDurationMs, wrapPcmS16LeInWav } from "./dialogue-audio";
+import {
+  buildCorrectedDialogueTurns,
+  createPcmSilence,
+  getPcmDurationMs,
+  isPermanentDialogueAudioError,
+  wrapPcmS16LeInWav,
+} from "./dialogue-audio";
 
 describe("corrected dialogue audio", () => {
   it("replaces only rewritten learner turns", () => {
@@ -30,5 +36,11 @@ describe("corrected dialogue audio", () => {
     expect(wav.readUInt16LE(34)).toBe(16);
     expect(wav.readUInt32LE(40)).toBe(pcm.byteLength);
     expect(wav.byteLength).toBe(pcm.byteLength + 44);
+  });
+
+  it("does not retry permanent storage and quota failures", () => {
+    expect(isPermanentDialogueAudioError({ name: "NoSuchBucket" })).toBe(true);
+    expect(isPermanentDialogueAudioError({ error: { error_code: "quota_exceeded" }, status: 402 })).toBe(true);
+    expect(isPermanentDialogueAudioError(new Error("temporary network failure"))).toBe(false);
   });
 });

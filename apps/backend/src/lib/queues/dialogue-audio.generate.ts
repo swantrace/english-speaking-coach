@@ -13,7 +13,7 @@ import {
   getStorageProvider,
   uploadPrivateMedia,
 } from "@english-coach/storage";
-import { type Job, Queue, Worker } from "bullmq";
+import { type Job, Queue, UnrecoverableError, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import {
   buildCorrectedDialogueTurns,
@@ -23,6 +23,7 @@ import {
   type DialogueSpeechSynthesizer,
   getDialogueAudioVoiceIds,
   getPcmDurationMs,
+  isPermanentDialogueAudioError,
   wrapPcmS16LeInWav,
 } from "../dialogue-audio";
 import { cleanupPrivateMediaAsset } from "../private-media-cleanup";
@@ -88,6 +89,9 @@ export async function processDialogueAudioSession(
   if (!transcript || !processing) {
     throw new Error(`Completed transcript not found for dialogue audio ${sessionHistoryId}`);
   }
+
+  // Validate the bucket before spending credits synthesizing every dialogue turn.
+  await dependencies.storage.list("private/");
 
   await transitionAndPublishSessionProcessingStage({
     sessionHistoryId,
@@ -193,6 +197,9 @@ async function handleDialogueAudioJob(job: Job<DialogueAudioJob>) {
       stage: "dialogueAudio",
       status: "failed",
     }).catch(() => undefined);
+    if (isPermanentDialogueAudioError(error)) {
+      throw new UnrecoverableError(error instanceof Error ? error.message : "Permanent dialogue audio failure");
+    }
     throw error;
   }
 }
