@@ -42,27 +42,34 @@ export class Agent extends voice.Agent {
     const tools =
       config.sessionType === "role-play" && sessionTracker
         ? {
-            detectIntentAndSlot: llm.tool({
+            recordGoalEvidence: llm.tool({
               description:
-                "Call this when the learner makes meaningful progress on the current role-play goal. Use the exact goal intent names and slot names. Extract slot values from the learner's natural wording even when the slot name is not spoken literally. Example: if the learner says 'May I have a cup of mocha?' and the goal requires intent 'orderDrink' plus slot 'drinkType', send intent='orderDrink' and slots={ drinkType: 'mocha' }.",
+                "Immediately call this once before replying whenever the learner's latest turn provides evidence for any active or upcoming role-play goal. Submit one item per matching goal, with all matching required intents and available required slots. Preserve evidence for upcoming goals instead of waiting for them to become active. Use only the exact goal IDs, intent names, and slot names in the instructions.",
               parameters: z.object({
-                intent: z.string().trim().min(1),
-                slots: z.record(z.string(), z.string()).default({}),
+                goalEvidence: z
+                  .array(
+                    z.object({
+                      goalId: z.string().trim().min(1),
+                      intents: z.array(z.string().trim().min(1)).default([]),
+                      slots: z.record(z.string(), z.string()).default({}),
+                    }),
+                  )
+                  .min(1),
               }),
-              execute: async ({ intent, slots }, toolContext) => {
+              execute: async ({ goalEvidence }, toolContext) => {
                 const startedAt = new Date().toISOString();
                 const startedAtMs = Date.now();
-                const toolInput = { intent, slots };
+                const toolInput = { goalEvidence };
 
                 try {
-                  sessionTracker.advance(intent, slots);
+                  sessionTracker.recordEvidence(goalEvidence);
                   await config.publishGoalProgress(sessionTracker.toGoalProgressPacket(this.getLatestUserTurnIndex()));
 
                   if (refreshInstructions) {
                     await refreshInstructions();
                   }
 
-                  const output = sessionTracker.createHint(intent, slots);
+                  const output = sessionTracker.createHint();
 
                   try {
                     await preserveAgentToolCall({
@@ -77,12 +84,12 @@ export class Agent extends voice.Agent {
                       startedAt,
                       status: "completed",
                       toolCallId: toolContext?.toolCallId,
-                      toolName: "detectIntentAndSlot",
+                      toolName: "recordGoalEvidence",
                     });
                   } catch (logError) {
                     logAgentValidationError(
                       {
-                        handler: "detectIntentAndSlot.preserveToolCall",
+                        handler: "recordGoalEvidence.preserveToolCall",
                         sessionHistoryId: config.sessionHistoryId,
                       },
                       logError,
@@ -104,12 +111,12 @@ export class Agent extends voice.Agent {
                       startedAt,
                       status: "failed",
                       toolCallId: toolContext?.toolCallId,
-                      toolName: "detectIntentAndSlot",
+                      toolName: "recordGoalEvidence",
                     });
                   } catch (logError) {
                     logAgentValidationError(
                       {
-                        handler: "detectIntentAndSlot.preserveFailedToolCall",
+                        handler: "recordGoalEvidence.preserveFailedToolCall",
                         sessionHistoryId: config.sessionHistoryId,
                       },
                       logError,

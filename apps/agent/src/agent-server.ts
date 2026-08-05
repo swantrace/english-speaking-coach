@@ -82,7 +82,7 @@ export default defineAgent({
     session.generateReply({
       instructions:
         agent.sessionType === "role-play"
-          ? "Open the role-play in character, reference the scenario naturally, and invite the learner to begin."
+          ? "Open in character with only one or two short spoken sentences. Do not narrate actions or scenery. Ask one natural question that advances the active goal, then let the learner speak."
           : "Greet the learner warmly and invite them to start practicing with the supplied context.",
     });
   },

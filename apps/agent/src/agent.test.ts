@@ -94,6 +94,57 @@ beforeEach(() => {
 });
 
 describe("SessionTracker", () => {
+  it("retains evidence for upcoming goals while an earlier goal is active", () => {
+    const tracker = new SessionTracker(scenario);
+
+    tracker.recordEvidence([
+      {
+        goalId: "ask-for-bill",
+        intents: ["request_bill"],
+        slots: {},
+      },
+    ]);
+
+    expect(tracker.getCompletedGoalIds()).toEqual(["ask-for-bill"]);
+    expect(tracker.toGoalProgressPacket().currentGoalId).toBe("order-dish");
+
+    tracker.recordEvidence([
+      {
+        goalId: "order-dish",
+        intents: ["order_food"],
+        slots: { dish_name: "pasta" },
+      },
+    ]);
+
+    expect(tracker.getCompletedGoalIds()).toEqual(["order-dish", "ask-for-bill"]);
+  });
+
+  it("records multiple intents and slots for one goal in a single evidence batch", () => {
+    const tracker = new SessionTracker(scenario);
+
+    tracker.recordEvidence([
+      {
+        goalId: "order-dish",
+        intents: ["order_food", "unsupported_intent"],
+        slots: { dish_name: "pasta", unsupported_slot: "ignored" },
+      },
+    ]);
+
+    expect(tracker.getCompletedGoalIds()).toEqual(["order-dish"]);
+    expect(tracker.getFilledSlotsForGoal("order-dish")).toEqual({ dish_name: "pasta" });
+  });
+
+  it("ignores unknown goal evidence without discarding valid evidence in the same batch", () => {
+    const tracker = new SessionTracker(scenario);
+
+    tracker.recordEvidence([
+      { goalId: "invented-goal", intents: ["invented_intent"], slots: {} },
+      { goalId: "ask-for-bill", intents: ["request_bill"], slots: {} },
+    ]);
+
+    expect(tracker.getCompletedGoalIds()).toEqual(["ask-for-bill"]);
+  });
+
   it("marks a goal complete when its intent and slots are satisfied", () => {
     const tracker = new SessionTracker(scenario);
 
@@ -130,13 +181,45 @@ describe("SessionTracker", () => {
     );
 
     expect(instructions).toContain("Extract slot values from natural wording");
-    expect(instructions).toContain("[ACTIVE_GOAL]");
+    expect(instructions).toContain("[TRACKABLE_GOALS]");
     expect(instructions).toContain("[TOOL_CALL_RULES]");
     expect(instructions).toContain("[CURRENT_PROGRESS]");
     expect(instructions).toContain("Goal: Order a dish");
     expect(instructions).toContain("Required intents: order_food");
     expect(instructions).toContain("Required slots: dish_name");
     expect(instructions).toContain("May I have a cup of mocha?");
+  });
+
+  it("keeps role-play replies short, spoken, and focused on one goal step", () => {
+    const tracker = new SessionTracker(scenario);
+    const instructions = createRolePlayInstructions(
+      {
+        ...rolePlayBootstrap,
+        publishGoalProgress: async () => {},
+      },
+      tracker,
+    );
+
+    expect(instructions).toContain("one or two short sentences");
+    expect(instructions).toContain("Do not narrate actions");
+    expect(instructions).toContain("Ask at most one question");
+    expect(instructions).toContain("one missing intent or slot at a time");
+  });
+
+  it("requires progress tool calls before the role-play response", () => {
+    const tracker = new SessionTracker(scenario);
+    const instructions = createRolePlayInstructions(
+      {
+        ...rolePlayBootstrap,
+        publishGoalProgress: async () => {},
+      },
+      tracker,
+    );
+
+    expect(instructions).toContain("Before composing every reply");
+    expect(instructions).toContain("call recordGoalEvidence before speaking");
+    expect(instructions).toContain("one evidence item for every matching goal");
+    expect(instructions).toContain("Goal ID: ask-for-bill");
   });
 });
 
