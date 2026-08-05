@@ -1,7 +1,7 @@
 import type { ScenarioCharacter, ScenarioGoal } from "@english-coach/contract/scenario";
 
 type LiveSessionGoal = Pick<ScenarioGoal, "description" | "id" | "logic" | "optional">;
-type ActiveGoalSchemaGoal = Pick<ScenarioGoal, "description" | "logic">;
+type ActiveGoalSchemaGoal = Pick<ScenarioGoal, "description" | "id" | "logic">;
 type LiveSessionCharacter = Pick<ScenarioCharacter, "description" | "name">;
 
 export const buildFreeFormInstructionsPrompt = (context: string) => {
@@ -20,57 +20,49 @@ export const buildLatestWorkerFeedbackPrompt = (message: string) => {
 ${message}`;
 };
 
-export const buildHintSectionPrompt = ({
-  intent,
-  filledSlotSummary,
-  currentGoalDescription,
-  remainingSlots,
-}: {
-  intent: string;
-  filledSlotSummary: string;
-  currentGoalDescription: string;
-  remainingSlots: string[];
-}) => {
-  const intentLine = filledSlotSummary
-    ? `Detected intent: ${intent} with filled slots: ${filledSlotSummary}.`
-    : `Detected intent: ${intent} with no filled slots.`;
-
-  const nextLine =
-    remainingSlots.length > 0
-      ? `Next: guide the learner toward ${remainingSlots.join(", ")}.`
-      : `Next: move the role-play toward goal '${currentGoalDescription}'.`;
-
-  return `${intentLine}\n${nextLine}`;
-};
-
-export const buildExtractionGuidanceSectionPrompt = ({
-  currentGoal,
-}: {
-  currentGoal: Pick<ScenarioGoal, "logic"> | null;
-}) => {
-  return !currentGoal
+export const buildExtractionGuidanceSectionPrompt = ({ hasIncompleteGoals }: { hasIncompleteGoals: boolean }) => {
+  return !hasIncompleteGoals
     ? [
         "All goals are complete.",
         "Do not call the tool again unless the learner clearly restarts or changes the task.",
         "Wrap up naturally in character.",
       ].join("\n")
     : [
-        "Call detectIntentAndSlot when the learner makes meaningful progress on the active goal.",
-        "Use only the exact intent and slot names from [ACTIVE_GOAL].",
+        "Before composing every reply, compare the learner's latest turn with every required intent and slot in [TRACKABLE_GOALS].",
+        "When the latest turn supplies any required evidence, call recordGoalEvidence before speaking; do not postpone tracking until a later turn.",
+        "Submit one evidence item for every matching goal, including upcoming goals, in a single tool call.",
+        "Within each evidence item, include every matching required intent and any available required slots from that learner turn.",
+        "Use only exact goal IDs, intent names, and slot names from [TRACKABLE_GOALS].",
         "Extract slot values from natural wording, even when the learner does not say the slot name directly.",
-        'Example: if [ACTIVE_GOAL] expects intent `orderDrink` and slot `drinkType`, and the learner says "May I have a cup of mocha?", call the tool with intent `orderDrink` and slots { drinkType: "mocha" }.',
+        'Example: if goal `order` expects intent `orderDrink` and slot `drinkType`, and the learner says "May I have a cup of mocha?", submit { goalId: "order", intents: ["orderDrink"], slots: { drinkType: "mocha" } }.',
         "Do not mention intents, slots, tool calls, or progress tracking to the learner.",
       ].join("\n");
 };
 
-export const buildActiveGoalSchemaSectionPrompt = ({ currentGoal }: { currentGoal: ActiveGoalSchemaGoal | null }) => {
-  return !currentGoal
+export const buildActiveGoalSchemaSectionPrompt = ({
+  goals,
+  completedGoalIds,
+  currentGoalId,
+}: {
+  goals: ActiveGoalSchemaGoal[];
+  completedGoalIds: Set<string>;
+  currentGoalId: string | null;
+}) => {
+  const incompleteGoals = goals.filter((goal) => !completedGoalIds.has(goal.id));
+
+  return incompleteGoals.length === 0
     ? "All goals are complete."
-    : [
-        `Goal: ${currentGoal.description}`,
-        `Required intents: ${currentGoal.logic.required_intents.join(", ") || "none"}`,
-        `Required slots: ${currentGoal.logic.required_slots.join(", ") || "none"}`,
-      ].join("\n");
+    : incompleteGoals
+        .map((goal) =>
+          [
+            `Goal ID: ${goal.id}`,
+            `Status: ${goal.id === currentGoalId ? "active" : "upcoming"}`,
+            `Goal: ${goal.description}`,
+            `Required intents: ${goal.logic.required_intents.join(", ") || "none"}`,
+            `Required slots: ${goal.logic.required_slots.join(", ") || "none"}`,
+          ].join("\n"),
+        )
+        .join("\n\n");
 };
 
 export const buildCurrentStatusSectionPrompt = ({
@@ -142,11 +134,17 @@ The learner is playing as ${userCharacter.name}. ${userCharacter.description}
 Scenario setting: ${scenarioSetting}
 
 Stay in character at all times.
-Keep replies natural, concise, and suitable for live voice conversation.
 Help the learner complete the active goal through natural conversation, not by quizzing them mechanically.
 Do not explain the goal system, slots, intents, tool calls, or hidden progress tracking to the learner.
 
-[ACTIVE_GOAL]
+[VOICE_STYLE]
+- Output only what the character says aloud. Do not narrate actions, facial expressions, body language, scenery, or internal thoughts.
+- Usually respond with one or two short sentences and no more than about 35 words.
+- Ask at most one question, then yield the floor.
+- Briefly acknowledge the learner without restating or summarizing their full answer.
+- Sound like spontaneous conversation, not a written story, speech, lesson, or interview.
+
+[TRACKABLE_GOALS]
 ${activeGoalSchema}
 
 [TOOL_CALL_RULES]
@@ -156,8 +154,9 @@ ${extractionGuidance}
 ${currentStatus}
 
 [RESPONSE_POLICY]
-- If the learner gives information needed for the active goal, call the tool before continuing.
-- If required slots remain, naturally guide the learner toward one missing slot at a time.
+- Tool calls required by [TOOL_CALL_RULES] take priority over composing the spoken reply.
+- If the active goal is incomplete, create a natural opportunity for one missing intent or slot at a time.
 - If the active goal is complete, continue smoothly into the next goal.
+- Do not close the conversation while required goals remain incomplete; redirect a premature goodbye with one brief in-character prompt.
 - If all goals are complete, wrap up the role-play naturally in character.`;
 };

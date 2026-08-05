@@ -4,7 +4,6 @@ import {
   buildActiveGoalSchemaSectionPrompt,
   buildCurrentStatusSectionPrompt,
   buildExtractionGuidanceSectionPrompt,
-  buildHintSectionPrompt,
   buildRolePlayInstructionsPrompt,
 } from "@english-coach/prompts";
 import type { RolePlayRuntimeConfig } from "./types";
@@ -13,6 +12,12 @@ type GoalState = {
   filledSlots: Record<string, string>;
   matchedIntents: Set<string>;
 };
+
+export interface GoalEvidence {
+  goalId: string;
+  intents: string[];
+  slots: Record<string, string>;
+}
 
 export class SessionTracker {
   private readonly goalStates = new Map<string, GoalState>();
@@ -32,7 +37,11 @@ export class SessionTracker {
   }
 
   getCompletedGoalIds() {
-    return [...this.completedGoalIds];
+    return this.scenario.goals.goals.filter((goal) => this.completedGoalIds.has(goal.id)).map((goal) => goal.id);
+  }
+
+  getFilledSlotsForGoal(goalId: string) {
+    return { ...(this.goalStates.get(goalId)?.filledSlots ?? {}) };
   }
 
   getFilledSlotsForCurrentGoal() {
@@ -52,67 +61,77 @@ export class SessionTracker {
       return;
     }
 
-    const currentState = this.goalStates.get(currentGoal.id);
+    this.recordEvidence([{ goalId: currentGoal.id, intents: [intent], slots }]);
+  }
 
-    if (!currentState) {
-      throw new Error(`Missing runtime state for goal ${currentGoal.id}`);
-    }
+  recordEvidence(evidenceBatch: GoalEvidence[]) {
+    for (const evidence of evidenceBatch) {
+      const goal = this.scenario.goals.goals.find((candidate) => candidate.id === evidence.goalId);
 
-    if (currentGoal.logic.required_intents.includes(intent)) {
-      currentState.matchedIntents.add(intent);
-    }
-
-    for (const requiredSlot of currentGoal.logic.required_slots) {
-      const candidateValue = slots[requiredSlot]?.trim();
-
-      if (candidateValue) {
-        currentState.filledSlots[requiredSlot] = candidateValue;
+      if (!goal) {
+        continue;
       }
-    }
 
-    const hasRequiredIntents = currentGoal.logic.required_intents.every((requiredIntent) =>
-      currentState.matchedIntents.has(requiredIntent),
-    );
-    const hasRequiredSlots = currentGoal.logic.required_slots.every((requiredSlot) =>
-      Boolean(currentState.filledSlots[requiredSlot]),
-    );
+      const currentState = this.goalStates.get(goal.id);
 
-    if (hasRequiredIntents && hasRequiredSlots) {
-      this.completedGoalIds.add(currentGoal.id);
+      if (!currentState) {
+        throw new Error(`Missing runtime state for goal ${goal.id}`);
+      }
+
+      for (const intent of evidence.intents) {
+        if (goal.logic.required_intents.includes(intent)) {
+          currentState.matchedIntents.add(intent);
+        }
+      }
+
+      for (const requiredSlot of goal.logic.required_slots) {
+        const candidateValue = evidence.slots[requiredSlot]?.trim();
+
+        if (candidateValue) {
+          currentState.filledSlots[requiredSlot] = candidateValue;
+        }
+      }
+
+      const hasRequiredIntents = goal.logic.required_intents.every((requiredIntent) =>
+        currentState.matchedIntents.has(requiredIntent),
+      );
+      const hasRequiredSlots = goal.logic.required_slots.every((requiredSlot) =>
+        Boolean(currentState.filledSlots[requiredSlot]),
+      );
+
+      if (hasRequiredIntents && hasRequiredSlots) {
+        this.completedGoalIds.add(goal.id);
+      }
     }
   }
 
-  createHint(intent: string, slots: Record<string, string>) {
+  createHint(_intent?: string, _slots: Record<string, string> = {}) {
     const currentGoal = this.getCurrentGoal();
 
     if (!currentGoal) {
       return "All scenario goals are complete. Wrap up naturally and close the role-play in character.";
     }
 
-    const filledSlotSummary = Object.entries(slots)
-      .map(([name, value]) => `${name}=${value}`)
-      .join(", ");
     const remainingSlots = currentGoal.logic.required_slots.filter(
       (slot) => !this.getFilledSlotsForCurrentGoal()[slot],
     );
 
-    return buildHintSectionPrompt({
-      currentGoalDescription: currentGoal.description,
-      filledSlotSummary,
-      intent,
-      remainingSlots,
-    });
+    return remainingSlots.length > 0
+      ? `Evidence recorded. Continue toward '${currentGoal.description}' and naturally elicit ${remainingSlots.join(", ")}.`
+      : `Evidence recorded. Continue naturally toward '${currentGoal.description}'.`;
   }
 
   renderExtractionGuidance() {
     return buildExtractionGuidanceSectionPrompt({
-      currentGoal: this.getCurrentGoal(),
+      hasIncompleteGoals: this.getCurrentGoal() !== null,
     });
   }
 
   renderActiveGoalSchema() {
     return buildActiveGoalSchemaSectionPrompt({
-      currentGoal: this.getCurrentGoal(),
+      completedGoalIds: this.completedGoalIds,
+      currentGoalId: this.getCurrentGoal()?.id ?? null,
+      goals: this.scenario.goals.goals,
     });
   }
 

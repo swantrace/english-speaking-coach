@@ -19,6 +19,26 @@ export interface DialogueRewrittenTurn {
   transcriptTurnIndex: number;
 }
 
+export function isPermanentDialogueAudioError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as {
+    $metadata?: { httpStatusCode?: number };
+    error?: { error_code?: string };
+    name?: string;
+    status?: number;
+  };
+
+  return (
+    candidate.name === "NoSuchBucket" ||
+    candidate.status === 402 ||
+    candidate.error?.error_code === "quota_exceeded" ||
+    candidate.$metadata?.httpStatusCode === 404
+  );
+}
+
 export function buildCorrectedDialogueTurns(turns: DialogueTranscriptTurn[], rewrittenTurns: DialogueRewrittenTurn[]) {
   const rewrites = new Map(rewrittenTurns.map((turn) => [turn.transcriptTurnIndex, turn.text]));
   return turns.map((turn, transcriptTurnIndex) => ({

@@ -8,7 +8,7 @@ export const openai = createOpenAI({
 
 export const qwen = createOpenAICompatible({
   name: "qwen",
-  baseURL: process.env.QWEN_BASE_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  baseURL: process.env.QWEN_BASE_URL ?? "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
   apiKey: process.env.QWEN_API_KEY,
   supportsStructuredOutputs: true,
 });
